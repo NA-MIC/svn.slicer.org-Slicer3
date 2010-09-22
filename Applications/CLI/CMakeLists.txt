@@ -501,6 +501,8 @@ include_directories(
   ${MRML_SOURCE_DIR} ${MRML_BINARY_DIR} 
   ${SlicerBaseLogic_SOURCE_DIR}  ${SlicerBaseLogic_BINARY_DIR})
 
+
+
 #####################
 
 set (CLP MultipleModelsExample)
@@ -617,6 +619,28 @@ generateclp(${CLP}_SOURCE ${CLP}.xml ${Slicer3_SOURCE_DIR}/Resources/ITKLogo.h)
 add_executable(${CLP} ${${CLP}_SOURCE})
 slicer3_set_plugins_output_path(${CLP})
 target_link_libraries (${CLP} ITKIO ITKBasicFilters)
+
+#####################
+set (CLP ComputeSUVBodyWeight)
+
+set ( ${CLP}_SOURCE ${CLP}.cxx )
+generateclp(${CLP}_SOURCE ${CLP}.xml ${Slicer3_SOURCE_DIR}/Resources/NAMICLogo.h ${Slicer3_SOURCE_DIR}/Resources/CTSCLogo.h)
+link_directories(${vtkITK_LIB_DIR})
+add_executable(${CLP} ${${CLP}_SOURCE})
+slicer3_set_plugins_output_path(${CLP})
+target_link_libraries (${CLP}
+  vtkITK
+  ModuleDescriptionParser
+  MRML
+  SlicerBaseLogic
+  SlicerBaseCLI
+  )
+include_directories(
+  ${vtkITK_SOURCE_DIR} 
+  ${vtkITK_BINARY_DIR} 
+  ${MRML_SOURCE_DIR} ${MRML_BINARY_DIR} 
+  ${SlicerBaseLogic_SOURCE_DIR}  ${SlicerBaseLogic_BINARY_DIR})
+
 
 #####################
 set (CLP ResampleVolume2)
@@ -792,6 +816,7 @@ if (Slicer3_SOURCE_DIR)
     AffineRegistrationLib
     BSplineDeformableRegistration
     BSplineDeformableRegistrationLib
+    ComputeSUVBodyWeight
     LabelMapSmoothing
     LabelMapSmoothingLib
     ImageLabelCombine
