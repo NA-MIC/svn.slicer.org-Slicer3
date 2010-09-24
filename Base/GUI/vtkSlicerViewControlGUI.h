@@ -266,6 +266,7 @@ class VTK_SLICER_BASE_GUI_EXPORT vtkSlicerViewControlGUI : public vtkSlicerCompo
   /// Methods to update GUI from MRML
   virtual void UpdateViewFromMRML();
   virtual void UpdateSlicesFromMRML();
+  virtual void UpdateAppearanceFromMRML ( );
   virtual void UpdateFromMRML ( );
   virtual void UpdateSceneSnapshotsFromMRML ( );
 

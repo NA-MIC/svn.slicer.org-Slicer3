@@ -686,10 +686,78 @@ void vtkSlicerViewControlGUI::UpdateSliceGUIInteractorStyles ( )
 }
 
 //---------------------------------------------------------------------------
+void vtkSlicerViewControlGUI::UpdateAppearanceFromMRML()
+{
+  vtkMRMLViewNode *vn = this->ViewNode;
+ if ( vn == NULL )
+    {
+    vtkErrorMacro ( "Got NULL ViewNode. Can't update navigation render's appearance." );
+    return;
+    }
+
+  if ( this->VisibilityButton == NULL )
+    {
+    // no need to update its menu...
+    return;
+    }
+  vtkKWMenu *m = this->VisibilityButton->GetMenu();
+  
+ // thing visibility
+ if ( vn->GetFiducialsVisible() != m->GetItemSelectedState("Fiducial points"))
+   {
+   m->SetItemSelectedState ( "Fiducial points", vn->GetFiducialsVisible() );
+   }
+ if ( vn->GetFiducialLabelsVisible() !=m->GetItemSelectedState("Fiducial labels"))
+   {
+   m->SetItemSelectedState ( "Fiducial labels", vn->GetFiducialLabelsVisible() );
+   }
+ if ( vn->GetBoxVisible() !=m->GetItemSelectedState ("3D cube"))
+   {
+   m->SetItemSelectedState ( "3D cube", vn->GetBoxVisible() );
+   }
+ if ( vn->GetAxisLabelsVisible() != m->GetItemSelectedState ("3D axis labels"))
+   {
+   m->SetItemSelectedState ("3D axis labels", vn->GetAxisLabelsVisible() );
+   }
+ 
+ // background color
+  vtkSlicerApplication *app = vtkSlicerApplication::SafeDownCast( this->GetApplication() );
+  if ( !app )
+    {
+    vtkErrorMacro ("ProcessGUIEvents: Got NULL Application" );
+    return;
+    }
+
+ if ( vn->GetBackgroundColor() == app->GetSlicerTheme()->GetSlicerColors()->ViewerBlue )
+   {
+   if (m->GetItemSelectedState ("Light blue background") != 1 )
+     {
+     m->SetItemSelectedState ( "Light blue background", 1 );
+     }
+   }
+ if ( vn->GetBackgroundColor() == app->GetSlicerTheme()->GetSlicerColors()->Black )
+   {
+   if (m->GetItemSelectedState ("Black background") != 1 )
+     {
+     m->SetItemSelectedState ( "Black background", 1 );
+     }
+   }
+ if ( vn->GetBackgroundColor() == app->GetSlicerTheme()->GetSlicerColors()->White )
+   {
+   if (m->GetItemSelectedState ("White background") != 1 )
+     {
+     m->SetItemSelectedState ( "White background", 1 );
+     }
+   }
+}
+
+
+//---------------------------------------------------------------------------
 void vtkSlicerViewControlGUI::UpdateFromMRML()
 {
   this->UpdateSlicesFromMRML();
   this->UpdateSceneSnapshotsFromMRML();
+  this->UpdateAppearanceFromMRML();
   this->RequestNavigationRender ( );
 }
 
@@ -3200,6 +3268,8 @@ void vtkSlicerViewControlGUI::ProcessMRMLEvents ( vtkObject *caller,
       // axis labels, fiducial points, fiducial labels or 3Dcube?
       // does the menu match the node? if not update the menu
       this->MainViewVisibility ( );
+      // if an actor's visibility has changed, update the nav render.
+      this->RequestNavigationRender();
       }
     // render mode changed
     else if ( event == vtkMRMLViewNode::RenderModeEvent )
@@ -3918,6 +3988,14 @@ void vtkSlicerViewControlGUI::BuildGUI ( vtkKWFrame *appF )
       frameM->Delete();
       frameR->Delete();
 
+      // Observe an event that updates the status text during loading of data.
+      vtkIntArray *events = vtkIntArray::New();
+      events->InsertNextValue( vtkMRMLScene::NodeAddedEvent );
+      events->InsertNextValue( vtkMRMLScene::NodeRemovedEvent );
+      events->InsertNextValue( vtkMRMLScene::SceneCloseEvent );
+      events->InsertNextValue( vtkMRMLScene::NewSceneEvent );
+      this->SetAndObserveMRMLSceneEvents (this->MRMLScene, events );
+      events->Delete();
       }
     }
 }
