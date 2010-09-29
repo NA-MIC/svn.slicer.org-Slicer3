@@ -1064,6 +1064,8 @@ void vtkSlicerApplicationGUI::UpdateLayout ( )
 #endif
     this->RepackMainViewer (vtkMRMLLayoutNode::SlicerLayoutInitialView, NULL );
     this->SetCurrentLayout ( vtkMRMLLayoutNode::SlicerLayoutInitialView );
+    //TEST
+    this->ApplicationToolbar->ResumeViewRockOrSpin(mode);
     }
   else if ( target == vtkMRMLLayoutNode::SlicerLayoutConventionalView &&
       this->GetCurrentLayout()!= vtkMRMLLayoutNode::SlicerLayoutConventionalView )
@@ -1073,6 +1075,8 @@ void vtkSlicerApplicationGUI::UpdateLayout ( )
 #endif
     this->RepackMainViewer (vtkMRMLLayoutNode::SlicerLayoutConventionalView, NULL );
     this->SetCurrentLayout ( vtkMRMLLayoutNode::SlicerLayoutConventionalView );
+    //TEST
+    this->ApplicationToolbar->ResumeViewRockOrSpin(mode);
     }
   else if ( target == vtkMRMLLayoutNode::SlicerLayoutDual3DView &&
       this->GetCurrentLayout()!= vtkMRMLLayoutNode::SlicerLayoutDual3DView )
@@ -1082,6 +1086,8 @@ void vtkSlicerApplicationGUI::UpdateLayout ( )
 #endif
     this->RepackMainViewer (vtkMRMLLayoutNode::SlicerLayoutDual3DView, NULL );
     this->SetCurrentLayout ( vtkMRMLLayoutNode::SlicerLayoutDual3DView );
+    //TEST
+    this->ApplicationToolbar->ResumeViewRockOrSpin(mode);
     }
   else if ( target == vtkMRMLLayoutNode::SlicerLayoutOneUp3DView &&
             this->GetCurrentLayout()!= vtkMRMLLayoutNode::SlicerLayoutOneUp3DView )
@@ -1091,6 +1097,8 @@ void vtkSlicerApplicationGUI::UpdateLayout ( )
 #endif
     this->RepackMainViewer ( vtkMRMLLayoutNode::SlicerLayoutOneUp3DView, NULL);
     this->SetCurrentLayout ( vtkMRMLLayoutNode::SlicerLayoutOneUp3DView );
+    //TEST
+    this->ApplicationToolbar->ResumeViewRockOrSpin(mode);
     }
   else if ( target == vtkMRMLLayoutNode::SlicerLayoutFourUpView &&
             this->GetCurrentLayout()!= vtkMRMLLayoutNode::SlicerLayoutFourUpView)
@@ -1100,6 +1108,8 @@ void vtkSlicerApplicationGUI::UpdateLayout ( )
 #endif
     this->RepackMainViewer ( vtkMRMLLayoutNode::SlicerLayoutFourUpView, NULL );
     this->SetCurrentLayout ( vtkMRMLLayoutNode::SlicerLayoutFourUpView );
+    //TEST
+    this->ApplicationToolbar->ResumeViewRockOrSpin(mode);
     }
   else if ( target == vtkMRMLLayoutNode::SlicerLayoutTabbed3DView &&
             this->GetCurrentLayout()!= vtkMRMLLayoutNode::SlicerLayoutTabbed3DView )
@@ -1109,6 +1119,8 @@ void vtkSlicerApplicationGUI::UpdateLayout ( )
 #endif
     this->RepackMainViewer ( vtkMRMLLayoutNode::SlicerLayoutTabbed3DView, NULL );
     this->SetCurrentLayout ( vtkMRMLLayoutNode::SlicerLayoutTabbed3DView );
+    //TEST
+    this->ApplicationToolbar->ResumeViewRockOrSpin(mode);
     }
   else if ( target == vtkMRMLLayoutNode::SlicerLayoutTabbedSliceView &&
             this->GetCurrentLayout()!= vtkMRMLLayoutNode::SlicerLayoutTabbedSliceView )
