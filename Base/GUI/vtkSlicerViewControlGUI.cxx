@@ -774,7 +774,7 @@ void vtkSlicerViewControlGUI::UpdateAppearanceFromMRML()
   vtkSlicerApplication *app = vtkSlicerApplication::SafeDownCast( this->GetApplication() );
   if ( !app )
     {
-    vtkErrorMacro ("ProcessGUIEvents: Got NULL Application" );
+    vtkErrorMacro ("Got NULL Application" );
     return;
     }
 
@@ -789,6 +789,7 @@ void vtkSlicerViewControlGUI::UpdateAppearanceFromMRML()
     return;
     }
 
+  this->MainViewBackgroundColor ( vn->GetBackgroundColor() );
   //
   // Annoyingly, a direct comparison of values is failing
   // out in the wee decimal places. Comparing to the
@@ -1790,6 +1791,8 @@ void vtkSlicerViewControlGUI::ProcessGUIEvents ( vtkObject *caller,
         else if ( vn->GetAnimationMode() == vtkMRMLViewNode::Spin && this->SpinButton->GetSelectedState() == 0 )
           {
           vn->SetAnimationMode( vtkMRMLViewNode::Off );
+          // update the navigation view when spinning stops
+          this->RequestNavigationRender();
           }
         }
     
@@ -1803,6 +1806,8 @@ void vtkSlicerViewControlGUI::ProcessGUIEvents ( vtkObject *caller,
         else if (vn->GetAnimationMode() == vtkMRMLViewNode::Rock && this->RockButton->GetSelectedState() == 0 )
           {
           vn->SetAnimationMode ( vtkMRMLViewNode::Off );
+          // update the navigation view when rocking stops
+          this->RequestNavigationRender();
           }
         }
       }
@@ -2573,7 +2578,6 @@ void vtkSlicerViewControlGUI::MainViewRock ( )
       if ( vn->GetAnimationMode() == vtkMRMLViewNode::Rock )
         {
         this->RockView ( );
-        //this->RequestNavigationRender();
         this->Script ( "update idletasks" );
         this->Script ( "after 5 \"%s MainViewRock \"",  this->GetTclName() );
         }
@@ -2613,7 +2617,8 @@ void vtkSlicerViewControlGUI::RockView ( )
           {
           viewer_widget->GetMainViewer()->GetRenderer()->UpdateLightsGeometryToFollowCamera();
           viewer_widget->RequestRender();
-          this->RequestNavigationRender();
+          // don't rock the view in navigation render for performance reasons.
+//          this->RequestNavigationRender();
           }
         }
       }
@@ -2634,7 +2639,6 @@ void vtkSlicerViewControlGUI::MainViewSpin ( )
       if ( vn->GetAnimationMode() == vtkMRMLViewNode::Spin )
         {
         this->SpinView (vn->GetSpinDirection(), vn->GetSpinDegrees() );
-        //this->RequestNavigationRender();
         this->Script ( "update idletasks" );
         this->Script ( "after 5 \"%s MainViewSpin \"",  this->GetTclName() );
         }
@@ -2683,7 +2687,8 @@ void vtkSlicerViewControlGUI::SpinView ( int dir, double degrees )
           {
           viewer_widget->GetMainViewer()->GetRenderer()->UpdateLightsGeometryToFollowCamera();
           viewer_widget->RequestRender();
-          this->RequestNavigationRender();
+          // don't spin the view in navigation render for performance reasons.
+          //this->RequestNavigationRender();
           }
         }
       }  
@@ -2696,6 +2701,7 @@ void vtkSlicerViewControlGUI::SpinView ( int dir, double degrees )
 //---------------------------------------------------------------------------
 void vtkSlicerViewControlGUI::MainViewBackgroundColor ( double *color )
 {
+
   if ( this->ApplicationGUI )
     {
     vtkSlicerApplicationGUI *p = vtkSlicerApplicationGUI::SafeDownCast( this->GetApplicationGUI ( ));    
@@ -2705,10 +2711,13 @@ void vtkSlicerViewControlGUI::MainViewBackgroundColor ( double *color )
       {
       return;
       }
+    if ( !viewer_widget->GetMainViewer() )
+      {
+      return;
+      }
     viewer_widget->GetMainViewer()->SetRendererBackgroundColor ( color );
-    this->GetNavigationWidget()->SetRendererBackgroundColor ( color );
-    // set axis label colors (prevent white on white)
 
+    // set axis label colors (prevent white on white)
     if ( color[0] == 1.0 && color[1] == 1.0 && color[2] == 1.0 )
       {
       viewer_widget->ColorAxisLabelActors (0.0, 0.0, 0.0 );
@@ -2718,6 +2727,11 @@ void vtkSlicerViewControlGUI::MainViewBackgroundColor ( double *color )
       viewer_widget->ColorAxisLabelActors (1.0, 1.0, 1.0 );
       }
     viewer_widget->UpdateFromMRML();
+    }
+
+  if ( this->GetNavigationWidget())
+    {
+    this->GetNavigationWidget()->SetRendererBackgroundColor ( color );
     }
 }
 
@@ -3351,6 +3365,7 @@ void vtkSlicerViewControlGUI::ProcessMRMLEvents ( vtkObject *caller,
     {
     if ( event == vtkMRMLViewNode::ActiveModifiedEvent )
       {
+      this->MainViewBackgroundColor ( vnode->GetBackgroundColor() );
       this->UpdateAppearanceFromMRML();
       this->UpdateBehaviorFromMRML();
       this->UpdateNavigationViewAppearanceFromMRML();
