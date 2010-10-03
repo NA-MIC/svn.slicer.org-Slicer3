@@ -261,6 +261,7 @@ int WriteVolume( VolumeType::Pointer img, std::string fname )
   imgWriter->SetFileName( fname.c_str() );
   try 
     {
+      imgWriter->SetUseCompression(1);
       imgWriter->Update();
     }
   catch (itk::ExceptionObject &excp)
