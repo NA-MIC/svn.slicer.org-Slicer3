@@ -22,6 +22,7 @@
 #include "vtkMRMLScene.h"
 #include "vtkMRMLTransformableNode.h"
 #include "vtkCamera.h"
+#include "vtkMatrix4x4.h"
 
 class VTK_MRML_EXPORT vtkMRMLCameraNode : public vtkMRMLTransformableNode
 {
