@@ -70,17 +70,20 @@ vtkMRMLCameraNode::vtkMRMLCameraNode()
 
   this->SetAndObserveCamera(camera); 
   camera->Delete();
+
+  this->AppliedTransform = vtkMatrix4x4::New();
  }
 
 //----------------------------------------------------------------------------
 vtkMRMLCameraNode::~vtkMRMLCameraNode()
 {
-  if (this->Camera)
-    {
-    this->Camera->SetUserViewTransform(NULL);
-    }
   this->SetAndObserveCamera(NULL);
   delete [] this->InternalActiveTag;
+
+  if (this->AppliedTransform)
+    {
+    this->AppliedTransform->Delete();
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -115,6 +118,28 @@ void vtkMRMLCameraNode::WriteXML(ostream& of, int nIndent)
     {
     of << indent << " activetag=\"" << this->GetActiveTag() << "\"";
     }
+
+  if (this->GetAppliedTransform()) 
+    {
+    std::stringstream ss;
+    for (int row=0; row<4; row++) 
+      {
+      for (int col=0; col<4; col++) 
+        {
+        ss << this->AppliedTransform->GetElement(row, col);
+        if (!(row==3 && col==3)) 
+          {
+          ss << " ";
+          }
+        }
+      if ( row != 3 )
+        {
+        ss << " ";
+        }
+      }
+    of << indent << " appliedTransform=\"" << ss.str() << "\"";
+    }
+
 }
 
 //----------------------------------------------------------------------------
