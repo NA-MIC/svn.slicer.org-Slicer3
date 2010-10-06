@@ -344,6 +344,7 @@ int main(int argc, char** argv){
     WriterType::Pointer writer = WriterType::New();
     writer->SetInput( cropper->GetOutput() );
     writer->SetFileName( outputImageName.c_str() );
+    writer->SetUseCompression(1);
     writer->Update();
 
     if(outputBiasFieldName != "" ){
@@ -351,6 +352,7 @@ int main(int argc, char** argv){
       WriterType::Pointer writer = WriterType::New();
       writer->SetFileName( outputBiasFieldName.c_str() );
       writer->SetInput( biasFieldCropper->GetOutput() );
+      writer->SetUseCompression(1);
       writer->Update();
     }
   }
