@@ -25,8 +25,10 @@ vtkSlicerToolbarIcons::vtkSlicerToolbarIcons ( )
     this->ChooseLayoutIcon = vtkKWIcon::New ( );
     this->TwinViewIcon = vtkKWIcon::New();
     this->ConventionalViewIcon = vtkKWIcon::New();
+    this->ConventionalWidescreenViewIcon = vtkKWIcon::New();
     this->SideBySideCompareViewIcon = vtkKWIcon::New();
     this->CompareViewIcon = vtkKWIcon::New();
+    this->CompareWidescreenViewIcon = vtkKWIcon::New();
     this->OneUp3DViewIcon = vtkKWIcon::New();
     this->OneUpSliceViewIcon = vtkKWIcon::New();
     this->OneUpRedSliceViewIcon = vtkKWIcon::New();
@@ -141,6 +143,11 @@ vtkSlicerToolbarIcons::~vtkSlicerToolbarIcons ( )
     this->ConventionalViewIcon->Delete ( );
     this->ConventionalViewIcon = NULL;
     }
+  if ( this->ConventionalWidescreenViewIcon )
+    {
+    this->ConventionalWidescreenViewIcon->Delete ( );
+    this->ConventionalWidescreenViewIcon = NULL;
+    }
   if ( this->SideBySideCompareViewIcon )
     {
     this->SideBySideCompareViewIcon->Delete();
@@ -150,6 +157,11 @@ vtkSlicerToolbarIcons::~vtkSlicerToolbarIcons ( )
     {
     this->CompareViewIcon->Delete();
     this->CompareViewIcon = NULL;
+    }
+  if ( this->CompareWidescreenViewIcon )
+    {
+    this->CompareWidescreenViewIcon->Delete();
+    this->CompareWidescreenViewIcon = NULL;
     }
   if ( this->OneUp3DViewIcon )
     {
@@ -379,17 +391,29 @@ void vtkSlicerToolbarIcons::AssignImageDataToIcons ( )
                                           image_ToolbarConventionalView_pixel_size,
                                           image_ToolbarConventionalView_length, 0);
 
+    this->ConventionalWidescreenViewIcon->SetImage( image_ToolbarConventionalWidescreenView,
+                                          image_ToolbarConventionalWidescreenView_width,
+                                          image_ToolbarConventionalWidescreenView_height,
+                                          image_ToolbarConventionalWidescreenView_pixel_size,
+                                          image_ToolbarConventionalWidescreenView_length, 0);
+
     this->ChooseLayoutIcon->SetImage( image_ToolbarChooseView,
                                           image_ToolbarChooseView_width,
                                           image_ToolbarChooseView_height,
                                           image_ToolbarChooseView_pixel_size,
                                           image_ToolbarChooseView_length, 0);
 
-    this->CompareViewIcon->SetImage (image_ToolbarCompareView,
-                                        image_ToolbarCompareView_width,
-                                        image_ToolbarCompareView_height,
-                                        image_ToolbarCompareView_pixel_size,
-                                        image_ToolbarCompareView_length, 0);
+    this->CompareViewIcon->SetImage (image_ToolbarComparisonView,
+                                        image_ToolbarComparisonView_width,
+                                        image_ToolbarComparisonView_height,
+                                        image_ToolbarComparisonView_pixel_size,
+                                        image_ToolbarComparisonView_length, 0);
+
+    this->CompareWidescreenViewIcon->SetImage (image_ToolbarCompareWidescreenView,
+                                        image_ToolbarCompareWidescreenView_width,
+                                        image_ToolbarCompareWidescreenView_height,
+                                        image_ToolbarCompareWidescreenView_pixel_size,
+                                        image_ToolbarCompareWidescreenView_length, 0);
 
     this->SideBySideCompareViewIcon->SetImage (image_ToolbarSideBySideComparisonView,
                                                image_ToolbarSideBySideComparisonView_width,
@@ -569,9 +593,11 @@ void vtkSlicerToolbarIcons::PrintSelf ( ostream& os, vtkIndent indent )
     os << indent << "LoadSceneIcon" << this->GetLoadSceneIcon ( ) << "\n";
     os << indent << "TwinViewIcon" << this->GetTwinViewIcon() << "\n";
     os << indent << "ConventionalViewIcon" << this->GetConventionalViewIcon ( ) << "\n";
+    os << indent << "ConventionalWidescreenViewIcon" << this->GetConventionalWidescreenViewIcon ( ) << "\n";
     os << indent << "ChooseLayoutIcon" << this->GetChooseLayoutIcon ( ) << "\n";
     os << indent << "SideBySideCompareViewIcon" << this->GetSideBySideCompareViewIcon() << "\n";
     os << indent << "CompareViewIcon" << this->GetCompareViewIcon() << "\n";
+    os << indent << "CompareWidescreenViewIcon" << this->GetCompareWidescreenViewIcon() << "\n";
     os << indent << "OneUp3DViewIcon" << this->GetOneUp3DViewIcon ( ) << "\n";
     os << indent << "OneUpSliceViewIcon" << this->GetOneUpSliceViewIcon ( ) << "\n";
     os << indent << "OneUpRedSliceViewIcon" << this->GetOneUpRedSliceViewIcon ( ) << "\n";
