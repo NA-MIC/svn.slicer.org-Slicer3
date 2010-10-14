@@ -697,7 +697,7 @@ GuessRegistrationBackgroundLevel(vtkImageData* imageData)
 // A Slicer3 wrapper around vtkImageReslice.  Reslice the image data
 // from inputVolumeNode into outputVolumeNode with the output image
 // geometry specified by outputVolumeGeometryNode.  Optionally specify
-// a transform.  The reslice transorm will be:
+// a transform.  The reslice transform will be:
 //
 // outputIJK->outputRAS->(outputRASToInputRASTransform)->inputRAS->inputIJK
 //
@@ -1162,41 +1162,51 @@ SlicerBSplineRegister(vtkMRMLVolumeNode* fixedVolumeNode,
   registrator->Delete();
 }
 
-void vtkEMSegmentLogic::StartPreprocessingResampleToTarget(vtkMRMLVolumeNode* movingVolumeNode, vtkMRMLVolumeNode* fixedVolumeNode, vtkMRMLVolumeNode* outputVolumeNode)
+void vtkEMSegmentLogic::StartPreprocessingResampleAndCastToTarget(vtkMRMLVolumeNode* movingVolumeNode, vtkMRMLVolumeNode* fixedVolumeNode, vtkMRMLVolumeNode* outputVolumeNode)
 {
-  if (vtkEMSegmentLogic::IsVolumeGeometryEqual(fixedVolumeNode, outputVolumeNode)) 
+  if (!vtkEMSegmentLogic::IsVolumeGeometryEqual(fixedVolumeNode, outputVolumeNode))
     {
-      return;
+
+      std::cerr << "Warning: Target-to-target registration skipped but "
+                << "target images have differenent geometries. "
+                << std::endl
+                << "Suggestion: If you are not positive that your images are "
+                << "aligned, you should enable target-to-target registration."
+                << std::endl;
+
+      std::cerr << "Fixed Volume Node: " << std::endl;
+      PrintImageInfo(fixedVolumeNode);
+      std::cerr << "Output Volume Node: " << std::endl;
+      PrintImageInfo(outputVolumeNode);
+
+      // std::cerr << "Resampling target image " << i << "...";
+      double backgroundLevel = 0;
+      switch (movingVolumeNode->GetImageData()->GetScalarType())
+        {  
+          vtkTemplateMacro(backgroundLevel = (GuessRegistrationBackgroundLevel<VTK_TT>(movingVolumeNode->GetImageData())););
+        }
+      std::cerr << "   Guessed background level: " << backgroundLevel << std::endl;
+
+      vtkEMSegmentLogic::SlicerImageReslice(movingVolumeNode, 
+                                            outputVolumeNode, 
+                                            fixedVolumeNode,
+                                            NULL,
+                                            vtkEMSegmentMRMLManager::InterpolationLinear,
+                                            backgroundLevel);
     }
 
-  std::cerr << "Warning: Target-to-target registration skipped but "
-        << "target images have differenent geometries. "
-        << std::endl
-        << "Suggestion: If you are not positive that your images are "
-        << "aligned, you should enable target-to-target registration."
-        << std::endl;
-
-  std::cerr << "Fixed Volume Node: " << std::endl;
-  PrintImageInfo(fixedVolumeNode);
-  std::cerr << "Output Volume Node: " << std::endl;
-  PrintImageInfo(outputVolumeNode);
-
-  // std::cerr << "Resampling target image " << i << "...";
-  double backgroundLevel = 0;
-  switch (movingVolumeNode->GetImageData()->GetScalarType())
-    {  
-      vtkTemplateMacro(backgroundLevel = (GuessRegistrationBackgroundLevel<VTK_TT>(movingVolumeNode->GetImageData())););
+  if (fixedVolumeNode->GetImageData()->GetScalarType() != movingVolumeNode->GetImageData()->GetScalarType())
+    {
+      //cast
+      vtkImageCast* cast = vtkImageCast::New();
+      cast->SetInput(outputVolumeNode->GetImageData());
+      cast->SetOutputScalarType(fixedVolumeNode->GetImageData()->GetScalarType());
+      cast->Update();
+      outputVolumeNode->GetImageData()->DeepCopy(cast->GetOutput());
+      cast->Delete();
     }
-  std::cerr << "   Guessed background level: " << backgroundLevel << std::endl;
 
-  vtkEMSegmentLogic::
-    SlicerImageReslice(movingVolumeNode, 
-               outputVolumeNode, 
-               fixedVolumeNode,
-               NULL,
-               vtkEMSegmentMRMLManager::InterpolationLinear,
-               backgroundLevel);        
-  std::cerr << "DONE" << std::endl;
+  std::cout << "Resampling and casting output volume \"" << outputVolumeNode->GetName() << "\" to reference target \"" << fixedVolumeNode->GetName() <<  "\" DONE" << std::endl;
 }
 
 //----------------------------------------------------------------------------
@@ -1364,7 +1374,7 @@ StartPreprocessingTargetToTargetRegistration()
       {
       std::cerr << "  Skipping registration of target image " 
                 << i << "." << std::endl;
-      this->StartPreprocessingResampleToTarget(movingVolumeNode, fixedVolumeNode, outputVolumeNode);
+      this->StartPreprocessingResampleAndCastToTarget(movingVolumeNode, fixedVolumeNode, outputVolumeNode);
       }
     }    
   std::cerr << " EMSEG: Target-to-target registration complete." << std::endl;
@@ -2559,3 +2569,25 @@ void vtkEMSegmentLogic::UpdateIntensityDistributionAuto(vtkKWApplication* app, v
     }
 }
 
+//----------------------------------------------------------------------------
+void  vtkEMSegmentLogic::AutoCorrectSpatialPriorWeight(vtkIdType nodeID)
+{ 
+   unsigned int numChildren = this->MRMLManager->GetTreeNodeNumberOfChildren(nodeID);
+   for (unsigned int i = 0; i < numChildren; ++i)
+    {
+    vtkIdType childID = this->MRMLManager->GetTreeNodeChildNodeID(nodeID, i);
+    bool isLeaf = this->MRMLManager->GetTreeNodeIsLeaf(childID);
+    if (isLeaf)
+      {
+    if ((this->MRMLManager->GetTreeNodeSpatialPriorWeight(childID) > 0.0) && (!this->MRMLManager->GetAlignedSpatialPriorFromTreeNodeID(childID)))
+      {
+        vtkWarningMacro("Class with ID " <<  childID << " is set to 0 bc no atlas assigned to class!" );
+        this->MRMLManager->SetTreeNodeSpatialPriorWeight(childID,0.0);
+      }
+      }
+    else
+      {
+    this->AutoCorrectSpatialPriorWeight(childID);
+      }
+   }
+}
