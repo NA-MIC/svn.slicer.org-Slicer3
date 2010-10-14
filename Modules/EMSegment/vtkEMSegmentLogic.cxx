@@ -1679,13 +1679,13 @@ StartSegmentation()
 }
 
 //----------------------------------------------------------------------------
-void vtkEMSegmentLogic::StartSegmentationWithoutPreprocessing()
+int vtkEMSegmentLogic::StartSegmentationWithoutPreprocessing()
 {
   if (!this->MRMLManager->GetWorkingDataNode()->GetAlignedTargetNodeIsValid() ||
       !this->MRMLManager->GetWorkingDataNode()->GetAlignedAtlasNodeIsValid())
     {
     vtkErrorMacro("Preprocessing pipeline not up to date!  Aborting Segmentation.");
-    return;
+    return EXIT_FAILURE;
     }
 
   //
@@ -1696,14 +1696,14 @@ void vtkEMSegmentLogic::StartSegmentationWithoutPreprocessing()
   if (!this->MRMLManager->GetSegmenterNode())
     {
     vtkErrorMacro("Segmenter node is null---aborting segmentation.");
-    return;
+    return EXIT_FAILURE;
     }
   vtkMRMLScalarVolumeNode *outVolume = 
     this->MRMLManager->GetOutputVolumeNode();
   if (outVolume == NULL)
     {
     vtkErrorMacro("No output volume found---aborting segmentation.");
-    return;
+    return EXIT_FAILURE;
     }
 
   //
@@ -1719,7 +1719,7 @@ void vtkEMSegmentLogic::StartSegmentationWithoutPreprocessing()
   if (inVolume == NULL)
     {
     vtkErrorMacro("Can't get first target image.");
-    return;
+    return EXIT_FAILURE;
     }
 
   outVolume->CopyOrientation(inVolume);
@@ -1732,7 +1732,7 @@ void vtkEMSegmentLogic::StartSegmentationWithoutPreprocessing()
   if (segmenter == NULL)
     {
     vtkErrorMacro("Could not create vtkImageEMLocalSegmenter pointer");
-    return;
+    return EXIT_FAILURE;
     }
 
   //
@@ -1814,6 +1814,7 @@ void vtkEMSegmentLogic::StartSegmentationWithoutPreprocessing()
       vtkErrorMacro("Error writing intermediate results");
       }
     }
+  return EXIT_SUCCESS;
 }
 
 //-----------------------------------------------------------------------------
