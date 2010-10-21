@@ -1038,11 +1038,39 @@ proc launch_ImportModulePaths {} {
 
     set ::globallines ""  ; # reset buffer for global lines
 
-    # run the program with argument --print-module-paths
+    # copy the global arguments to prevent touching them directly
+    set argvCopy $::argv
+
+    #
+    # change from tcl escape to shell escape for command line arguments 
+    # that contain spaces -- note that shell notation only works for a single
+    # level of nesting
+    # - change backslashes to forward slashes (for windows paths)
+    # - escape the spaces in each of the arguments (non-windows only)
+    # - handle any escaped | where the \ was changed to / by mistake
+    #
+    regsub -all "\\\\" $argvCopy "/" argvCopy
+    regsub -all "/\\|" $argvCopy "\\\\|" argvCopy
+    if {$::env(BUILD) != $::WINDOWS} {
+      set newargv ""
+      foreach a $argvCopy {
+          regsub -all " " $a "\\\ " a
+          lappend newargv $a
+      }
+      set argvCopy $newargv
+    }
+
+    if {$::env(BUILD) != $::WINDOWS} {
+      # turn curly braces into quotes
+      regsub -all "{|}" $argvCopy "\\\"" argvCopy
+    }
+
+    # run the program with argument --print-module-paths and also append the other arguments,
+    # just in case if the tmp_dir or config_dir are set
     if {$::env(BUILD) == $::WINDOWS} {
-        set fp [open "| \"$::Slicer3_REAL\" --print-module-paths" r]
+        set fp [open "| \"$::Slicer3_REAL\" --print-module-paths $argvCopy" r]
     } else {
-        set fp [open "| sh -c \"'$::Slicer3_REAL' --print-module-paths \" |& cat" r]
+        set fp [open "| sh -c \"'$::Slicer3_REAL' --print-module-paths $argvCopy\" |& cat" r]
     }
 
     # call the helper but do not pass thru output directly!
@@ -1052,7 +1080,7 @@ proc launch_ImportModulePaths {} {
         vwait ::END
     }
 
-    # we should have the module paths now
+    # we should have the module paths now in ::globallines
 
     # parse the svn revision of the version file
     set dp [open "$::env(Slicer3_HOME)/lib/Slicer3/Slicer3Version.txt" r]
@@ -1060,32 +1088,46 @@ proc launch_ImportModulePaths {} {
     close $dp
 
     set exp {svnrevision ([0-9]+)}
+    if { [regexp -line $exp $data matched svnrevision] != 1 } {
+      puts "Warning: Could not extract svn revision for from Slicer3Version.txt file"
+      return
+    }
 
-    foreach {lines} [regexp -line $exp $data matched svnrevision] {
-        if {$lines==1} {
-            # find only one line
-            # substitute @SVN@ in $result with the found svnrevision
-            set newpath [string map [list \@SVN\@ $svnrevision] $::globallines]
+    # 
+    # find just the line that has the actual path in it the one that contains \@SVN\@
+    # - ignore other lines that might be error messages or diagnotics
+    #
+    set newpath ""
+    foreach line $::globallines {
+      set svntag "@SVN"
+      set svntag "$svntag@"
+      if { [string match "*$svntag*" $line] } {
+          # substitute in svnrevision
+          set newpath [string map [list $svntag $svnrevision] $line]
+          # strip cruft from front of path
+          set newpath [string range $newpath [string first "/" $newpath] end]
         }
     }
-    # set the dependencies
-    if {$::env(BUILD) == $::SOLARIS ||
-        $::env(BUILD) == $::LINUX_64 || 
-        $::env(BUILD) == $::LINUX} {
-      set ::env(LD_LIBRARY_PATH) ":$::env(LD_LIBRARY_PATH)"
-      set ::env(LD_LIBRARY_PATH) "$newpath$::env(LD_LIBRARY_PATH)"
-      set ::env(PATH) "$::env(PATH):$newpath"
-    } elseif {$::env(BUILD) ==  $::DARWIN || $::env(BUILD) == $::DARWIN_X86} { 
-      set ::env(DYLD_LIBRARY_PATH) ":$::env(DYLD_LIBRARY_PATH)"
-      set ::env(DYLD_LIBRARY_PATH) "$newpath$::env(DYLD_LIBRARY_PATH)"
-      set ::env(PATH) "$::env(PATH):$newpath"
-    } elseif {$::env(BUILD) == $::WINDOWS} {
-      set newpath [string map [list : \;] $newpath] ; # really needed?
-      set ::env(Path) $newpath\;$::env(Path)
+
+    if { $newpath != "" } {
+      puts "Adding module path: $newpath"
+      # found a path?  then set the dependencies
+      if {$::env(BUILD) == $::SOLARIS ||
+          $::env(BUILD) == $::LINUX_64 || 
+          $::env(BUILD) == $::LINUX} {
+        set ::env(LD_LIBRARY_PATH) ":$::env(LD_LIBRARY_PATH)"
+        set ::env(LD_LIBRARY_PATH) "$newpath$::env(LD_LIBRARY_PATH)"
+        set ::env(PATH) "$::env(PATH):$newpath"
+      } elseif {$::env(BUILD) ==  $::DARWIN || $::env(BUILD) == $::DARWIN_X86} { 
+        set ::env(DYLD_LIBRARY_PATH) ":$::env(DYLD_LIBRARY_PATH)"
+        set ::env(DYLD_LIBRARY_PATH) "$newpath$::env(DYLD_LIBRARY_PATH)"
+        set ::env(PATH) "$::env(PATH):$newpath"
+      } elseif {$::env(BUILD) == $::WINDOWS} {
+        set newpath [string map [list : \;] $newpath] ; # really needed?
+        set ::env(Path) $newpath\;$::env(Path)
+      }
     }
-
 }
-
 
 ######
 #######  The actual steps for launching:
