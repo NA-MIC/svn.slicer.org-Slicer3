@@ -113,6 +113,21 @@ This work is part of the National Alliance for Medical Image Computing (NAMIC), 
       <description>Input surface to be registered</description>
     </geometry>
 
+    <point multiple="true">
+      <name>inputFiducials</name>
+      <longflag>inputFiducials</longflag>
+      <label>Input Fiducials</label>
+      <description>Input Fiducials</description>
+    </point>
+
+    <boolean>
+      <name>useInputFiducials</name>
+      <longflag>useInputFiducials</longflag>
+      <label>Use input fiducials</label>
+      <description>Use fiducial list as input instead of surface</description>
+      <default>false</default>
+    </boolean>
+
     <geometry>
       <name>targetSurface</name>
       <longflag>targetSurface</longflag>
@@ -143,8 +158,8 @@ This work is part of the National Alliance for Medical Image Computing (NAMIC), 
 """
 
 
-def Execute (inputSurface=None, targetSurface=None, outputSurface=None, \
-            landmarkTransformMode="RigidBody", meanDistanceMode="RMS", \
+def Execute (inputSurface=None, inputFiducials=None, targetSurface=None, outputSurface=None, \
+            useInputFiducials=False, landmarkTransformMode="RigidBody", meanDistanceMode="RMS", \
             maximumNumberOfIterations=50, maximumNumberOfLandmarks=200, \
             startByMatchingCentroids=False, checkMeanDistance=False, maximumMeanDistance=0.01, \
             initialTransform=None, outputTransform=None):
@@ -152,11 +167,23 @@ def Execute (inputSurface=None, targetSurface=None, outputSurface=None, \
     Slicer = __import__("Slicer")
     slicer = Slicer.slicer
     scene = slicer.MRMLScene
-    inputSurface = scene.GetNodeByID(inputSurface)
+    inputPolyData = None
+
+    if useInputFiducials == False:
+        inputSurface = scene.GetNodeByID(inputSurface)
+        inputPolyData = inputSurface.GetPolyData()
+    else:
+        inputPolyData = slicer.vtkPolyData()
+        inputPoints = slicer.vtkPoints()
+        inputPolyData.SetPoints(inputPoints)
+        for fiducial in inputFiducials:
+            inputPoints.InsertNextPoint(*fiducial)
+
+    if inputPoints.GetNumberOfPoints() == 0:
+        return
+        
     targetSurface = scene.GetNodeByID(targetSurface)
     outputSurface = scene.GetNodeByID(outputSurface)
-
-    inputPolyData = inputSurface.GetPolyData()
 
     if initialTransform:
         initialTransform = scene.GetNodeByID(initialTransform)
