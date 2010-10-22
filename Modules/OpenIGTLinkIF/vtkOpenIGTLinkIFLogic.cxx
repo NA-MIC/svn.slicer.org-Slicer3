@@ -878,6 +878,7 @@ vtkMRMLModelNode* vtkOpenIGTLinkIFLogic::SetVisibilityOfLocatorModel(const char*
     this->GetApplicationLogic()->GetMRMLScene()->Modified();
     }
 
+  collection->Delete();
   return locatorModel;
 }
 
