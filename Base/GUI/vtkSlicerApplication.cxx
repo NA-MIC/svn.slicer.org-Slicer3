@@ -271,7 +271,7 @@ vtkSlicerApplication::vtkSlicerApplication ( ) {
 
     // configure the application before creating
     // TODO: set name automatically from VERSION_PATCH or info in Version.txt
-    this->SetName ( "3D Slicer Version 3.6.1" );
+    this->SetName ( "3D Slicer Version 3.6.2" );
 
 #ifdef _WIN32
     vtkKWWin32RegistryHelper *regHelper =
@@ -978,7 +978,10 @@ void vtkSlicerApplication::RestoreApplicationSettingsFromRegistry()
   GetTempPath(vtkKWRegistryHelper::RegistryKeyValueSizeMax,
               this->TemporaryDirectory);
 #else
-  strcpy(this->TemporaryDirectory, "~");
+  if ( !this->TemporaryDirectorySpecified )
+    {
+    strcpy(this->TemporaryDirectory, "~");
+    }
 #endif
 
 

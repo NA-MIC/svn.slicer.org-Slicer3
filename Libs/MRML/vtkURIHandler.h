@@ -52,7 +52,7 @@ class VTK_MRML_EXPORT vtkURIHandler : public vtkObject
   /// can be posted to the user.
   /// NOTE: Subclasses should implement this method.
   virtual const char *CheckServerStatus ( const char *uri ) { return NULL; };
-  
+
 
   /// 
   /// This function writes the downloaded data in a buffered manner
