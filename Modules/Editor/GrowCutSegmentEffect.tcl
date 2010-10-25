@@ -25,39 +25,39 @@ if { [itcl::find class GrowCutSegmentEffect] == "" } {
 
     itcl::class GrowCutSegmentEffect {
 
+  inherit PaintEffect 
 
+  constructor {sliceGUI} {PaintEffect::constructor $sliceGUI} {}
+  destructor {}
+  
+  public variable objectSize 5
+  public variable contrastNoiseRatio 0.8
+  public variable priorStrength 0.003
+  public variable segmented 2
 
-      constructor {sliceGUI} {PaintEffect::constructor $sliceGUI} {}
-      destructor {}
-      
-      public variable objectSize 5
-      public variable contrastNoiseRatio 0.8
-      public variable priorStrength 0.003
-      public variable segmented 2
+  variable _segmentedImage ""
+  variable _gestureImage ""
+  variable _foregroundID ""
+  variable _labelID ""
+  variable _foundPainted 0
+  variable _maxObjectSize 0
+  
+  variable _changedImage 0
+  variable _iterations 0
 
-      variable _segmentedImage ""
-      variable _gestureImage ""
-      variable _foregroundID ""
-      variable _labelID ""
-      variable _foundPainted 0
-      variable _maxObjectSize 0
-      
-      variable _changedImage 0
-      variable _iterations 0
+  variable _imageDimension ""
+  variable _imageSpacing ""
+  variable _activeColoring 0
 
-      variable _imageDimension ""
-      variable _imageSpacing ""
-      variable _activeColoring 0
-
-      method processEvent {{caller ""} {event ""} } {}
-      method buildOptions {} {}
-      method tearDownOptions {} {}
-      method setMRMLDefaults {} {}
-      method updateMRMLFromGUI {} {}
-      method updateGUIFromMRML {} {}
-      method apply {} {} 
-      method initialize {} {}
-    }
+  method processEvent {{caller ""} {event ""} } {}
+  method buildOptions {} {}
+  method tearDownOptions {} {}
+  method setMRMLDefaults {} {}
+  method updateMRMLFromGUI {} {}
+  method updateGUIFromMRML {} {}
+  method apply {} {} 
+  method initialize {} {}
+}
 }
 
 # ------------------------------------------------------------------
@@ -85,6 +85,7 @@ itcl::body GrowCutSegmentEffect::constructor {sliceGUI} {
    puts "max object size $_maxObjectSize $x $y $z"
 
    $this initialize
+  
 }
 
 
@@ -117,6 +118,11 @@ itcl::body GrowCutSegmentEffect::destructor {} {
 
 itcl::body GrowCutSegmentEffect::initialize {} {
     
+    set grabID [$sliceGUI GetGrabID]
+    if { ($grabID != "") && ($grabID != $this) } {
+      return
+    }
+
     set numCnodes [$::slicer3::MRMLScene GetNumberOfNodesByClass "vtkMRMLSliceCompositeNode"]
     set j 0
     set cnode [$::slicer3::MRMLScene GetNthNodeByClass $j "vtkMRMLSliceCompositeNode"]
@@ -134,26 +140,39 @@ itcl::body GrowCutSegmentEffect::initialize {} {
 
     $_segmentedImage SetDimensions $x $y $z
     $_segmentedImage SetExtent [lindex $extent 0] [lindex $extent 1] \
-      [lindex $extent 2] [lindex $extent 3] \
-      [lindex $extent 4] [lindex $extent 5]
+  [lindex $extent 2] [lindex $extent 3] \
+  [lindex $extent 4] [lindex $extent 5]
 
     $_segmentedImage SetOrigin [lindex $origin 0] [lindex $origin 1] [lindex $origin 2]
     $_segmentedImage SetSpacing [lindex $spacing 0] [lindex $spacing 1] [lindex $spacing 2]
-    $_segmentedImage SetScalarType [[$this getInputLabel] GetScalarType]
+    $_segmentedImage SetScalarType [[$this getInputForeground] GetScalarType]
     $_segmentedImage AllocateScalars
-    $_segmentedImage DeepCopy [$this getInputLabel]
+    $_segmentedImage DeepCopy [$this getInputForeground]
 
     $_gestureImage SetDimensions $x $y $z
     $_gestureImage SetExtent [lindex $extent 0] [lindex $extent 1] \
-      [lindex $extent 2] [lindex $extent 3] \
-      [lindex $extent 4] [lindex $extent 5]
+  [lindex $extent 2] [lindex $extent 3] \
+  [lindex $extent 4] [lindex $extent 5]
 
     $_gestureImage SetOrigin [lindex $origin 0] [lindex $origin 1] [lindex $origin 2]
     $_gestureImage SetSpacing [lindex $spacing 0] [lindex $spacing 1] [lindex $spacing 2]
     $_gestureImage SetScalarType [[$this getInputLabel] GetScalarType]
     $_gestureImage AllocateScalars
-    $_gestureImage DeepCopy [$this getInputForeground]
+    $_gestureImage DeepCopy [$this getInputLabel]
 
+  # set range [$_gestureImage GetScalarRange]  
+  # if { [llength $range] == 2 } {
+  #    set maxRange [lindex $range 1]
+  #    puts "range is $range"
+  #    if {$maxRange > 0 } {
+  #        set _foundPainted 1
+  #      }
+  #  }
+  # if { $_foundPainted == 0 } {
+  #   $this setInputImageData $_segmentedImage $_foregroundID
+     #$this setInputImageData $_segmentedImage $_labelID
+
+  # } 
    puts "Done Initializing"
 }
 
@@ -188,19 +207,19 @@ itcl::body GrowCutSegmentEffect::processEvent { {caller ""} {event ""} } {
  set event [$sliceGUI GetCurrentGUIEvent] 
   switch $event {
     "LeftButtonPressEvent" {
-      puts "swapping foreground to gestures..."
-      $this swapInputForegroundLabel $_foregroundID $_labelID
+        # puts "swapping foreground to gestures..."
+        # $this swapInputForegroundLabel $_foregroundID $_labelID
   
-      set _changedImage 1
+        set _changedImage 1
 
-      foreach {x y} [$_interactor GetEventPosition] {}              
-      if { $smudge } {
-        continue
-      } else {
+       foreach {x y} [$_interactor GetEventPosition] {}              
+       if { $smudge } {
+         continue
+       } else {
         set activeColor [EditorGetPaintLabel]
-      }   
-     }
-  }
+         }   
+       }
+    }
 }
 
 
@@ -213,7 +232,6 @@ itcl::body GrowCutSegmentEffect::apply {} {
       return
     }
 
-    #$this swapInputForegroundLabel $_labelID $_foregroundID
     
     if { [$this getInputLabel] == "" || [$this getInputBackground] == "" } {
        $this flashCursor 3
@@ -223,112 +241,88 @@ itcl::body GrowCutSegmentEffect::apply {} {
     puts "Applying to run the Grow Cut Segmentation Algorithm"
 
     if { ![info exists o(growCutFilter)] } {
-      puts "CREATING GROW CUT FILTER "
-      set o(growCutFilter) [vtkNew vtkITKGrowCutSegmentationImageFilter]
+        puts "CREATING GROW CUT FILTER "
+       set o(growCutFilter) [vtkNew vtkITKGrowCutSegmentationImageFilter]
     }
 
    $this setProgressFilter $o(growCutFilter) "GrowCutSegment Filter"
-
+   catch {
    set numCnodes [$::slicer3::MRMLScene GetNumberOfNodesByClass "vtkMRMLScalarVolumeNode"]
    for { set j 0 } { $j < $numCnodes } { incr j } {
     set vnode [$::slicer3::MRMLScene GetNthNodeByClass $j "vtkMRMLScalarVolumeNode"]
     set vID [$vnode GetID]
-    if { $vID == $_labelID } {
+    if { $vID == $_foregroundID } {
+     
       $_segmentedImage DeepCopy [$vnode GetImageData]
     } 
-    if { $vID == $_foregroundID } {
+    if { $vID == $_labelID } {
       $_gestureImage DeepCopy [$vnode GetImageData]
     }
    
    }
-
+   } errCopy
+  if { $errCopy != "" } { puts "error in getting the gesture and segmented images $errCopy" }
    # Handle the logic for switching gestures and label layer here
    #
-   if { $_foundPainted == 0 } {
-      set range [$_gestureImage GetScalarRange]  
-      if { [llength $range] == 2 } {
-         set maxRange [lindex $range]
-         if {$maxRange > 0 } {
-          set _foundPainted 1
-        }
-      }
-      puts "found painted is $_foundPainted"
-      if { $_foundPainted == 0 } {
-        puts "swapping the label and gestureimage.." 
-      
-        set tmpImage [vtkNew vtkImageData]
-        set dim [[$this getInputLabel] GetDimensions]
-        set x [lindex $dim 0]
-        set y [lindex $dim 1]
-        set z [lindex $dim 2]
-
-        set extent [[$this getInputLabel] GetExtent]
-        set origin [[$this getInputLabel] GetOrigin]
-        set spacing [[$this getInputLabel] GetSpacing]
-        $tmpImage SetDimensions $x $y $z
-        $tmpImage SetExtent [lindex $extent 0] [lindex $extent 1] \
-            [lindex $extent 2] [lindex $extent 3] \
-            [lindex $extent 4] [lindex $extent 5]
-
-       $tmpImage SetOrigin [lindex $origin 0] [lindex $origin 1] [lindex $origin 2]
-       $tmpImage SetSpacing [lindex $spacing 0] [lindex $spacing 1] [lindex $spacing 2]
-       $tmpImage SetScalarType [[$this getInputLabel] GetScalarType]
-       $tmpImage AllocateScalars
-
-       $tmpImage DeepCopy $_segmentedImage
-       $_segmentedImage DeepCopy $_gestureImage
-       $_gestureImage DeepCopy $tmpImage
-       
-       #$this setInputImageData $_gestureImage $_foregroundID
-      # $this setInputImageData $_segmentedImage $_labelID
-
-        #$_gestureImage DeepCopy [$this getInputForeground]
-        #$_segmentedImage DeepCopy [$this getInputLabel] 
-     
-        $o(growCutFilter) SetInput 1 $tmpImage 
-        $o(growCutFilter) SetInput 2 $_segmentedImage 
-       #set _foundPainted 1
-    } 
-  } else {
+  # set range [$_gestureImage GetScalarRange]  
+  # if { [llength $range] == 2 } {
+  #    set maxRange [lindex $range 1]
+  #    puts "range is $range"
+  #    if {$maxRange > 0 } {
+  #        set _foundPainted 1
+  #      }
+  #  }
+  # set lrange [$_segmentedImage GetScalarRange]
+  # puts "segmented image range $lrange"
+  #  puts "found painted is $_foundPainted"
+  #  catch {
+  #  if { $_foundPainted == 0 } {
+  #      puts "swapping the label and gestureimage.." 
+  #    
+  #      $this swapInputForegroundLabel $_foregroundID $_labelID  
+  #      $_gestureImage DeepCopy [$this getInputForeground]
+  #      $_segmentedImage DeepCopy [$this getInputLabel] 
+  #   
+  #      #set _foundPainted 1
+  #  }
     $o(growCutFilter) SetInput 1 $_gestureImage 
     $o(growCutFilter) SetInput 2 $_segmentedImage 
-  }
-  puts "setting inputs for the grow cut filter ... "
-  $o(growCutFilter) SetInput 0 [$this getInputBackground] 
-  scan [$_gestureImage GetSpacing] "%f %f %f" dx dy dz
-  set voxelvolume [expr $dx * $dy * $dz]
-  set conversion 1000
-  set voxelamt [expr $objectSize / $voxelvolume]
-  set voxelnumber [expr round($voxelamt) * $conversion]
-
-# $_segmentedImage DeepCopy [$this getInputLabel]
-# $_gestureImage DeepCopy [$this getInputForeground] 
-  
-  #set voxelnumber [ConversiontoVoxels $this $objectSize]
-  set cubeIndex [expr 1.0/3.0]
-  
-  set oSize [expr round([expr pow($voxelnumber,$cubeIndex)] )]
-  
-  $o(growCutFilter) SetObjectSize $oSize
-  $o(growCutFilter) SetContrastNoiseRatio $contrastNoiseRatio
-  #$o(growCutFilter) SetGestureColors $gestureColors
-  $o(growCutFilter) SetPriorSegmentConfidence  $priorStrength 
-  $o(growCutFilter) SetNumberOfThreads 1 
-  puts "updating grow cut filter "
-  $o(growCutFilter) Update
-  $_segmentedImage DeepCopy [$o(growCutFilter) GetOutput]
-  # $_layers(label,node) SetAndObserveImageData [$o(growCutFilter) GetOutput]
-  # $_layers(label,node) Modified
-  $this setInputImageData $_segmentedImage $_labelID
-  if { $_foundPainted == 0 } {
-    $this setInputImageData $_gestureImage $_foregroundID
-    set _foundPainted 1
-  } 
-#    $_layers(label,node) SetAndObserveImageData [$o(growCutFilter) GetOutput]
-#    $_layers(label,node) Modified
-  puts "done grow cut..."
     
-  $this swapInputForegroundLabel $_labelID $_foregroundID
+   #} errSwap
+  # if {$errSwap != "" } { puts "error in the SWAPPING LOGIC $errSwap" }
+    puts "setting inputs for the grow cut filter ... "
+    $o(growCutFilter) SetInput 0 [$this getInputBackground] 
+    scan [$_gestureImage GetSpacing] "%f %f %f" dx dy dz
+    set voxelvolume [expr $dx * $dy * $dz]
+    set conversion 1000
+    set voxelamt [expr $objectSize / $voxelvolume]
+    set voxelnumber [expr round($voxelamt) * $conversion]
+ 
+  # $_segmentedImage DeepCopy [$this getInputLabel]
+  # $_gestureImage DeepCopy [$this getInputForeground] 
+    
+    #set voxelnumber [ConversiontoVoxels $this $objectSize]
+    set cubeIndex [expr 1.0/3.0]
+    
+    set oSize [expr round([expr pow($voxelnumber,$cubeIndex)] )]
+    
+    $o(growCutFilter) SetObjectSize $oSize
+    $o(growCutFilter) SetContrastNoiseRatio $contrastNoiseRatio
+    #$o(growCutFilter) SetGestureColors $gestureColors
+    $o(growCutFilter) SetPriorSegmentConfidence  $priorStrength 
+    $o(growCutFilter) SetNumberOfThreads 1 
+    puts "updating grow cut filter "
+    $o(growCutFilter) Update
+   #if {$_foundPainted == 0 } {
+   #     $this setInputImageData $_gestureImage $_foregroundID
+   #}
+   $_segmentedImage DeepCopy [$o(growCutFilter) GetOutput]
+
+   $this setInputImageData $_segmentedImage $_foregroundID
+   #$this swapInputForegroundLabel $_labelID $_foregroundID
+
+   puts "done grow cut..."
+  
 }
 
 
@@ -450,12 +444,12 @@ itcl::body GrowCutSegmentEffect::buildOptions {} {
   #
   # an apply button
   #
-  set o(apply) [vtkNew vtkKWPushButton]
-  $o(apply) SetParent [$this getOptionsFrame]
-  $o(apply) Create
-  $o(apply) SetText "Apply"
-  $o(apply) SetBalloonHelpString "Apply to run segmentation.\n Use the 'a' hotkey to apply segmentation"
-  pack [$o(apply) GetWidgetName] \
+   set o(apply) [vtkNew vtkKWPushButton]
+   $o(apply) SetParent [$this getOptionsFrame]
+   $o(apply) Create
+   $o(apply) SetText "Apply"
+   $o(apply) SetBalloonHelpString "Apply to run segmentation.\n Use the 'a' hotkey to apply segmentation"
+   pack [$o(apply) GetWidgetName] \
       -side right -anchor e -padx 2 -pady 2 
 
   #
@@ -516,12 +510,12 @@ itcl::body GrowCutSegmentEffect::tearDownOptions { } {
 
   foreach w "help cancel apply" {
       if { [info exists o($w)] } {
-        $o($w) SetParent ""
-        pack forget [$o($w) GetWidgetName] 
+    $o($w) SetParent ""
+    pack forget [$o($w) GetWidgetName] 
       }
   }
 #  if { $swapped == 1 } {
-    $this swapInputForegroundLabel $_labelID $_foregroundID
+   # $this swapInputForegroundLabel $_foregroundID $_labelID
 #  }
 }
 
@@ -579,10 +573,10 @@ itcl::body GrowCutSegmentEffect::setMRMLDefaults { } {
       #overlay 0
       segmented 2
     } {
-      set pvalue [$node GetParameter Paint,$param] 
-      if { $pvalue == "" } {
-          $node SetParameter GrowCutSegment,$param $default
-      }
+        set pvalue [$node GetParameter Paint,$param] 
+ if { $pvalue == "" } {
+     $node SetParameter GrowCutSegment,$param $default
+ }
     }
 
    # $node SetParameter "GrowCutSegment,objectSize" 100 
