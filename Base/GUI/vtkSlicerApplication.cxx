@@ -1029,7 +1029,12 @@ void vtkSlicerApplication::RestoreApplicationSettingsFromRegistry()
     }
 
   //--- Set up the cache directory -- use the temporary directory initially.
-  strcpy ( this->RemoteCacheDirectory, this->TemporaryDirectory);
+//  strcpy ( this->RemoteCacheDirectory, this->TemporaryDirectory);
+
+  std::string cacheString;
+  cacheString = this->TemporaryDirectory;
+  cacheString += "/RemoteIO";
+  strcpy ( this->RemoteCacheDirectory, cacheString.c_str() );
 
   //--- web browser
   // start with no browser...
