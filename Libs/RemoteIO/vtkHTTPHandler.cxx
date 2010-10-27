@@ -177,7 +177,7 @@ void vtkHTTPHandler::StageFileRead(const char * source, const char * destination
 //  curl_easy_setopt(this->CurlHandle, CURLOPT_PROGRESSFUNCTION, ProgressCallback);
 
   // quick timeout during connection phase if URL is not accessible (e.g. blocked by a firewall)
-  curl_easy_setopt(this->CurlHandle, CURLOPT_CONNECTTIMEOUT, 3); // in seconds (type long)
+  curl_easy_setopt(this->CurlHandle, CURLOPT_CONNECTTIMEOUT, 5); // in seconds (type long)
 
   vtkDebugMacro("StageFileRead: about to do the curl download... source = " << source << ", dest = " << destination);
   CURLcode retval = curl_easy_perform(this->CurlHandle);
@@ -298,8 +298,8 @@ const char *vtkHTTPHandler::CheckServerStatus ( const char *uri )
   curl_easy_setopt(this->CurlHandle, CURLOPT_FOLLOWLOCATION, true);
   curl_easy_setopt(this->CurlHandle, CURLOPT_HEADER, true);
   curl_easy_setopt(this->CurlHandle, CURLOPT_NOBODY, true);  
-  curl_easy_setopt(this->CurlHandle, CURLOPT_CONNECTTIMEOUT, 10 );
-  curl_easy_setopt(this->CurlHandle, CURLOPT_TIMEOUT, 20 );
+  curl_easy_setopt(this->CurlHandle, CURLOPT_CONNECTTIMEOUT, 30 );
+  curl_easy_setopt(this->CurlHandle, CURLOPT_TIMEOUT, 30 );
   retval = curl_easy_perform(this->CurlHandle);
 
 /*
