@@ -58,7 +58,7 @@ bool vtkFetchMIWebServicesClientXND::CheckConnectionAndServer ( )
     {
     if ( this->FetchMINode != NULL )
       {
-      this->FetchMINode->SetErrorMessage (errorString );
+      this->FetchMINode->SetErrorMessage ("Transfer library error: network connection or server unavailable." );
       this->FetchMINode->InvokeEvent ( vtkMRMLFetchMINode::RemoteIOErrorEvent );
       }
     }
