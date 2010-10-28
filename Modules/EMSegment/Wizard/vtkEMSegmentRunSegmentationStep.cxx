@@ -695,7 +695,7 @@ void vtkEMSegmentRunSegmentationStep::StartSegmentationCallback()
     return;
     }
 
-  // Compute Number of Trainig Samples if they are not set
+  // Compute Number of Training Samples if they are not set
   if (this->GetGUI()->GetMRMLManager()->GetAtlasNumberOfTrainingSamples() <= 0 )
     {
       this->GetGUI()->GetMRMLManager()->ComputeAtlasNumberOfTrainingSamples();
@@ -711,19 +711,20 @@ void vtkEMSegmentRunSegmentationStep::StartSegmentationCallback()
   progress->Create();
   progress->SetMessageText("Please wait until segmentation has been finished.");
   progress->Display();
-  int returnCode = logic->StartSegmentationWithoutPreprocessing();
+  int returnCode = logic->StartSegmentationWithoutPreprocessing(vtkSlicerApplication::SafeDownCast(this->GetGUI()->GetApplication()),this->GetGUI()->GetApplicationLogic());
   progress->SetParent(NULL);
   progress->Delete();
 
-  if (returnCode != EXIT_SUCCESS)
+  std::string error_msg = logic->GetErrorMessage();
+  if (returnCode != EXIT_SUCCESS || error_msg.size() > 0)
     {
     vtkKWMessageDialog::PopupMessage(this->GetApplication(), NULL,
-      "Error", "Segmentation did not execute correctly",
+      "Segmentation Error", error_msg.c_str(),
       vtkKWMessageDialog::WarningIcon | vtkKWMessageDialog::InvokeAtPointer
     );
     cerr << "Pre-processing did not execute correctly" << endl;
     return;
-  }
+    }
 
   // display Results 
   vtkSlicerApplicationGUI *applicationGUI  = this->GetGUI()->GetApplicationGUI();

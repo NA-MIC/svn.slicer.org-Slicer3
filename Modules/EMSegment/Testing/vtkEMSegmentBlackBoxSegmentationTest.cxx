@@ -148,7 +148,7 @@ int main(int argc, char** argv)
   try
   {
     std::cerr << "Starting segmentation..." << std::endl;
-    emLogic->StartSegmentation();
+    emLogic->StartSegmentation(NULL,NULL);
   }
   catch (...)
   {
@@ -159,7 +159,6 @@ int main(int argc, char** argv)
     mrmlScene->Delete();
     emLogic->SetAndObserveMRMLScene(NULL);
     emLogic->Delete();
-
     return EXIT_FAILURE;
   }
 

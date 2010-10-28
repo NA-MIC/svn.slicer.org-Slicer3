@@ -11,7 +11,7 @@ class vtkImageEMLocalSuperClass;
 class vtkImageEMLocalClass;
 class vtkSlicerApplication;
 class vtkKWApplication;
-
+class vtkDataIOManagerLogic;
 class vtkGridTransform;
 
 class VTK_EMSEGMENT_EXPORT vtkEMSegmentLogic : 
@@ -30,7 +30,7 @@ public:
   //
   // actions
   //
-  virtual bool      SaveIntermediateResults();
+  virtual bool      SaveIntermediateResults(vtkSlicerApplication* app, vtkSlicerApplicationLogic *appLogic);
 
   // Old Pipeline
   virtual bool      StartPreprocessing();
@@ -38,13 +38,13 @@ public:
   virtual bool      StartPreprocessingTargetIntensityNormalization();
   virtual bool      StartPreprocessingTargetToTargetRegistration();
   virtual bool      StartPreprocessingAtlasToTargetRegistration();
-  virtual void      StartSegmentation();
+  virtual void      StartSegmentation(vtkSlicerApplication* app,vtkSlicerApplicationLogic *appLogic);
 
   // New Pipeline
   virtual int       SourceTclFile(vtkSlicerApplication*app,const char *tclFile);
   virtual int       SourceTaskFiles(vtkSlicerApplication* app);
   virtual int       SourcePreprocessingTclFiles(vtkSlicerApplication* app); 
-  virtual int       StartSegmentationWithoutPreprocessing();
+  virtual int       StartSegmentationWithoutPreprocessing(vtkSlicerApplication* app,vtkSlicerApplicationLogic *appLogic);
   int               ComputeIntensityDistributionsFromSpatialPrior(vtkKWApplication* app);
 
 
@@ -71,7 +71,7 @@ public:
   //
   // MRML Related Methods.  The collection of MRML nodes for the
   // EMSegmenter is complicated.  Therefore, the management of these
-  // nodes are delagated to the vtkEMSegmentMRMLManager class.
+  // nodes are delegated to the vtkEMSegmentMRMLManager class.
   vtkGetObjectMacro(MRMLManager, vtkEMSegmentMRMLManager);
 
   //
@@ -152,6 +152,18 @@ public:
   void DefineValidSegmentationBoundary(); 
   void AutoCorrectSpatialPriorWeight(vtkIdType nodeID);
 
+  //BTX
+  std::string GetErrorMessage() {return this->ErrorMsg;}
+  //ETX 
+
+
+  // copy all nodes relating to the EMSegmenter into newScene
+  // and write to file 
+  virtual bool PackageAndWriteData(vtkSlicerApplication* app, vtkSlicerApplicationLogic *appLogic, const char* packageDirectoryName);
+
+  void AddDataIOToScene(vtkMRMLScene* mrmlScene, vtkSlicerApplication *app, vtkSlicerApplicationLogic *appLogic,  vtkDataIOManagerLogic *dataIOManagerLogic);
+  void RemoveDataIOFromScene(vtkMRMLScene* mrmlScene, vtkDataIOManagerLogic *dataIOManagerLogic);
+
 private:
   vtkEMSegmentLogic();
   ~vtkEMSegmentLogic();
@@ -195,12 +207,21 @@ private:
                                            vtkIdType nodeID);  
 
   //
-  // convienience methods for translating enums between algorithm and
+  // convenience methods for translating enums between algorithm and
   // this module
   virtual int
     ConvertGUIEnumToAlgorithmEnumStoppingConditionType(int guiEnumValue);
   virtual int
     ConvertGUIEnumToAlgorithmEnumInterpolationType(int guiEnumValue);
+
+
+  //
+  // functions for packaging and writing intermediate results
+  virtual void CreatePackageFilenames(vtkMRMLScene* scene, 
+                                      const char* packageDirectoryName);
+  virtual bool CreatePackageDirectories(const char* packageDirectoryName);
+  virtual bool WritePackagedScene(vtkMRMLScene* scene);
+
 
   // not currently used
   vtkSetStringMacro(ProgressCurrentAction);
@@ -222,6 +243,9 @@ private:
   char*  ProgressCurrentAction;
   double ProgressGlobalFractionCompleted;
   double ProgressCurrentFractionCompleted;
+  //BTX
+  std::string ErrorMsg; 
+  //ETX
 };
 
 #endif
