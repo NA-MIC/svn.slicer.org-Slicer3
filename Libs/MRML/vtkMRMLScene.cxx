@@ -754,7 +754,7 @@ int vtkMRMLScene::Import()
       }
 
 
-    // fix node refrences that may be not unique in the imported scene.
+    // fix node references that may be not unique in the imported scene.
     this->UpdateNodeReferences(scene);
 
     this->RemoveReservedIDs();
@@ -2615,10 +2615,18 @@ GetReferencedSubScene(vtkMRMLNode *rnode, vtkMRMLScene* newScene)
   this->CopyRegisteredNodesToScene(newScene);
   newScene->SetSceneXMLString(this->GetSceneXMLString());
   newScene->SetLoadFromXMLString(1);
+
+  std::string url = std::string(newScene->GetURL());
+  std::string root = std::string(newScene->GetRootDirectory());
+  newScene->SetURL(this->GetURL());
+  newScene->SetRootDirectory(this->GetRootDirectory());
+
   newScene->Connect();
 
   this->SetSaveToXMLString(0);
   newScene->SetLoadFromXMLString(0);
+  newScene->SetURL(url.c_str());
+  newScene->SetRootDirectory(root.c_str());
 
   // 
   // get all nodes associated with this node
