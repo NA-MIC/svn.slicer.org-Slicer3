@@ -48,7 +48,7 @@ public:
   virtual void ProcessMRMLEvents ( vtkObject *caller, unsigned long event,
                                    void *callData );
 
-  void CreateTemplateFile();
+  void CreateTemplateFile(const char* TemporaryCacheDirectory);
 
   //
   // functions for getting and setting the current template builder
@@ -467,6 +467,8 @@ public:
   virtual void     ResetTreeNodeDistributionLogMeanCorrection(vtkIdType nodeID); 
 
   void ResetTreeNodeDistributionLogCovarianceCorrection(vtkIdType nodeID); 
+  // Resets the LogCovariance of the entire tree
+  void ResetLogCovarianceCorrectionOfAllNodes();
   void SetTreeNodeDistributionLogCovarianceWithCorrection(vtkIdType nodeID, int rowIndex, int columnIndex, double value);
 
   //
@@ -593,7 +595,7 @@ public:
 
   void  SetTreeNodeDistributionLogCovarianceOffDiagonal(vtkIdType nodeID, double value);
 
-  virtual void CopyEMRelatedNodesToMRMLScene(vtkMRMLScene* newScene);
+  virtual void CopyEMRelatedNodesToMRMLScene(vtkMRMLScene* newScene, const char* TemporaryCacheDirectory);
 
 
 
@@ -683,6 +685,10 @@ private:
                                                         int rowIndex,
                                                         int columnIndex);
   int TreeNodeDistributionLogCovarianceCorrectionEnabled(vtkIdType nodeID);
+
+  // Reset the correction of the node as well as subtree 
+  void ResetLogCovarianceCorrectionsOfAllNodes(vtkIdType rootID);
+
   //ETX
 
 };

@@ -311,8 +311,8 @@ void vtkEMSegmentRunSegmentationStep::ShowUserInterface()
       GetWidget()->SetCommand(this, "SaveIntermediateCallback");
     }
 
-  this->Script(
-    "pack %s -side top -anchor nw -padx 2 -pady 2", this->RunSegmentationSaveIntermediateCheckButton->GetWidgetName());
+  // TODO: Uncomment the call to activate this check button
+  // this->Script("pack %s -side top -anchor nw -padx 2 -pady 2", this->RunSegmentationSaveIntermediateCheckButton->GetWidgetName());
 
   this->RunSegmentationSaveIntermediateCheckButton->
     GetWidget()->SetSelectedState(
@@ -333,7 +333,8 @@ void vtkEMSegmentRunSegmentationStep::ShowUserInterface()
       this->RunSegmentationDirectorySubFrame->Create();
     }
 
-  this->Script("pack %s -side top -anchor nw -fill x -padx 0 -pady 0", this->RunSegmentationDirectorySubFrame->GetWidgetName());
+  // TODO: Uncomment the call to activate this frame
+  // this->Script("pack %s -side top -anchor nw -fill x -padx 0 -pady 0", this->RunSegmentationDirectorySubFrame->GetWidgetName());
 
 
   if (!this->RunSegmentationDirectoryLabel)
@@ -346,9 +347,11 @@ void vtkEMSegmentRunSegmentationStep::ShowUserInterface()
     this->RunSegmentationDirectoryLabel->SetParent(this->RunSegmentationDirectorySubFrame);
     this->RunSegmentationDirectoryLabel->Create();
     this->RunSegmentationDirectoryLabel->SetWidth(EMSEG_WIDGETS_LABEL_WIDTH);
-    this->RunSegmentationDirectoryLabel->SetText("Select Working Directory: ");
+    this->RunSegmentationDirectoryLabel->SetText("Select Intermediate Directory: ");
     }
-  this->Script( "pack %s -side left -anchor nw -padx 2 -pady 2", this->RunSegmentationDirectoryLabel->GetWidgetName());
+
+  // TODO: Uncomment the call to activate this label
+  // this->Script( "pack %s -side left -anchor nw -padx 2 -pady 2", this->RunSegmentationDirectoryLabel->GetWidgetName());
 
   if (!this->RunSegmentationDirectoryButton)
     {
@@ -362,7 +365,7 @@ void vtkEMSegmentRunSegmentationStep::ShowUserInterface()
       vtkKWIcon::IconFolderOpen);
     this->RunSegmentationDirectoryButton->TrimPathFromFileNameOn();
     this->RunSegmentationDirectoryButton->SetBalloonHelpString(
-      "Select the working directory");
+      "Select the directory where the intermediate results should be saved in");
     this->RunSegmentationDirectoryButton->SetCommand(
       this, "SelectDirectoryCallback");
     this->RunSegmentationDirectoryButton->GetLoadSaveDialog()->ChooseDirectoryOn();
@@ -387,7 +390,9 @@ void vtkEMSegmentRunSegmentationStep::ShowUserInterface()
   this->RunSegmentationDirectoryButton->SetEnabled(
     mrmlManager->HasGlobalParametersNode() ? enabled : 0);
 
-  this->Script("pack %s -side left -anchor nw -fill x -padx 2 -pady 2", this->RunSegmentationDirectoryButton->GetWidgetName());
+
+  // TODO: Uncomment the call to activate this button
+  // this->Script("pack %s -side left -anchor nw -fill x -padx 2 -pady 2", this->RunSegmentationDirectoryButton->GetWidgetName());
 
 
   // Create the run frame
@@ -536,7 +541,8 @@ void vtkEMSegmentRunSegmentationStep::SelectTemplateFileCallback()
    if (mrmlManager)
         {
           mrmlManager->SetSaveTemplateFilename(filename.c_str());
-          mrmlManager->CreateTemplateFile();
+          vtkSlicerApplication *app = vtkSlicerApplication::SafeDownCast(this->GetGUI()->GetApplication());
+          mrmlManager->CreateTemplateFile(app->GetTemporaryDirectory());
         }
 }
 
@@ -685,7 +691,7 @@ void vtkEMSegmentRunSegmentationStep::StartSegmentationCallback()
     std::string errorMessage = 
       "Scalar type mismatch for input images; all image scalar types must be "
       "the same (including input channels and aligned/resampled/casted atlas images).";
-
+    vtkErrorMacro(<< errorMessage);
     vtkKWMessageDialog::PopupMessage(this->GetApplication(),
                                      NULL,
                                      "Input Image Error",
@@ -695,6 +701,31 @@ void vtkEMSegmentRunSegmentationStep::StartSegmentationCallback()
     return;
     }
 
+
+  if (mrmlManager->GetSaveIntermediateResults() && (!mrmlManager->GetSaveWorkingDirectory() || !vtksys::SystemTools::FileExists(mrmlManager->GetSaveWorkingDirectory())))  
+   {
+     std::string errorMessage = 
+       "Saving Intermediate Results is turned on but " ;
+     if (!mrmlManager->GetSaveWorkingDirectory() || !strcmp(mrmlManager->GetSaveWorkingDirectory(),"NULL")) 
+      {
+      errorMessage += "no intermediate directory is selected!";
+      }
+     else
+       {
+     errorMessage += "the intermediate directory " + std::string(mrmlManager->GetSaveWorkingDirectory()) + " does not exist!";
+       }
+
+     vtkErrorMacro(<< errorMessage);
+     vtkKWMessageDialog::PopupMessage(this->GetApplication(),
+                                     NULL,
+                                     "Save Intermediate Result Error",
+                                     errorMessage.c_str(),
+                                     vtkKWMessageDialog::ErrorIcon | 
+                                     vtkKWMessageDialog::InvokeAtPointer);    
+     
+    return;
+
+    }
   // Compute Number of Training Samples if they are not set
   if (this->GetGUI()->GetMRMLManager()->GetAtlasNumberOfTrainingSamples() <= 0 )
     {
@@ -722,7 +753,7 @@ void vtkEMSegmentRunSegmentationStep::StartSegmentationCallback()
       "Segmentation Error", error_msg.c_str(),
       vtkKWMessageDialog::WarningIcon | vtkKWMessageDialog::InvokeAtPointer
     );
-    cerr << "Pre-processing did not execute correctly" << endl;
+    vtkErrorMacro(<< "Segmentation did not execute correctly"); 
     return;
     }
 

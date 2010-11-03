@@ -364,7 +364,7 @@ namespace eval EMSegmenterPreProcessingTcl {
                     $fixedRASToMovingRASTransform Delete;
                 } else {
                     # Using BRAINS suite
-                    set transformNode [BRAINSRegistration $fixedVolumeNode $movingVolumeNode $outVolumeNode $backgroundLevel "CenterOfHeadAlign Rigid" 0]
+                    set transformNode [BRAINSRegistration $fixedVolumeNode $movingVolumeNode $outVolumeNode $backgroundLevel "Rigid" 0]
                     if { $transformNode == "" } {
                         PrintError "Transform node is null"
                         return 1
@@ -673,6 +673,57 @@ namespace eval EMSegmenterPreProcessingTcl {
         return 0
     }
 
+    proc CMTKResampleCLI { inputVolumeNode referenceVolumeNode outVolumeNode transformDirName } {
+        variable SCENE
+        variable LOGIC
+        $LOGIC PrintText "TCL: =========================================="
+        $LOGIC PrintText "TCL: == Resample Image CLI : CMTKResampleCLI "
+        $LOGIC PrintText "TCL: =========================================="
+
+
+        set CMD "[$::slicer3::Application GetExtensionsInstallPath]"
+        set svnrevision [$::slicer3::Application GetSvnRevision]
+        if { $svnrevision == "" } {
+            set CMD "$CMD/15383"
+        } else {
+            set CMD "$CMD/$svnrevision"
+        }
+        set CMD "$CMD/CMTK4Slicer/warp"
+
+        set bgValue 0
+        set CMD "$CMD -v --linear --pad-out $bgValue"
+
+
+        set outVolumeFileName [CreateTemporaryFileName $outVolumeNode]
+        if { $outVolumeFileName == "" } { return 1 }
+        set CMD "$CMD -o $outVolumeFileName"
+
+        set tmpFileName [WriteDataToTemporaryDir $inputVolumeNode Volume]
+        set RemoveFiles "$tmpFileName"
+        if { $tmpFileName == "" } {
+            return 1
+        }
+        set CMD "$CMD --floating $tmpFileName"
+
+        set tmpFileName [WriteDataToTemporaryDir $referenceVolumeNode Volume]
+        set RemoveFiles "$RemoveFiles $tmpFileName"
+        if { $tmpFileName == "" } { return 1 }
+        set CMD "$CMD $tmpFileName"
+
+        set CMD "$CMD $transformDirName"
+
+        $LOGIC PrintText "TCL: Executing $CMD"
+        catch { eval exec $CMD } errmsg
+        $LOGIC PrintText "TCL: $errmsg"
+
+
+        # Write results back to scene
+        # This does not work $::slicer3::ApplicationLogic RequestReadData [$outVolumeNode GetID] $outVolumeFileName 0 1
+        ReadDataFromDisk $outVolumeNode $outVolumeFileName Volume
+        file delete -force $outVolumeFileName
+
+        return 0
+    }
 
 
     proc WaitForDataToBeRead { } {
@@ -894,7 +945,7 @@ namespace eval EMSegmenterPreProcessingTcl {
         # Filter options - just set it here to make sure that if default values are changed this still works as it supposed to
         set CMD "$CMD --backgroundFillValue $backgroundLevel"
         set CMD "$CMD --interpolationMode Linear"
-        set CMD "$CMD --maskProcessingMode  ROIAUTO --ROIAutoDilateSize 3.0 --maskInferiorCutOffFromCenter 500.0 "
+        set CMD "$CMD --maskProcessingMode  ROIAUTO --ROIAutoDilateSize 3.0 --maskInferiorCutOffFromCenter 65.0 --initializeTransformMode useCenterOfHeadAlign"
 
         # might be still wrong
         foreach TYPE $RegistrationType {
@@ -907,7 +958,7 @@ namespace eval EMSegmenterPreProcessingTcl {
             set CMD "$CMD --numberOfSamples 10000"
         }
 
-        set CMD "$CMD --numberOfIterations 1500 --minimumStepSize 0.005 --translationScale 1000.0 --reproportionScale 1.0 --skewScale 1.0 --splineGridSize 14,10,12 --fixedVolumeTimeIndex 0 --movingVolumeTimeIndex 0 --medianFilterSize 0,0,0 --numberOfHistogramBins 50 --numberOfMatchPoints 10 --useCachingOfBSplineWeightsMode ON --useExplicitPDFDerivativesMode AUTO --relaxationFactor 0.5 --maximumStepSize 0.2 --failureExitCode -1 --debugNumberOfThreads -1 --debugLevel 0 --costFunctionConvergenceFactor 1e+9 --projectedGradientTolerance 1e-5"
+        set CMD "$CMD --numberOfIterations 1500 --minimumStepLength 0.005 --translationScale 1000.0 --reproportionScale 1.0 --skewScale 1.0 --splineGridSize 14,10,12 --fixedVolumeTimeIndex 0 --movingVolumeTimeIndex 0 --medianFilterSize 0,0,0 --numberOfHistogramBins 50 --numberOfMatchPoints 10 --useCachingOfBSplineWeightsMode ON --useExplicitPDFDerivativesMode AUTO --relaxationFactor 0.5 --maximumStepLength 0.2 --failureExitCode -1 --debugNumberOfThreads -1 --debugLevel 0 --costFunctionConvergenceFactor 1e+9 --projectedGradientTolerance 1e-5 --costMetric MMI"
 
         $LOGIC PrintText "TCL: Executing $CMD"
         catch { eval exec $CMD } errmsg
@@ -951,6 +1002,167 @@ namespace eval EMSegmenterPreProcessingTcl {
 
         # return ID or ""
         return [$SCENE GetNodeByID $transID]
+    }
+
+    proc CMTKRegistration { fixedVolumeNode movingVolumeNode outVolumeNode backgroundLevel bSplineFlag fastFlag} {
+        variable SCENE
+        variable LOGIC
+        variable GUI
+        $LOGIC PrintText "TCL: =========================================="
+        $LOGIC PrintText "TCL: == Image Alignment CommandLine: $bSplineFlag "
+        $LOGIC PrintText "TCL: =========================================="
+
+        ## check arguments
+
+        if { $fixedVolumeNode == "" || [$fixedVolumeNode GetImageData] == "" } {
+            PrintError "CMTKRegistration: fixed volume node not correctly defined"
+            return ""
+        }
+
+        if { $movingVolumeNode == "" || [$movingVolumeNode GetImageData] == "" } {
+            PrintError "CMTKRegistration: moving volume node not correctly defined"
+            return ""
+        }
+
+        if { $outVolumeNode == "" } {
+            PrintError "CMTKRegistration: output volume node not correctly defined"
+            return ""
+        }
+
+        set fixedVolumeFileName [WriteDataToTemporaryDir $fixedVolumeNode Volume]
+        if { $fixedVolumeFileName == "" } {
+            # remove files
+            return ""
+        }
+        set RemoveFiles "$fixedVolumeFileName"
+
+
+        set movingVolumeFileName [WriteDataToTemporaryDir $movingVolumeNode Volume]
+        if { $movingVolumeFileName == "" } {
+            #remove files
+            return ""
+        }
+        set RemoveFiles "$RemoveFiles $movingVolumeFileName"
+
+
+        set outVolumeFileName [CreateTemporaryFileName $outVolumeNode]
+        if { $outVolumeFileName == "" } {
+            #remove files
+            return ""
+        }
+        set RemoveFiles "$RemoveFiles $outVolumeFileName"
+
+
+        ## CMTK specific arguments
+
+        set CMD "[$::slicer3::Application GetExtensionsInstallPath]"
+        set svnrevision [$::slicer3::Application GetSvnRevision]
+        if { $svnrevision == "" } {
+            set CMD "$CMD/15383"
+        } else {
+            set CMD "$CMD/$svnrevision"
+        }
+        set CMD "$CMD/CMTK4Slicer/registration "
+
+        set CMD "$CMD --verbose --initxlate --exploration 8.0 --dofs 6 --dofs 9"
+
+        if {$fastFlag} {
+            set CMD "$CMD --accuracy 0.5"
+        } else {
+            set CMD "$CMD --accuracy 0.1"
+        }
+
+#        # Write Parameters
+#        set fixedVolume [$fixedVolumeNode GetImageData]
+#        set scalarType [$fixedVolume GetScalarTypeAsString]
+#        switch -exact "$scalarType" {
+#            "bit" { set CMD "$CMD --outputVolumePixelType binary" }
+#            "unsigned char" { set CMD "$CMD --outputVolumePixelType uchar" }
+#            "unsigned short" { set CMD "$CMD --outputVolumePixelType ushort" }
+#            "unsigned int" { set CMD "$CMD --outputVolumePixelType uint" }
+#            "short" -
+#            "int" -
+#            "float" { set CMD "$CMD --outputVolumePixelType $scalarType" }
+#            default {
+#                PrintError "CMTKRegistration: cannot resample a volume of type $scalarType"
+#                return ""
+#            }
+#        }
+
+        set outLinearTransformDirName /tmp/affine.xform
+        set outTransformDirName $outLinearTransformDirName
+
+        set CMD "$CMD -o $outLinearTransformDirName"
+        set CMD "$CMD --write-reformatted $outVolumeFileName"
+        set CMD "$CMD $fixedVolumeFileName"
+        set CMD "$CMD $movingVolumeFileName"
+
+
+        ## execute affine registration
+
+        $LOGIC PrintText "TCL: Executing $CMD"
+        catch { eval exec $CMD } errmsg
+        $LOGIC PrintText "TCL: $errmsg"
+
+        if { $bSplineFlag } {
+
+            set CMD "[$::slicer3::Application GetExtensionsInstallPath]"
+            set svnrevision [$::slicer3::Application GetSvnRevision]
+            if { $svnrevision == "" } {
+                set CMD "$CMD/15383"
+            } else {
+                set CMD "$CMD/$svnrevision"
+            }
+            set CMD "$CMD/CMTK4Slicer/warp"
+
+            set outNonLinearTransformDirName /tmp/bspline.xform
+            set outTransformDirName $outNonLinearTransformDirName
+
+            set CMD "$CMD --delay-refine --grid-spacing 40 --refine 4"
+            set CMD "$CMD --exact-spacing --energy-weight 5e-2"
+            set CMD "$CMD --exploration 16 --accuracy 0.1 --coarsest 1.5"
+
+            set CMD "$CMD --initial $outLinearTransformDirName"
+            set CMD "$CMD -o $outNonLinearTransformDirName"
+            set CMD "$CMD --write-reformatted $outVolumeFileName"
+            set CMD "$CMD $fixedVolumeFileName"
+            set CMD "$CMD $movingVolumeFileName"
+
+            ## execute bspline registration
+
+            $LOGIC PrintText "TCL: Executing $CMD"
+            catch { eval exec $CMD } errmsg
+            $LOGIC PrintText "TCL: $errmsg"
+        }
+
+        ## Read results back to scene
+
+        # Test:
+        # ReadDataFromDisk $outVolumeNode /home/pohl/Slicer3pohl/463_vtkMRMLScalarVolumeNode17.nrrd Volume
+        if { [ReadDataFromDisk $outVolumeNode $outVolumeFileName Volume] == 0 } {
+            if { [file exists $outVolumeDirName] == 0 } {
+                set outTransformDirName ""
+            }
+        }
+
+        if { [file exists $outTransformDirName] == 0 } {
+            set outTransformDirName ""
+        }
+
+        # Test: 
+        # $LOGIC PrintText "==> [[$SCENE GetNodeByID $transID] Print]"
+
+        foreach NAME $RemoveFiles {
+            file delete -force $NAME
+        }
+
+        # Remove Transformation from image
+        $movingVolumeNode SetAndObserveTransformNodeID ""
+        $SCENE Edited
+
+        # return transformation directory name or ""
+        puts "outTransformDirName: $outTransformDirName"
+        return $outTransformDirName
     }
 
     proc CheckAndCorrectClassCovarianceMatrix {parentNodeID } {

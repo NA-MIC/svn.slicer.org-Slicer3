@@ -28,6 +28,7 @@ namespace eval EMSegmenterPreProcessingTcl {
     variable CheckButtonSize 2
     variable VolumeMenuButtonSize 0
     variable TextEntrySize 0
+    variable UseBRAINS 1
 
     # Check Button
     variable atlasAlignedFlagID 0
@@ -427,6 +428,8 @@ namespace eval EMSegmenterPreProcessingTcl {
         variable subjectNode
         variable inputAtlasNode
         variable outputAtlasNode
+        variable UseBRAINS
+
 
         set affineFlag [expr ([$mrmlManager GetRegistrationAffineType] != [$mrmlManager GetRegistrationTypeFromString AtlasToTargetAffineRegistrationOff])]
         set bSplineFlag [expr ([$mrmlManager GetRegistrationDeformableType] != [$mrmlManager GetRegistrationTypeFromString AtlasToTargetDeformableRegistrationOff])]
@@ -544,7 +547,7 @@ namespace eval EMSegmenterPreProcessingTcl {
             }
         } else {
             # New type
-            set registrationType "CenterOfHeadAlign Rigid  ScaleVersor3D ScaleSkewVersor3D Affine"
+            set registrationType "Rigid  ScaleVersor3D ScaleSkewVersor3D Affine"
             set fastFlag 0
             if { $affineFlag } {
                 if { $affineType == [$mrmlManager GetRegistrationTypeFromString AtlasToTargetAffineRegistrationRigidMMIFast] } {
@@ -564,10 +567,20 @@ namespace eval EMSegmenterPreProcessingTcl {
             }
 
             set backgroundLevel [$LOGIC GuessRegistrationBackgroundLevel $movingAtlasVolumeNode]
-            set transformNode [BRAINSRegistration $fixedTargetVolumeNode $movingAtlasVolumeNode $outputAtlasVolumeNode $backgroundLevel "$registrationType" $fastFlag]
-            if { $transformNode == "" } {
-                PrintError "RegisterAtlas: Transform node is null"
-                return 1
+
+            if { $UseBRAINS } {
+                set transformNode [BRAINSRegistration $fixedTargetVolumeNode $movingAtlasVolumeNode $outputAtlasVolumeNode $backgroundLevel "$registrationType" $fastFlag]
+                if { $transformNode == "" } {
+                    PrintError "RegisterAtlas: Transform node is null"
+                    return 1
+                }
+            } else {
+                set bSplineFlag 1
+                set transformDirName [CMTKRegistration $fixedTargetVolumeNode $movingAtlasVolumeNode $outputAtlasVolumeNode $backgroundLevel $bSplineFlag $fastFlag]
+                if { $transformDirName == "" } {
+                    PrintError "RegisterAtlas: Transform node is null"
+                    return 1
+                }
             }
         }
 
@@ -590,19 +603,27 @@ namespace eval EMSegmenterPreProcessingTcl {
             }
              $LOGIC PrintText "TCLMRI: Resampling atlas image $i ..."
 
-            set backgroundLevel [$LOGIC GuessRegistrationBackgroundLevel $movingVolumeNode]
-             $LOGIC PrintText "TCLMRI: Guessed background level: $backgroundLevel"
+            if { $UseBRAINS } {
+                $LOGIC PrintText "TCLMRI: Resampling atlas image $i with BRAINSResample..."
 
-            if { 0 } {
-                # resample moving image
-                # old style
-                if {$fixedRASToMovingRASTransformDeformable != "" } {
-                    $LOGIC SlicerImageResliceWithGrid $movingVolumeNode $outputVolumeNode $fixedTargetVolumeNode $fixedRASToMovingRASTransformDeformable $interpolationType $backgroundLevel
+                set backgroundLevel [$LOGIC GuessRegistrationBackgroundLevel $movingVolumeNode]
+                $LOGIC PrintText "TCLMRI: Guessed background level: $backgroundLevel"
+
+                if { 0 } {
+                    # resample moving image
+                    # old style
+                    if {$fixedRASToMovingRASTransformDeformable != "" } {
+                        $LOGIC SlicerImageResliceWithGrid $movingVolumeNode $outputVolumeNode $fixedTargetVolumeNode $fixedRASToMovingRASTransformDeformable $interpolationType $backgroundLevel
+                    } else {
+                        $LOGIC SlicerImageReslice $movingVolumeNode $outputVolumeNode $fixedTargetVolumeNode $fixedRASToMovingRASTransformAffine $interpolationType $backgroundLevel
+                    }
                 } else {
-                    $LOGIC SlicerImageReslice $movingVolumeNode $outputVolumeNode $fixedTargetVolumeNode $fixedRASToMovingRASTransformAffine $interpolationType $backgroundLevel
+                    if { [BRAINSResample $movingVolumeNode $fixedTargetVolumeNode $outputVolumeNode $transformNode $backgroundLevel] } {
+                        return 1
+                    }
                 }
             } else {
-                if { [BRAINSResample $movingVolumeNode $fixedTargetVolumeNode $outputVolumeNode $transformNode $backgroundLevel] } {
+                if { [CMTKResampleCLI $movingVolumeNode $fixedTargetVolumeNode $outputVolumeNode $transformDirName] } {
                     return 1
                 }
             }
@@ -615,7 +636,7 @@ namespace eval EMSegmenterPreProcessingTcl {
             }
         }
 
-         $LOGIC PrintText "TCLMRI: Atlas-to-target registration complete."
+        $LOGIC PrintText "TCLMRI: Atlas-to-target registration complete."
         $workingDN SetAlignedAtlasNodeIsValid 1
         return 0
     }
