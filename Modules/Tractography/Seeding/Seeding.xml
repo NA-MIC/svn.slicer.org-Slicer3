@@ -161,7 +161,18 @@
       <element>LinearMeasure</element>
       <element>FractionalAnisotropy</element>
     </string-enumeration>
-    
+    <integer>
+      <name>ReduceRadialDiffusion</name>
+      <longflag>--reduceradialdiffusion</longflag>
+      <description>Reduce radial diffusion</description>
+      <label>Reduce Radial Diffusion</label>
+      <default>0.7</default>
+      <constraints>
+        <minimum>0.0</minimum>
+        <maximum>1.0</maximum>
+        <step>0.01</step>
+      </constraints>
+    </integer>
     <double>
       <name>StoppingValue</name>
       <label>Stopping Value</label>

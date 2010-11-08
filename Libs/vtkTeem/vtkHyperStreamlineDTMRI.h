@@ -99,6 +99,9 @@ public:
   vtkSetMacro(OneTrajectoryPerSeedPoint, int);
   vtkBooleanMacro(OneTrajectoryPerSeedPoint, int);
 
+  void SetReduceRadialDiffusion(double reduceRadialDiffusion);
+
+
 protected:
   vtkHyperStreamlineDTMRI();
   ~vtkHyperStreamlineDTMRI();
@@ -119,9 +122,15 @@ protected:
 
   vtkTractographyArray *Streamers;
 
+  static double ReduceRadialDiffusion;
 private:
   vtkHyperStreamlineDTMRI(const vtkHyperStreamlineDTMRI&);  /// Not implemented.
   void operator=(const vtkHyperStreamlineDTMRI&);  /// Not implemented.
+
+  static void ProjectDirection(vtkFloatingPointType ev[3],
+                               vtkFloatingPointType dir[3],
+                               vtkFloatingPointType newDir[3],
+                               vtkFloatingPointType *v[3], int iv);
 };
 
 #endif

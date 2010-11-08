@@ -168,6 +168,7 @@ protected:
 
   vtkKWCheckButton *SeedSelectedFiducialsButton;
   vtkKWCheckButton *SeedButton;
+  vtkKWScaleWithLabel *ReduceRadialDiffusionScale;
 
   vtkSlicerNodeSelectorWidget* TractographyFiducialSeedingNodeSelector;
 
