@@ -4789,7 +4789,7 @@ CopyEMRelatedNodesToMRMLScene(vtkMRMLScene* newScene, const char* TemporaryCache
   //-------------------------------------------------------
   // End of addition due to bug 
 
-  currentScene->GetReferencedSubScene(emNode, newScene, 0);
+  currentScene->GetReferencedSubScene(emNode, newScene);
 
   // Reset to old standard 
   currentScene->SetRootDirectory(origRootDir.c_str());
