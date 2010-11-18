@@ -2781,29 +2781,17 @@ bool vtkEMSegmentLogic::PackageAndWriteData(vtkSlicerApplication* app, vtkSlicer
   std::string mrmlURL(outputDirectory + "/_EMSegmenterScene.mrml");
 
   vtkMRMLScene* newScene = vtkMRMLScene::New();
+  newScene->SetRootDirectory(packageDirectory);
+  newScene->SetURL(mrmlURL.c_str());
 
   vtkDataIOManagerLogic* dataIOManagerLogic = vtkDataIOManagerLogic::New();
   this->AddDataIOToScene(newScene,app,appLogic,dataIOManagerLogic);
 
-  newScene->SetRootDirectory(outputDirectory.c_str());
-  newScene->SetURL(mrmlURL.c_str());
+  // newScene->SetRootDirectory(outputDirectory.c_str());
 
   //std::cout << std::endl;
-  //std::cout << "[BEGIN] PrintVolumeInfo " << std::endl;
-  //this->GetMRMLManager()->PrintVolumeInfo( this->GetMRMLScene() );
-  //std::cout << "[END] PrintVolumeInfo " << std::endl;
+  this->GetMRMLManager()->CopyEMRelatedNodesToMRMLScene(newScene);
 
-  // std::cout << "[BEGIN] PrintVolumeInfo of new scene (empty)" << std::endl;
-  // this->GetMRMLManager()->PrintVolumeInfo( newScene );
-  // std::cout << "[END] PrintVolumeInfo of new scene (empty)" << std::endl;
-
-  this->GetMRMLManager()->CopyEMRelatedNodesToMRMLScene(newScene,app->GetTemporaryDirectory());
-
-  //std::cout << "[BEGIN] PrintVolumeInfo of new scene" << std::endl;
-  //this->GetMRMLManager()->PrintVolumeInfo( newScene );
-  //std::cout << "[END] PrintVolumeInfo of new scene" << std::endl;
-
-  //
   // update filenames to match standardized package structure
   this->CreatePackageFilenames(newScene, packageDirectory);
 
