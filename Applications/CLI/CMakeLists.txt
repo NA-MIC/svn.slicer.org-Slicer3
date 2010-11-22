@@ -802,6 +802,8 @@ if (Slicer3_SOURCE_DIR)
     GrayscaleModelMaker
     MergeModels
     MergeModelsLib
+    PolyDataToLabelmap
+    PolyDataToLabelmapLib
     GrayscaleFillHoleImageFilter
     GrayscaleFillHoleImageFilterLib
     GrayscaleGrindPeakImageFilter
