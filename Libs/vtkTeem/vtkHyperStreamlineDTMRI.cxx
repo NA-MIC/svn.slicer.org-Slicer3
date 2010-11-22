@@ -62,7 +62,6 @@ vtkHyperStreamlineDTMRI::vtkHyperStreamlineDTMRI()
 
   this->OutputTensors = 0;
   this->OneTrajectoryPerSeedPoint = 0;
-
 }
 
 vtkHyperStreamlineDTMRI::~vtkHyperStreamlineDTMRI()
@@ -134,9 +133,6 @@ int vtkHyperStreamlineDTMRI::RequestData(
   vtkInformationVector **inputVector,
   vtkInformationVector *outputVector)
 {
-
-
-
 vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);
 vtkInformation *outInfo = outputVector->GetInformationObject(0);
 
@@ -174,9 +170,6 @@ vtkPolyData *output = vtkPolyData::SafeDownCast(
   float stop = 0.0;
   //static const float sqrt3halves = sqrt((float)3/2);
   int keepIntegrating;
-
-  vtkFloatingPointType oldDir[3];
-  vtkFloatingPointType newDir[3];
 
   vtkDebugMacro(<<"Generating hyperstreamline(s)");
   this->NumberOfStreamers = 0;
@@ -328,10 +321,6 @@ vtkPolyData *output = vtkPolyData::SafeDownCast(
       continue;
       }
 
-    oldDir[0] = sPtr->V[0][iv];
-    oldDir[1] = sPtr->V[1][iv];
-    oldDir[2] = sPtr->V[2][iv];
-
     dir = this->Streamers[ptId].Direction;
     cell = input->GetCell(sPtr->CellId);
     cell->EvaluateLocation(sPtr->SubId, sPtr->P, xNext, w);
@@ -411,18 +400,12 @@ vtkPolyData *output = vtkPolyData::SafeDownCast(
           K=0;
           }
 
-      vtkHyperStreamlineDTMRI::ProjectDirection(sPtr->W, oldDir, newDir,
-                                                sPtr->V, iv);
 
       //compute updated position using this step (Euler integration)
       for (i=0; i<3; i++)
         {
-        xNext[i] = sPtr->X[i] + dir * step * newDir[i];
+        xNext[i] = sPtr->X[i] + dir * step * sPtr->V[i][iv];
         }
-
-      oldDir[0] = newDir[0];
-      oldDir[1] = newDir[1];
-      oldDir[2] = newDir[2];
 
       //compute updated position using updated step
       cell->EvaluatePosition(xNext, closestPoint, subId, p, dist2, w);
@@ -451,22 +434,13 @@ vtkPolyData *output = vtkPolyData::SafeDownCast(
       vtkDiffusionTensorMathematics::TeemEigenSolver(m,ev,v);
       FixVectors(sPtr->V, v, iv, ix, iy);
 
-      vtkFloatingPointType newDir2[3];
-      vtkHyperStreamlineDTMRI::ProjectDirection(ev, oldDir, newDir2, v, iv);
-      newDir[0] = (newDir2[0] + newDir[0]) / 2.0;
-      newDir[1] = (newDir2[1] + newDir[1]) / 2.0;
-      newDir[2] = (newDir2[2] + newDir[2]) / 2.0;
-
       //now compute final position
       for (i=0; i<3; i++)
         {
-        xNext[i] = sPtr->X[i] + dir * step * newDir[i];
+        xNext[i] = sPtr->X[i] + 
+                   dir * (step/2.0) * (sPtr->V[i][iv] + v[i][iv]);
         }
       sNext = this->Streamers[ptId].InsertNextTractographyPoint();
-
-      oldDir[0] = newDir[0];
-      oldDir[1] = newDir[1];
-      oldDir[2] = newDir[2];
 
       if ( cell->EvaluatePosition(xNext, closestPoint, sNext->SubId, 
       sNext->P, dist2, w) )
@@ -943,70 +917,3 @@ void vtkHyperStreamlineDTMRI::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 
-void vtkHyperStreamlineDTMRI::ProjectDirection(vtkFloatingPointType ev[3],
-                                               vtkFloatingPointType dir[3],
-                                               vtkFloatingPointType newDir[3],
-                                               vtkFloatingPointType *v[3],
-                                               int iv)
-{
-  //const vtkFloatingPointType cl = 
-  //    vtkDiffusionTensorMathematics::LinearMeasure(ev);
-  //const vtkFloatingPointType cp =
-  //    vtkDiffusionTensorMathematics::PlanarMeasure(ev);
-  //const vtkFloatingPointType cs =
-  //    vtkDiffusionTensorMathematics::SphericalMeasure(ev);
-
-  //const vtkFloatingPointType ev0_new =
-  //    ev[0] + vtkHyperStreamlineDTMRI::NoiseRemoval * ev[0];
-  //const vtkFloatingPointType cl = (ev0_new - ev[1]) / ev0_new;
-  //const vtkFloatingPointType cp = (ev[1] - ev[2]) / ev0_new;
-  //const vtkFloatingPointType cs = ev[2] / ev0_new;
-
-  const vtkFloatingPointType cl =
-      (ev[0] - vtkHyperStreamlineDTMRI::ReduceRadialDiffusion * ev[1]) / ev[0];
-  const vtkFloatingPointType cp =
-      vtkHyperStreamlineDTMRI::ReduceRadialDiffusion * (ev[1] - ev[2]) / ev[0];
-  const vtkFloatingPointType cs =
-      vtkHyperStreamlineDTMRI::ReduceRadialDiffusion * ev[2] / ev[0];
-
-  if (cl > cp && cl > cs)
-    {
-    newDir[0] = v[0][iv];
-    newDir[1] = v[1][iv];
-    newDir[2] = v[2][iv];
-    }
-  else if (cp > cs)
-    {
-    // Projection onto plane.
-    const vtkFloatingPointType t1 = v[0][0] * dir[0] +
-                                    v[1][0] * dir[1] +
-                                    v[2][0] * dir[2];
-    const vtkFloatingPointType t2 = v[0][1] * dir[0] +
-                                    v[1][1] * dir[1] +
-                                    v[2][1] * dir[2];
-
-    newDir[0] = t1 * v[0][0] + t2 * v[0][1];
-    newDir[1] = t1 * v[1][0] + t2 * v[1][1];
-    newDir[2] = t1 * v[2][0] + t2 * v[2][1];
-
-    // Normalize direction.
-    vtkFloatingPointType n = 1.0 / sqrt(newDir[0] * newDir[0] +
-                                        newDir[1] * newDir[1] +
-                                        newDir[2] * newDir[2]);
-    newDir[0] *= n;
-    newDir[1] *= n;
-    newDir[2] *= n;
-    }
-  else
-    {
-    newDir[0] = dir[0];
-    newDir[1] = dir[1];
-    newDir[2] = dir[2];
-    }
-}
-
-double vtkHyperStreamlineDTMRI::ReduceRadialDiffusion = 1.0;
-
-void vtkHyperStreamlineDTMRI::SetReduceRadialDiffusion(double reduceRadialDiffusion) {
-  vtkHyperStreamlineDTMRI::ReduceRadialDiffusion = reduceRadialDiffusion;
-}

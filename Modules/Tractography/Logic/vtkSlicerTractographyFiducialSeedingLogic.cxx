@@ -111,8 +111,7 @@ int vtkSlicerTractographyFiducialSeedingLogic::CreateTracts(vtkMRMLDiffusionTens
                                                             double regionSize, double sampleStep,
                                                             int maxNumberOfSeeds,
                                                             int seedSelectedFiducials,
-                                                            int displayMode,
-                                                            double reduceRadialDiffusion)
+                                                            int displayMode)
 {
   // 0. check inputs
   if (volumeNode == NULL || transformableNode == NULL || fiberNode == NULL ||
@@ -232,7 +231,6 @@ int vtkSlicerTractographyFiducialSeedingLogic::CreateTracts(vtkMRMLDiffusionTens
   streamer->SetStoppingThreshold(stoppingValue);
   streamer->SetRadiusOfCurvature(stoppingCurvature);
   streamer->SetIntegrationStepLength(integrationStepLength);
-  streamer->SetReduceRadialDiffusion(reduceRadialDiffusion);
 
   // Temp fix to provide a scalar
   seed->GetInputTensorField()->GetPointData()->SetScalars(volumeNode->GetImageData()->GetPointData()->GetScalars());

@@ -82,7 +82,6 @@ vtkSlicerTractographyFiducialSeedingGUI::vtkSlicerTractographyFiducialSeedingGUI
   this->OutFiberSelector = vtkSlicerNodeSelectorWidget::New();
   this->FiducialSelector = vtkSlicerNodeSelectorWidget::New();
   this->SeedButton  = vtkKWCheckButton::New();
-  this->ReduceRadialDiffusionScale = vtkKWScaleWithLabel::New();
   this->SeedSelectedFiducialsButton  = vtkKWCheckButton::New();
   this->StoppingModeMenu = vtkKWMenuButtonWithLabel::New();
   this->StoppingValueScale = vtkKWScaleWithLabel::New();
@@ -167,12 +166,6 @@ vtkSlicerTractographyFiducialSeedingGUI::~vtkSlicerTractographyFiducialSeedingGU
     this->DisplayMenu = NULL;
   }
   
-  if ( this->ReduceRadialDiffusionScale ) 
-  {
-    this->ReduceRadialDiffusionScale->SetParent(NULL);
-    this->ReduceRadialDiffusionScale->Delete();
-    this->ReduceRadialDiffusionScale = NULL;
-  }
   if ( this->StoppingValueScale ) 
   {
     this->StoppingValueScale->SetParent(NULL);
@@ -278,8 +271,6 @@ void vtkSlicerTractographyFiducialSeedingGUI::AddGUIObservers ( )
 
   this->SeedButton->AddObserver (vtkKWCheckButton::SelectedStateChangedEvent, (vtkCommand *)this->GUICallbackCommand ); 
 
-  this->ReduceRadialDiffusionScale->GetWidget()->AddObserver(vtkKWScale::ScaleValueChangedEvent, (vtkCommand *)this->GUICallbackCommand );
-
   this->StoppingValueScale->GetWidget()->AddObserver(vtkKWScale::ScaleValueChangedEvent, (vtkCommand *)this->GUICallbackCommand );
   
   this->StoppingCurvatureScale->GetWidget()->AddObserver(vtkKWScale::ScaleValueChangedEvent, (vtkCommand *)this->GUICallbackCommand );
@@ -314,8 +305,6 @@ void vtkSlicerTractographyFiducialSeedingGUI::RemoveGUIObservers ( )
   this->SeedSelectedFiducialsButton->RemoveObservers (vtkKWCheckButton::SelectedStateChangedEvent, (vtkCommand *)this->GUICallbackCommand ); 
 
   this->SeedButton->RemoveObservers (vtkKWCheckButton::SelectedStateChangedEvent, (vtkCommand *)this->GUICallbackCommand ); 
-
-  this->ReduceRadialDiffusionScale->RemoveObservers (vtkKWCheckButton::SelectedStateChangedEvent, (vtkCommand *)this->GUICallbackCommand ); 
 
   this->StoppingValueScale->GetWidget()->RemoveObservers(vtkKWScale::ScaleValueChangedEvent, (vtkCommand *)this->GUICallbackCommand );
   
@@ -697,7 +686,7 @@ void vtkSlicerTractographyFiducialSeedingGUI::CreateTracts()
     {
     return;
     }
-
+  
   vtkMRMLDiffusionTensorVolumeNode *volumeNode = vtkMRMLDiffusionTensorVolumeNode::SafeDownCast(this->VolumeSelector->GetSelected());
   vtkMRMLTransformableNode *fiducialListNode = vtkMRMLTransformableNode::SafeDownCast(this->FiducialSelector->GetSelected());
   vtkMRMLFiberBundleNode *fiberNode = vtkMRMLFiberBundleNode::SafeDownCast(this->OutFiberSelector->GetSelected());
@@ -731,9 +720,7 @@ void vtkSlicerTractographyFiducialSeedingGUI::CreateTracts()
                                                           this->RegionSampleSizeScale->GetWidget()->GetValue(),
                                                           this->MaxNumberOfSeedsEntry->GetWidget()->GetValueAsInt(),
                                                           this->SeedSelectedFiducialsButton->GetSelectedState(),
-                                                          displayMode,
-                                                          this->ReduceRadialDiffusionScale->GetWidget()->GetValue());  
-
+                                                          displayMode);  
 }
 
 //---------------------------------------------------------------------------
@@ -831,16 +818,6 @@ void vtkSlicerTractographyFiducialSeedingGUI::BuildGUI ( )
   this->Script(
     "pack %s -side top -anchor nw -expand n -padx 2 -pady 2", 
     this->StoppingModeMenu->GetWidgetName());
-
-  this->ReduceRadialDiffusionScale->SetParent ( moduleFrame->GetFrame() );
-  this->ReduceRadialDiffusionScale->Create ( );
-  this->ReduceRadialDiffusionScale->SetLabelText("Reduce radial diffusion");
-  this->ReduceRadialDiffusionScale->GetWidget()->SetRange(0.0,1.0);
-  this->ReduceRadialDiffusionScale->GetWidget()->SetResolution(0.01);
-  this->ReduceRadialDiffusionScale->GetWidget()->SetValue(0.7);
-  this->ReduceRadialDiffusionScale->SetBalloonHelpString("Reduces the tensor to a more linear form and therefore makes it more anisotropic. At the maximum value of 1 the tensor consists only of its linear part.");
-  this->Script ( "pack %s -side top -anchor nw -expand y -fill x -padx 2 -pady 2",
-                 this->ReduceRadialDiffusionScale->GetWidgetName() );
 
   this->StoppingValueScale->SetParent ( moduleFrame->GetFrame() );
   this->StoppingValueScale->Create ( );

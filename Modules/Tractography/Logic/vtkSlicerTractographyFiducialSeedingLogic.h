@@ -53,8 +53,7 @@ public:
                     double resgionSize, double samplingStep,
                     int maxNumberOfSeeds,
                     int seedSelectedFiducials,
-                    int displayMode,
-                    double reduceRadialDiffusion = 1.0);
+                    int displayMode);
 
   virtual void ProcessMRMLEvents ( vtkObject *caller,
                                    unsigned long event,

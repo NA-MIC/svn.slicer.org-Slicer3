@@ -427,7 +427,7 @@ vtkSlicerApplication::vtkSlicerApplication (const char* tmp_dir, const char* con
         vtksys::SystemTools::MakeDirectory(config_dir);
         }
 
-      //this->GetRegistryHelper()->SetConfigurationDirectory(config_dir);
+      this->GetRegistryHelper()->SetConfigurationDirectory(config_dir);
       }
 
 #ifndef _WIN32
