@@ -126,7 +126,9 @@ extern "C" {
 //#define SCRIPTEDMODULE_DEBUG
 //#define SLICESMODULE_DEBUG
 
-//#define CAMERA_DEBUG
+// Disable the camera module - it's was meant to 
+// allow swapping of cameras/views but never really worked
+#define CAMERA_DEBUG
 
 #include <LoadableModuleFactory.h>
 
@@ -649,11 +651,11 @@ int Slicer3_main(int& argc, char *argv[])
   // the executable to run
   if (PrintModulePaths)
     {
-
+    
     vtkObject::GlobalWarningDisplayOff();
-
+    
     vtkSlicerApplication *slicerApp = 0;
-
+    
     if ( ConfigurationDirectory == "" && TemporaryDirectory == "" )
       {
       // first call to GetInstance will create the Application
@@ -670,7 +672,7 @@ int Slicer3_main(int& argc, char *argv[])
       const char* tmp_dir = TemporaryDirectory.c_str();
       slicerApp = vtkSlicerApplication::GetInstance (tmp_dir, config_dir);
       }    
-
+    
     slicerApp->SetRegistryLevel(0);
     slicerApp->PromptBeforeExitOff();
     std::cout << slicerApp->GetModulePaths() << std::endl;
