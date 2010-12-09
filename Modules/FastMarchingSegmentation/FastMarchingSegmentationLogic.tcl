@@ -42,7 +42,6 @@ proc FastMarchingSegmentationClone { moduleName {slicerSourceDir ""} {targetDir 
 
 proc FastMarchingSegmentationInitializeFilter {this} {
 
-  $::FastMarchingSegmentation($this,fastMarchingFilter) Delete
   set ::FastMarchingSegmentation($this,fastMarchingFilter) [vtkPichonFastMarching New]
   set ::FastMarchingSegmentation($this,fmOutputImage) [vtkImageData New]
   
@@ -71,11 +70,6 @@ proc FastMarchingSegmentationInitializeFilter {this} {
   $fmFilter init [expr [lindex $dim 1] + 1] [expr [lindex $dim 3] + 1] \
     [expr [lindex $dim 5] + 1] $depth $dx $dy $dz
 
-  $fmFilter Modified
-  $fmFilter Update
-
-  $fmFilter setActiveLabel 1
-  $fmFilter initNewExpansion
 }
 
 proc FastMarchingSegmentationExpand {this} {
@@ -282,7 +276,6 @@ proc FastMarchingSegmentationFinalize {this} {
   # deallocate the filter
   $::FastMarchingSegmentation($this,fastMarchingFilter) unInit
   $::FastMarchingSegmentation($this,fastMarchingFilter) Delete
-  set ::FastMarchingSegmentation($this,fastMarchingFilter) [vtkPichonFastMarching New]
   # disable the segmentation adjustment controls
 }
 
