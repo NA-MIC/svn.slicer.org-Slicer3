@@ -1,4 +1,5 @@
 #include "vtkHTTPHandler.h"
+#include "vtkDirectory.h"
 
 vtkStandardNewMacro ( vtkHTTPHandler );
 vtkCxxRevisionMacro ( vtkHTTPHandler, "$Revision: 1.0 $" );
@@ -179,6 +180,7 @@ void vtkHTTPHandler::StageFileRead(const char * source, const char * destination
     curl_easy_setopt(this->CurlHandle, CURLOPT_FORBID_REUSE, 1);
     }
   curl_easy_setopt(this->CurlHandle, CURLOPT_HTTPGET, 1);
+  curl_easy_setopt(this->CurlHandle, CURLOPT_NOPROGRESS, 1);
   curl_easy_setopt(this->CurlHandle, CURLOPT_URL, source);
   curl_easy_setopt(this->CurlHandle, CURLOPT_FOLLOWLOCATION, true);
   curl_easy_setopt(this->CurlHandle, CURLOPT_WRITEFUNCTION, NULL); // write_callback);
@@ -219,7 +221,7 @@ void vtkHTTPHandler::StageFileRead(const char * source, const char * destination
     {
     vtkErrorMacro("StageFileRead: curl ran out of memory!");
     }
-  else
+  else if ( retval != CURLE_OK )
     {
     const char *stringError = curl_easy_strerror(retval);
     vtkErrorMacro("StageFileRead: error running curl: " << stringError);
@@ -253,7 +255,8 @@ void vtkHTTPHandler::StageFileRead(const char * source, const char * destination
       if ( (vtksys::SystemTools::FileExists ( this->GetFileBucket()) ) &&
            (vtksys::SystemTools::FileLength ( this->GetFileBucket()) != 0 ) )
         {
-        vtksys::SystemTools::CopyFileIfDifferent ( this->GetFileBucket(), destination, true );
+        vtkDirectory::Rename (this->GetFileBucket(), destination );
+//        vtksys::SystemTools::CopyFileIfDifferent ( this->GetFileBucket(), destination, true );
         }
       }
     }
@@ -282,12 +285,10 @@ void vtkHTTPHandler::StageFileWrite(const char * source, const char * destinatio
   
   curl_easy_setopt(this->CurlHandle, CURLOPT_PUT, 1);
   curl_easy_setopt(this->CurlHandle, CURLOPT_URL, destination);
-//  curl_easy_setopt(this->CurlHandle, CURLOPT_NOPROGRESS, false);
+  curl_easy_setopt(this->CurlHandle, CURLOPT_NOPROGRESS, 1);
   curl_easy_setopt(this->CurlHandle, CURLOPT_FOLLOWLOCATION, true);
   curl_easy_setopt(this->CurlHandle, CURLOPT_READFUNCTION, read_callback);
   curl_easy_setopt(this->CurlHandle, CURLOPT_READDATA, this->LocalFile);
-//  curl_easy_setopt(this->CurlHandle, CURLOPT_PROGRESSDATA, NULL);
-  //curl_easy_setopt(this->CurlHandle, CURLOPT_PROGRESSFUNCTION, ProgressCallback);
   CURLcode retval = curl_easy_perform(this->CurlHandle);
 
    if (retval == CURLE_OK)

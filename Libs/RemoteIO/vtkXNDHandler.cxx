@@ -1,4 +1,5 @@
 #include "itksys/Process.h"
+#include "vtkDirectory.h"
 #include "vtkXNDHandler.h"
 #include <string>
 #include <iostream>
@@ -177,6 +178,7 @@ void vtkXNDHandler::StageFileRead(const char * source,
   this->InitTransfer( );
   curl_easy_setopt(this->CurlHandle, CURLOPT_HTTPGET, 1);
   curl_easy_setopt(this->CurlHandle, CURLOPT_URL, source);
+  curl_easy_setopt(this->CurlHandle, CURLOPT_NOPROGRESS, 1);
   curl_easy_setopt(this->CurlHandle, CURLOPT_FOLLOWLOCATION, true);
   curl_easy_setopt(this->CurlHandle, CURLOPT_WRITEFUNCTION, NULL); // write_callback);
   curl_easy_setopt(this->CurlHandle, CURLOPT_CONNECTTIMEOUT, 5);
@@ -209,7 +211,7 @@ void vtkXNDHandler::StageFileRead(const char * source,
     {
     vtkErrorMacro("StageFileRead: curl ran out of memory!");
     }
-  else
+  else if ( retval != CURLE_OK)
     {
     const char *stringError = curl_easy_strerror(retval);
     vtkErrorMacro("StageFileRead: error running curl: " << stringError);
@@ -235,8 +237,8 @@ void vtkXNDHandler::StageFileRead(const char * source,
       if ( (vtksys::SystemTools::FileExists ( this->GetFileBucket()) ) &&
            (vtksys::SystemTools::FileLength ( this->GetFileBucket()) != 0 ) )
         {
-        vtkDebugMacro ( "Copying data from " << this->GetFileBucket() << " to " << destination);
-        vtksys::SystemTools::CopyFileIfDifferent ( this->GetFileBucket(), destination, true );
+        vtkDirectory::Rename (this->GetFileBucket(), destination );
+//        vtksys::SystemTools::CopyFileIfDifferent ( this->GetFileBucket(), destination, true );
         }
       }
     }
@@ -289,6 +291,7 @@ void vtkXNDHandler::StageFileWrite(const char *source,
   this->InitTransfer( );
 
   curl_easy_setopt(this->CurlHandle, CURLOPT_PUT, 1);
+  curl_easy_setopt(this->CurlHandle, CURLOPT_NOPROGRESS, 1);
   curl_easy_setopt(this->CurlHandle, CURLOPT_URL, destination);
   curl_easy_setopt(this->CurlHandle, CURLOPT_FOLLOWLOCATION, true);
   curl_easy_setopt(this->CurlHandle, CURLOPT_READFUNCTION, xnd_read_callback);
@@ -545,6 +548,7 @@ int vtkXNDHandler::DeleteResource ( const char *uri, const char *temporaryRespon
   curl_easy_setopt(this->CurlHandle, CURLOPT_CUSTOMREQUEST, "DELETE");
   curl_easy_setopt(this->CurlHandle, CURLOPT_URL, uri);
   curl_easy_setopt(this->CurlHandle, CURLOPT_FOLLOWLOCATION, true);
+  curl_easy_setopt(this->CurlHandle, CURLOPT_NOPROGRESS, 1);
   curl_easy_setopt(this->CurlHandle, CURLOPT_VERBOSE, true);
 
   const char *responseFileName = temporaryResponseFileName;
