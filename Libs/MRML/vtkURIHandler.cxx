@@ -103,10 +103,13 @@ void vtkURIHandler::DeleteFileBucket()
     }
 
   // Be tidy. delete the file.
-  bool clean = vtksys::SystemTools::RemoveFile ( this->GetFileBucket() );
-  if (!clean )
+  if ( vtksys::SystemTools::FileExists ( this->GetFileBucket() ) )
     {
-    vtkWarningMacro ( "Unable to clean up temporary download file " << this->GetFileBucket() );
+    bool clean = vtksys::SystemTools::RemoveFile ( this->GetFileBucket() );
+    if (!clean )
+      {
+      vtkWarningMacro ( "Unable to clean up temporary download file " << this->GetFileBucket() );
+      }
     }
 
   // set the temporary staging area to null
