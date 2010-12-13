@@ -551,7 +551,7 @@ int vtkXNDHandler::DeleteResource ( const char *uri, const char *temporaryRespon
   curl_easy_setopt(this->CurlHandle, CURLOPT_NOPROGRESS, 1);
   curl_easy_setopt(this->CurlHandle, CURLOPT_VERBOSE, true);
 
-/*
+
   const char *responseFileName = temporaryResponseFileName;
   FILE *responseFile = fopen(responseFileName, "wb");
   if (responseFile == NULL)
@@ -564,7 +564,7 @@ int vtkXNDHandler::DeleteResource ( const char *uri, const char *temporaryRespon
     curl_easy_setopt(this->CurlHandle, CURLOPT_WRITEFUNCTION, NULL); // write_callback);
     curl_easy_setopt(this->CurlHandle, CURLOPT_WRITEDATA, responseFile);
     }
-*/
+
   
   CURLcode retval = curl_easy_perform(this->CurlHandle);
 
@@ -595,17 +595,10 @@ int vtkXNDHandler::DeleteResource ( const char *uri, const char *temporaryRespon
 
   this->CloseTransfer();
 
-/*
-  if (this->LocalFile)
-    {
-    fclose(this->LocalFile);
-    this->LocalFile = NULL;
-    }
   if (responseFile)
     {
     fclose(responseFile);
     }
-*/
   
   //--- if result = 1, delete response went fine. Otherwise, problem with delete.
   return ( result );
