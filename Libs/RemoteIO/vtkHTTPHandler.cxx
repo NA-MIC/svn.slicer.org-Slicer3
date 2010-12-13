@@ -148,31 +148,61 @@ void vtkHTTPHandler::StageFileRead(const char * source, const char * destination
     vtkErrorMacro("StageFileRead: source or dest is null!");
     return;
     }
-  /*
-  if (this->LocalFile)
+
+  //---
+  //--- make sure destination directory is present
+  //---
+  std::string destination_dir = vtksys::SystemTools::GetFilenamePath ( destination );
+  if (!( vtksys::SystemTools::FileExists (destination_dir.c_str() ) &&
+         vtksys::SystemTools::FileIsDirectory (destination_dir.c_str() )))
     {
-    this->LocalFile->close();
-    delete this->LocalFile;
+    //--- destination should be cache dir -- looks like it doesn't exist.
+    vtkDebugMacro ( "Creating destination directory for download." );
+    vtksys::SystemTools::MakeDirectory (destination_dir.c_str() );
+    }
+
+  //---
+  //--- if it's open already, close it up.
+  //---
+  if ( this->LocalFile )
+    {
+    fclose ( this->LocalFile );
     this->LocalFile = NULL;
     }
-  this->LocalFile = new std::ofstream(destination, std::ios::binary);
-  */
+  
+  //---
+  //--- init and configure transfer
+  //---
   this->InitTransfer( );
-
-
   if ( this->ForbidReuse )
     {
     curl_easy_setopt(this->CurlHandle, CURLOPT_FORBID_REUSE, 1);
     }
   curl_easy_setopt(this->CurlHandle, CURLOPT_HTTPGET, 1);
   curl_easy_setopt(this->CurlHandle, CURLOPT_URL, source);
-//  curl_easy_setopt(this->CurlHandle, CURLOPT_NOPROGRESS, false);
   curl_easy_setopt(this->CurlHandle, CURLOPT_FOLLOWLOCATION, true);
-  // use the default curl write call back
   curl_easy_setopt(this->CurlHandle, CURLOPT_WRITEFUNCTION, NULL); // write_callback);
-  this->LocalFile = fopen(destination, "wb");
-  // output goes into LocalFile, must be  FILE*
+  
+  //---
+  //--- try to open temporary bucket for download.
+  //--- once download is successful, move it to destination.
+  //--- otherwise return error,
+  //--- and make sure destination file is zero length.
+  //---
+  int useBucket = 1;
+  if ( useBucket )
+    {
+    this->CreateFileBucket();
+    this->LocalFile = fopen (this->FileBucket, "wb");
+    }
+  if ( this->LocalFile == NULL )
+    {
+    vtkWarningMacro ( "Unable to open temporary download buffer. Writing directly to destination file.");
+    useBucket = 0;
+    this->LocalFile = fopen(destination, "wb");
+    }
   curl_easy_setopt(this->CurlHandle, CURLOPT_WRITEDATA, this->LocalFile);
+
 //  curl_easy_setopt(this->CurlHandle, CURLOPT_PROGRESSDATA, NULL);
 //  curl_easy_setopt(this->CurlHandle, CURLOPT_PROGRESSFUNCTION, ProgressCallback);
 
@@ -181,12 +211,7 @@ void vtkHTTPHandler::StageFileRead(const char * source, const char * destination
 
   vtkDebugMacro("StageFileRead: about to do the curl download... source = " << source << ", dest = " << destination);
   CURLcode retval = curl_easy_perform(this->CurlHandle);
-
-  if (retval == CURLE_OK)
-    {
-    vtkDebugMacro("StageFileRead: successful return from curl");
-    }
-  else if (retval == CURLE_BAD_FUNCTION_ARGUMENT)
+  if (retval == CURLE_BAD_FUNCTION_ARGUMENT)
     {
     vtkErrorMacro("StageFileRead: bad function argument to curl, did you init CurlHandle?");
     }
@@ -207,33 +232,50 @@ void vtkHTTPHandler::StageFileRead(const char * source, const char * destination
       this->GetPermissionPrompter()->SetRemember ( 0 );
       }
     }
+
+  // close transfer and clean up.
   this->CloseTransfer();
 
-  /*
-  this->LocalFile->close();
-  delete this->LocalFile;
-  this->LocalFile = NULL;
-  */
-  if (this->LocalFile)
+  if ( this->LocalFile )
     {
     fclose(this->LocalFile);
+    this->LocalFile = NULL;
     }
+
+  if (retval == CURLE_OK)
+    {
+    vtkDebugMacro("StageFileRead: successful return from curl");
+    if ( useBucket )
+      {
+      //--- if the bucket exists and is not zero-length,
+      //--- move downloaded data from bucket to actual
+      //--- destination and clean up.
+      if ( (vtksys::SystemTools::FileExists ( this->GetFileBucket()) ) &&
+           (vtksys::SystemTools::FileLength ( this->GetFileBucket()) != 0 ) )
+        {
+        vtksys::SystemTools::CopyFileIfDifferent ( this->GetFileBucket(), destination, true );
+        }
+      }
+    }
+
+  if ( useBucket )
+    {
+    this->DeleteFileBucket();
+    }
+
 }
 
 
 //----------------------------------------------------------------------------
 void vtkHTTPHandler::StageFileWrite(const char * source, const char * destination)
 {
-  //--- check these arguments...
-  /*
-  if (this->LocalFile)
+
+  if ( this->LocalFile != NULL )
     {
-    this->LocalFile->close();
-    delete this->LocalFile;
-    this->LocalFile = NULL;
+    fclose( this->LocalFile );
+    LocalFile = NULL;
     }
-  this->LocalFile = new std::ofstream(destination, std::ios::binary);
-  */
+
   this->LocalFile = fopen(source, "r");
 
   this->InitTransfer( );
@@ -268,12 +310,11 @@ void vtkHTTPHandler::StageFileWrite(const char * source, const char * destinatio
 
   this->CloseTransfer();
 
-  fclose(this->LocalFile);
-  /*
-  this->LocalFile->close();
-  delete this->LocalFile;
-  this->LocalFile = NULL;
-  */
+  if ( this->LocalFile )
+    {
+    fclose(this->LocalFile);
+    this->LocalFile = NULL;
+    }
 }
 
 

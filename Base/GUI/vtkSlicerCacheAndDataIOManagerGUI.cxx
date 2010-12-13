@@ -234,7 +234,6 @@ void vtkSlicerCacheAndDataIOManagerGUI::RemoveGUIObservers ( )
   this->CacheLimitSpinBox->GetWidget()->RemoveObservers ( vtkKWSpinBox::SpinBoxValueChangedEvent, (vtkCommand *)this->GUICallbackCommand );
   this->CacheFreeBufferSizeSpinBox->GetWidget()->RemoveObservers ( vtkKWSpinBox::SpinBoxValueChangedEvent, (vtkCommand *)this->GUICallbackCommand );
   this->CacheDirectoryButton->GetWidget()->GetLoadSaveDialog()->RemoveObservers ( vtkKWTopLevel::WithdrawEvent, (vtkCommand *)this->GUICallbackCommand );
-  
 }
 
 //---------------------------------------------------------------------------
@@ -252,7 +251,6 @@ void vtkSlicerCacheAndDataIOManagerGUI::AddGUIObservers ( )
   this->CacheLimitSpinBox->GetWidget()->AddObserver ( vtkKWSpinBox::SpinBoxValueChangedEvent, (vtkCommand *)this->GUICallbackCommand );
   this->CacheFreeBufferSizeSpinBox->GetWidget()->AddObserver( vtkKWSpinBox::SpinBoxValueChangedEvent, (vtkCommand *)this->GUICallbackCommand );
   this->CacheDirectoryButton->GetWidget()->GetLoadSaveDialog()->AddObserver ( vtkKWTopLevel::WithdrawEvent, (vtkCommand *)this->GUICallbackCommand );
-
 }
 
 
@@ -391,7 +389,7 @@ void vtkSlicerCacheAndDataIOManagerGUI::ProcessGUIEvents ( vtkObject *caller,
           }
         }
       }
-    
+
     if ( c == this->ForceReloadCheckButton && event == vtkKWCheckButton::SelectedStateChangedEvent )
       {
       //--- application will update only if the value has changed;
@@ -718,7 +716,6 @@ void vtkSlicerCacheAndDataIOManagerGUI::UpdateOverviewPanel()
           this->CacheDirectoryButton->GetWidget()->GetLoadSaveDialog()->SetLastPath(app->GetRemoteCacheDirectory());
           }
         }
-
       //size
       sz = this->CacheManager->ComputeCacheSize(this->CacheManager->GetRemoteCacheDirectory(), 0);
       if ( sz > this->CacheManager->GetRemoteCacheLimit() )
