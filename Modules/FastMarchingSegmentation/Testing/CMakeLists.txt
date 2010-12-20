@@ -29,8 +29,6 @@ SET(TEMP_DIR "${Slicer3_BINARY_DIR}/Testing/Temporary")
 IF(WIN32)
   SET(BaseGUI_TESTS ${CXX_TEST_PATH}/${CMAKE_BUILD_TYPE}/${KIT}CxxTests)
 ENDIF(WIN32)
-MESSAGE(" =========================== ${Slicer3_BINARY_DIR}")
-MESSAGE(" =========================== ${Slicer3_SOURCE_DIR}")
 ADD_TEST(FastMarchingTest1 ${Slicer3_BINARY_DIR}/Slicer3 --launch ${KIT}CxxTests vtkPichonFastMarchingTest)
 ADD_TEST(FastMarchingTest2 ${Slicer3_BINARY_DIR}/Slicer3 --launch ${KIT}CxxTests vtkPichonFastMarchingTest
   ${TEST_DATA}/MRMeningioma0.nrrd 132 101 72 10 ${TEMP_DIR}/FastMarchingTest2Output.nrrd)
