@@ -86,7 +86,7 @@ struct parameters
   double defaultPixelValue ;
   std::string imageCenter ;
   std::string transformsOrder ;
-  bool bulk ;
+  bool notbulk ;
 };
 
 
@@ -885,32 +885,7 @@ int Do( parameters list )
     }
     //If more than one transform or if hfield, add all transforms and compute the deformation field
     TransformTypePointer transform ;
-   if( list.bulk )//Check if transform file contains a BSpline 
-   {
-     bool error = true ;
-     if( nonRigidTransforms > 0 && transformFile->GetTransformList()->size() == 2 )
-     {
-       transform = SetTransform< PixelType > ( list , image , transformFile , outputImageCenter ) ;
-       //order=3 for the BSpline seems to be standard among tools in Slicer3 and BRAINTools       
-       typedef itk::BSplineDeformableTransform< double , 3  , 3 > BSplineDeformableTransformType ;
-       BSplineDeformableTransformType::Pointer BSplineTransform ;
-       BSplineTransform = dynamic_cast< BSplineDeformableTransformType* > (transform->GetTransform().GetPointer() ) ;
-       if( BSplineTransform )
-       {
-         typename TransformType::Pointer bulkTransform ;
-         bulkTransform = SetTransform< PixelType > ( list , image , transformFile , outputImageCenter  ) ;
-         BSplineTransform->SetBulkTransform ( bulkTransform->GetTransform() ) ;
-         error = false ;
-       }
-     }
-     if( error )
-     {
-       //if it comes here it means that there was an problem with loading and setting the bulk transform
-       std::cerr << "Bulk transform is only valid if the transform file contains only two transforms and the second one is a BSpline transform" << std::endl ;
-       return EXIT_FAILURE ;
-     }
-   }
-    else if( ( list.transformationFile.compare( "" )
+   if( ( list.transformationFile.compare( "" )
                && transformFile->GetTransformList()->size() > 1
                && nonRigidTransforms > 0
              )
@@ -950,6 +925,21 @@ int Do( parameters list )
         typedef itk::TransformDeformationFieldFilter< double , double , 3 > itkTransformDeformationFieldFilterType ;
         typename itkTransformDeformationFieldFilterType::Pointer transformDeformationFieldFilter = itkTransformDeformationFieldFilterType::New() ;
         transform = SetTransform< PixelType > ( list , image , transformFile , outputImageCenter ) ;
+        //check if there is a bspline transform and a bulk transform with it
+        if( !list.notbulk && transform->GetTransform()->GetTransformTypeAsString() == "BSplineDeformableTransform_double_3_3"  && transformFile->GetTransformList()->size() )//Check if transform file contains a BSpline 
+        {
+          //transform = SetTransform< PixelType > ( list , image , transformFile , outputImageCenter ) ;
+          //order=3 for the BSpline seems to be standard among tools in Slicer3 and BRAINTools       
+          typedef itk::BSplineDeformableTransform< double , 3  , 3 > BSplineDeformableTransformType ;
+          BSplineDeformableTransformType::Pointer BSplineTransform ;
+          BSplineTransform = dynamic_cast< BSplineDeformableTransformType* > (transform->GetTransform().GetPointer() ) ;
+          if( BSplineTransform )
+          {
+            typename TransformType::Pointer bulkTransform ;
+            bulkTransform = SetTransform< PixelType > ( list , image , transformFile , outputImageCenter  ) ;
+            BSplineTransform->SetBulkTransform ( bulkTransform->GetTransform() ) ;
+          }
+        }
         if( list.numberOfThread ) 
         {
           transformDeformationFieldFilter->SetNumberOfThreads( list.numberOfThread ) ;
@@ -1135,13 +1125,7 @@ int main( int argc , char * argv[] )
   list.defaultPixelValue = defaultPixelValue ;
   list.imageCenter = imageCenter ;
   list.transformsOrder = transformsOrder ;
-  list.bulk = bulk ;
-  if( list.deffield.compare( "" ) && list.bulk )
-  {
-    std::cerr << "Cannot apply both a deformation field transform\
- and a BSpline transform with a bulk transform at the same time" << std::endl ;
-    return EXIT_FAILURE ;
-  }
+  list.notbulk = notbulk ;
   //verify if all the vector parameters have the good length
   if( list.outputImageSpacing.size() != 3 || list.outputImageSize.size() != 3
       || ( list.outputImageOrigin.size() != 3 
