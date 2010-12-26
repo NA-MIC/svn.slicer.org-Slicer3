@@ -1075,7 +1075,7 @@ void vtkEMSegmentRunSegmentationStep::ShowROIGUI(vtkKWWidget* parent)
   //this->roiNode->PrintSelf(cout,ind);
 
   this->AddGUIObservers();
-  // Keep seperate bc GUIObserver is also called from vtkEMSegmentRunSegmentationStepGUI ! 
+  // Keep separate bc GUIObserver is also called from vtkEMSegmentRunSegmentationStepGUI ! 
   // You only want to add the observers below when the step is active 
   // this->AddROISamplingGUIObservers();
   // cout << "vtkEMSegmentRunSegmentationStep::ShowUserInterface() end " << endl;
