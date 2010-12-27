@@ -10,6 +10,8 @@
 #include "vtkKWScale.h"
 #include "vtkKWMenuButton.h"
 #include "vtkKWCheckButton.h"
+#include "vtkKWEntry.h"
+#include "vtkKWEntryWithLabel.h"
 
 #include "vtkMRMLModelNode.h"
 #include "vtkMRMLModelDisplayNode.h"
@@ -18,9 +20,11 @@
 #include "vtkPointData.h"
 #include "vtkCellData.h"
 
+
 //---------------------------------------------------------------------------
 vtkStandardNewMacro (vtkSlicerModelDisplayWidget );
 vtkCxxRevisionMacro ( vtkSlicerModelDisplayWidget, "$Revision$");
+
 
 
 //---------------------------------------------------------------------------
@@ -34,9 +38,14 @@ vtkSlicerModelDisplayWidget::vtkSlicerModelDisplayWidget ( )
 
     this->SelectedButton = NULL;
     this->VisibilityButton = NULL;
+    
     this->ScalarVisibilityButton = NULL;
+    this->AutoScalarRangeCheckButton = NULL;
+    this->MinScalarRangeEntry = NULL;
+    this->MaxScalarRangeEntry = NULL;
     this->ScalarMenu = NULL;
     this->ColorSelectorWidget = NULL;
+    
     this->ClippingButton = NULL;
     this->SliceIntersectionVisibilityButton = NULL;
     this->BackfaceCullingButton = NULL;
@@ -47,7 +56,6 @@ vtkSlicerModelDisplayWidget::vtkSlicerModelDisplayWidget ( )
 
     this->UpdatingMRML = 0;
     this->UpdatingWidget = 0;
-
 }
 
 
@@ -75,6 +83,24 @@ vtkSlicerModelDisplayWidget::~vtkSlicerModelDisplayWidget ( )
     this->ScalarVisibilityButton->SetParent(NULL);
     this->ScalarVisibilityButton->Delete();
     this->ScalarVisibilityButton = NULL;
+    }
+  if (this->AutoScalarRangeCheckButton)
+    {
+    this->AutoScalarRangeCheckButton->SetParent(NULL);
+    this->AutoScalarRangeCheckButton->Delete();
+    this->AutoScalarRangeCheckButton = NULL;
+    }
+  if (this->MinScalarRangeEntry)
+    {
+    this->MinScalarRangeEntry->SetParent(NULL);
+    this->MinScalarRangeEntry->Delete();
+    this->MinScalarRangeEntry = NULL;
+    }
+  if (this->MaxScalarRangeEntry)
+    {
+    this->MaxScalarRangeEntry->SetParent(NULL);
+    this->MaxScalarRangeEntry->Delete();
+    this->MaxScalarRangeEntry = NULL;
     }
   if (this->ScalarMenu)
     {
@@ -208,7 +234,56 @@ void vtkSlicerModelDisplayWidget::ProcessWidgetEvents(vtkObject *caller,
       this->MRMLScene->SaveStateForUndo(this->ModelDisplayNode);
       }
     }
-  
+
+   if (event == vtkKWCheckButton::SelectedStateChangedEvent)
+     {
+     vtkKWCheckButton *cb = vtkKWCheckButton::SafeDownCast(caller);
+     if (cb && cb == this->AutoScalarRangeCheckButton->GetWidget())
+       {
+       // if it's turned on, reset the scalar min max, it will be passed on to
+       // the node in UpdateMRML
+       if (this->AutoScalarRangeCheckButton->GetWidget()->GetSelectedState())
+         {
+         if (this->ModelDisplayNode->GetPolyData() &&
+             this->ModelDisplayNode->GetPolyData()->GetScalarRange())
+           {
+           double *scalarRange = this->ModelDisplayNode->GetPolyData()->GetScalarRange();
+           vtkDebugMacro("ProcessWidgetEvents: Scalar range for display node polydata = " << scalarRange[0] << ", " << scalarRange[1]);
+           this->MinScalarRangeEntry->GetWidget()->SetValueAsDouble(scalarRange[0]);
+           this->MaxScalarRangeEntry->GetWidget()->SetValueAsDouble(scalarRange[1]);
+           }
+         else
+           {
+           this->MinScalarRangeEntry->GetWidget()->SetValueAsDouble(0.0);
+           this->MaxScalarRangeEntry->GetWidget()->SetValueAsDouble(1.0);
+           }
+         }
+       }
+     }
+
+   if (event == vtkKWMenu::MenuItemInvokedEvent)
+     {
+     vtkKWMenu *menu = vtkKWMenu::SafeDownCast(caller);
+     if (menu && menu == this->ScalarMenu->GetWidget()->GetMenu())
+       {
+       // update the min/max range fields if in auto mode
+       if (this->AutoScalarRangeCheckButton->GetWidget()->GetSelectedState())
+         {
+         if (this->ModelDisplayNode->GetPolyData() &&
+             this->ModelDisplayNode->GetPolyData()->GetPointData() &&
+             this->ModelDisplayNode->GetPolyData()->GetPointData()->GetScalars(this->ScalarMenu->GetWidget()->GetValue()))
+           {
+           //double *scalarRange =
+           //this->ModelDisplayNode->GetPolyData()->GetScalarRange();
+           // it's not set yet as the active one, so reach down and get the range
+           double *scalarRange =  this->ModelDisplayNode->GetPolyData()->GetPointData()->GetScalars(this->ScalarMenu->GetWidget()->GetValue())->GetRange();
+           vtkDebugMacro("ProcessWidgetEvents: Menu item invoked, scalar range for display node polydata on array " << this->ScalarMenu->GetWidget()->GetValue() << " = " << scalarRange[0] << ", " << scalarRange[1]);
+           this->MinScalarRangeEntry->GetWidget()->SetValueAsDouble(scalarRange[0]);
+           this->MaxScalarRangeEntry->GetWidget()->SetValueAsDouble(scalarRange[1]);
+           }
+         }
+       }
+     }
   this->UpdateMRML();
 
   this->ProcessingWidgetEvent = 0;
@@ -275,6 +350,10 @@ void vtkSlicerModelDisplayWidget::UpdateMRML()
     
     
     this->ModelDisplayNode->SetScalarVisibility(this->ScalarVisibilityButton->GetWidget()->GetSelectedState());
+    this->ModelDisplayNode->SetAutoScalarRange(this->AutoScalarRangeCheckButton->GetWidget()->GetSelectedState());
+    double min = this->MinScalarRangeEntry->GetWidget()->GetValueAsDouble();
+    double max = this->MaxScalarRangeEntry->GetWidget()->GetValueAsDouble();
+    this->ModelDisplayNode->SetScalarRange(min, max);
     // get the value of the button, it's the selected item in the menu
     this->ModelDisplayNode->SetActiveScalarName(this->ScalarMenu->GetWidget()->GetValue());
     vtkDebugMacro("Set display node active scalar name to " << this->ModelDisplayNode->GetActiveScalarName());
@@ -366,14 +445,18 @@ void vtkSlicerModelDisplayWidget::UpdateWidget()
   if (this->ModelNode != NULL &&
       this->ModelNode->GetPolyData() != NULL)
     {
-    this->ScalarVisibilityButton->SetEnabled(1); 
+    this->ScalarVisibilityButton->SetEnabled(1);
+    this->AutoScalarRangeCheckButton->SetEnabled(1);
+    this->MinScalarRangeEntry->SetEnabled(1);
+    this->MaxScalarRangeEntry->SetEnabled(1);
     this->ScalarMenu->SetEnabled(1);
     this->ColorSelectorWidget->SetEnabled(1);
 
     // populate the scalars menu from the model node
     int numPointScalars;
     int numCellScalars;
-    if (this->ModelNode->GetPolyData()->GetPointData() != NULL)
+    if (this->ModelNode->GetPolyData() &&
+        this->ModelNode->GetPolyData()->GetPointData() != NULL)
       {
       numPointScalars = this->ModelNode->GetPolyData()->GetPointData()->GetNumberOfArrays();
       }
@@ -381,7 +464,8 @@ void vtkSlicerModelDisplayWidget::UpdateWidget()
       {
       numPointScalars = 0;
       }
-    if (this->ModelNode->GetPolyData()->GetCellData() != NULL)
+    if (this->ModelNode->GetPolyData() &&
+        this->ModelNode->GetPolyData()->GetCellData() != NULL)
       {
       numCellScalars = this->ModelNode->GetPolyData()->GetCellData()->GetNumberOfArrays();
       }
@@ -406,7 +490,10 @@ void vtkSlicerModelDisplayWidget::UpdateWidget()
     } 
   else 
     { 
-    this->ScalarVisibilityButton->SetEnabled(0); 
+    this->ScalarVisibilityButton->SetEnabled(0);
+    this->AutoScalarRangeCheckButton->SetEnabled(0);
+    this->MinScalarRangeEntry->SetEnabled(0);
+    this->MaxScalarRangeEntry->SetEnabled(0);
     this->ScalarMenu->SetEnabled(0);
     this->ColorSelectorWidget->SetEnabled(0);
     vtkDebugMacro("ModelNode is null, can't set up the scalars menu\n"); 
@@ -422,7 +509,13 @@ void vtkSlicerModelDisplayWidget::UpdateWidget()
 
   this->VisibilityButton->GetWidget()->SetSelectedState(this->ModelDisplayNode->GetVisibility());
   this->ScalarVisibilityButton->GetWidget()->SetSelectedState(this->ModelDisplayNode->GetScalarVisibility());
-  
+  this->AutoScalarRangeCheckButton->GetWidget()->SetSelectedState(this->ModelDisplayNode->GetAutoScalarRange());
+  double* scalarRange = this->ModelDisplayNode->GetScalarRange();
+  if (scalarRange)
+    {
+    this->MinScalarRangeEntry->GetWidget()->SetValueAsDouble(scalarRange[0]);
+    this->MaxScalarRangeEntry->GetWidget()->SetValueAsDouble(scalarRange[1]);
+    }
   // set the active one if it's not already set
   this->ScalarMenu->GetWidget()->GetMenu()->SelectItem(this->ModelDisplayNode->GetActiveScalarName());
   // get the color node
@@ -499,6 +592,9 @@ void vtkSlicerModelDisplayWidget::RemoveWidgetObservers ( ) {
   this->SelectedButton->GetWidget()->RemoveObservers(vtkKWCheckButton::SelectedStateChangedEvent, (vtkCommand *)this->GUICallbackCommand );
   this->VisibilityButton->GetWidget()->RemoveObservers(vtkKWCheckButton::SelectedStateChangedEvent, (vtkCommand *)this->GUICallbackCommand );
   this->ScalarVisibilityButton->GetWidget()->RemoveObservers(vtkKWCheckButton::SelectedStateChangedEvent, (vtkCommand *)this->GUICallbackCommand );
+  this->AutoScalarRangeCheckButton->GetWidget()->RemoveObservers(vtkKWCheckButton::SelectedStateChangedEvent, (vtkCommand *)this->GUICallbackCommand );
+  this->MinScalarRangeEntry->GetWidget()->RemoveObservers ( vtkKWEntry::EntryValueChangedEvent, this->GUICallbackCommand);
+  this->MaxScalarRangeEntry->GetWidget()->RemoveObservers ( vtkKWEntry::EntryValueChangedEvent, this->GUICallbackCommand);
   this->ScalarMenu->GetWidget()->GetMenu()->RemoveObservers(vtkKWMenu::MenuItemInvokedEvent, (vtkCommand *)this->GUICallbackCommand);
   this->ClippingButton->GetWidget()->RemoveObservers(vtkKWCheckButton::SelectedStateChangedEvent, (vtkCommand *)this->GUICallbackCommand );
   this->SliceIntersectionVisibilityButton->GetWidget()->RemoveObservers(vtkKWCheckButton::SelectedStateChangedEvent, (vtkCommand *)this->GUICallbackCommand );
@@ -548,93 +644,26 @@ void vtkSlicerModelDisplayWidget::CreateWidget ( )
   //this->ModelSelectorWidget->ChildClassesEnabledOff();
 
   this->SelectedButton = vtkKWCheckButtonWithLabel::New();
+  //TODO enable selected when supported
+  /*
   this->SelectedButton->SetParent ( modelDisplayFrame );
   this->SelectedButton->Create ( );
   this->SelectedButton->SetLabelText("Selected");
+  this->SelectedButton->SetLabelWidth(20);
   this->SelectedButton->SetBalloonHelpString("set model selected (very much under construction)");
   this->Script ( "pack %s -side top -anchor nw -expand y -fill x -padx 2 -pady 2",
                  this->SelectedButton->GetWidgetName() );
-  
+  */
+
   this->VisibilityButton = vtkKWCheckButtonWithLabel::New();
   this->VisibilityButton->SetParent ( modelDisplayFrame );
   this->VisibilityButton->Create ( );
   this->VisibilityButton->SetLabelText("Visibility");
+  this->VisibilityButton->SetLabelWidth(20);
   this->VisibilityButton->SetBalloonHelpString("set model visibility.");
   this->Script ( "pack %s -side top -anchor nw -expand y -fill x -padx 2 -pady 2",
                  this->VisibilityButton->GetWidgetName() );
 
-  // a frame to hold the scalar related widgets
-  vtkKWFrame *scalarFrame = vtkKWFrame::New();
-  scalarFrame->SetParent( modelDisplayFrame );
-  scalarFrame->Create();
-  this->Script("pack %s -side top -anchor nw -fill x -pady 0 -in %s",
-                 scalarFrame->GetWidgetName(),
-                 modelDisplayFrame->GetWidgetName());
-
-  // scalar visibility
-  this->ScalarVisibilityButton = vtkKWCheckButtonWithLabel::New();
-  this->ScalarVisibilityButton->SetParent ( scalarFrame );
-  this->ScalarVisibilityButton->Create ( );
-  this->ScalarVisibilityButton->SetLabelText("Scalar Visibility");
-  this->ScalarVisibilityButton->SetBalloonHelpString("set model scalar visibility.");
-  //this->Script ( "pack %s -side top -anchor nw -expand y -fill x -padx 2 -pady 2",
-  //               this->ScalarVisibilityButton->GetWidgetName() );
-
-  // a menu of the scalar fields available to be set
-  this->ScalarMenu = vtkKWMenuButtonWithLabel::New();
-  this->ScalarMenu->SetParent ( scalarFrame );
-  this->ScalarMenu->Create();
-  this->ScalarMenu->SetLabelText("Set Active Scalar:");
-  this->ScalarMenu->SetBalloonHelpString("set which scalar field is displayed on the model");
-  this->ScalarMenu->GetWidget()->SetWidth(20);
-  // pack the scalars frame
-  this->Script("pack %s %s -side left -anchor w -padx 2 -pady 2 -in %s", 
-                this->ScalarVisibilityButton->GetWidgetName(), this->ScalarMenu->GetWidgetName(),
-                scalarFrame->GetWidgetName());
-  
-  // a selector to change the color node associated with this display
-  this->ColorSelectorWidget = vtkSlicerNodeSelectorWidget::New() ;
-  this->ColorSelectorWidget->SetParent ( modelDisplayFrame );
-  this->ColorSelectorWidget->Create ( );
-  this->ColorSelectorWidget->SetNodeClass("vtkMRMLColorNode", NULL, NULL, NULL);
-  this->ColorSelectorWidget->AddExcludedChildClass("vtkMRMLDiffusionTensorDisplayPropertiesNode");
-  this->ColorSelectorWidget->ShowHiddenOn();
-  this->ColorSelectorWidget->SetMRMLScene(this->GetMRMLScene());
-  this->ColorSelectorWidget->SetBorderWidth(2);
-  // this->ColorSelectorWidget->SetReliefToGroove();
-  this->ColorSelectorWidget->SetPadX(2);
-  this->ColorSelectorWidget->SetPadY(2);
-  this->ColorSelectorWidget->GetWidget()->GetWidget()->IndicatorVisibilityOff();
-  this->ColorSelectorWidget->GetWidget()->GetWidget()->SetWidth(24);
-  this->ColorSelectorWidget->SetLabelText( "Scalar Color Map Select: ");
-  this->ColorSelectorWidget->SetBalloonHelpString("select a color node from the current mrml scene.");
-  this->Script ( "pack %s -side top -anchor nw -fill x -padx 2 -pady 2",
-                 this->ColorSelectorWidget->GetWidgetName());
-  
-  this->ClippingButton = vtkKWCheckButtonWithLabel::New();
-  this->ClippingButton->SetParent ( modelDisplayFrame );
-  this->ClippingButton->Create ( );
-  this->ClippingButton->SetLabelText("Clipping");
-  this->ClippingButton->SetBalloonHelpString("set model clipping with RGB slice planes.");
-  this->Script ( "pack %s -side top -anchor nw -expand y -fill x -padx 2 -pady 2",
-                 this->ClippingButton->GetWidgetName() );
-
-  this->SliceIntersectionVisibilityButton = vtkKWCheckButtonWithLabel::New();
-  this->SliceIntersectionVisibilityButton->SetParent ( modelDisplayFrame );
-  this->SliceIntersectionVisibilityButton->Create ( );
-  this->SliceIntersectionVisibilityButton->SetLabelText("Slice Intersections Visible");
-  this->SliceIntersectionVisibilityButton->SetBalloonHelpString("Show model intersection on slice planes.");
-  this->Script ( "pack %s -side top -anchor nw -expand y -fill x -padx 2 -pady 2",
-                 this->SliceIntersectionVisibilityButton->GetWidgetName() );
-
-  this->BackfaceCullingButton = vtkKWCheckButtonWithLabel::New();
-  this->BackfaceCullingButton->SetParent ( modelDisplayFrame );
-  this->BackfaceCullingButton->Create ( );
-  this->BackfaceCullingButton->SetLabelText("Backface Culling");
-  this->BackfaceCullingButton->SetBalloonHelpString("set model back face culling.");
-  this->Script ( "pack %s -side top -anchor nw -expand y -fill x -padx 2 -pady 2",
-                 this->BackfaceCullingButton->GetWidgetName() );
-  
   this->OpacityScale = vtkKWScaleWithLabel::New();
   this->OpacityScale->SetParent ( modelDisplayFrame );
   this->OpacityScale->Create ( );
@@ -650,16 +679,134 @@ void vtkSlicerModelDisplayWidget::CreateWidget ( )
   this->ChangeColorButton->Create ( );
   this->ChangeColorButton->SetColor(0.0, 1.0, 0.0);
   this->ChangeColorButton->LabelOutsideButtonOn();
-  this->ChangeColorButton->SetLabelPositionToRight();
+  this->ChangeColorButton->SetLabelPositionToLeft();
   this->ChangeColorButton->SetBalloonHelpString("set model color.");
   this->Script ( "pack %s -side top -anchor nw -expand y -fill x -padx 2 -pady 2",
                  this->ChangeColorButton->GetWidgetName() );
 
-  this->SurfaceMaterialPropertyWidget = vtkKWSurfaceMaterialPropertyWidget::New();
-  this->SurfaceMaterialPropertyWidget->SetParent ( modelDisplayFrame );
-  this->SurfaceMaterialPropertyWidget->Create ( );
-  this->SurfaceMaterialPropertyWidget->SetBalloonHelpString("set model surface properties.");
+  this->SliceIntersectionVisibilityButton = vtkKWCheckButtonWithLabel::New();
+  this->SliceIntersectionVisibilityButton->SetParent ( modelDisplayFrame );
+  this->SliceIntersectionVisibilityButton->Create ( );
+  this->SliceIntersectionVisibilityButton->SetLabelText("Slice Intersections Visibility");
+  this->SliceIntersectionVisibilityButton->SetLabelWidth(20);
+  this->SliceIntersectionVisibilityButton->SetBalloonHelpString("Show model intersection on slice planes.");
   this->Script ( "pack %s -side top -anchor nw -expand y -fill x -padx 2 -pady 2",
+                 this->SliceIntersectionVisibilityButton->GetWidgetName() );
+
+  this->BackfaceCullingButton = vtkKWCheckButtonWithLabel::New();
+  this->BackfaceCullingButton->SetParent ( modelDisplayFrame );
+  this->BackfaceCullingButton->Create ( );
+  this->BackfaceCullingButton->SetLabelText("Backface Culling");
+  this->BackfaceCullingButton->SetLabelWidth(20);
+  this->BackfaceCullingButton->SetBalloonHelpString("set model back face culling.");
+  this->Script ( "pack %s -side top -anchor nw -expand y -fill x -padx 2 -pady 2",
+                 this->BackfaceCullingButton->GetWidgetName() );
+
+
+  this->ClippingButton = vtkKWCheckButtonWithLabel::New();
+  this->ClippingButton->SetParent ( modelDisplayFrame );
+  this->ClippingButton->Create ( );
+  this->ClippingButton->SetLabelText("Clipping");
+  this->ClippingButton->SetLabelWidth(20);  
+  this->ClippingButton->SetBalloonHelpString("set model clipping with RGB slice planes.");
+  this->Script ( "pack %s -side top -anchor nw -expand y -fill x -padx 2 -pady 2",
+                 this->ClippingButton->GetWidgetName() );
+
+
+  // a frame to hold the scalar related widgets
+  vtkKWFrameWithLabel *scalarFrame = vtkKWFrameWithLabel::New();
+  scalarFrame->SetParent( modelDisplayFrame );
+  scalarFrame->Create();
+  scalarFrame->SetLabelText("Scalars:");
+  scalarFrame->CollapseFrame();
+  this->Script("pack %s -side top -anchor nw -fill x -pady 0 -in %s",
+                 scalarFrame->GetWidgetName(),
+                 modelDisplayFrame->GetWidgetName());
+
+  vtkKWFrame *scalarVisibFrame = vtkKWFrame::New();
+  scalarVisibFrame->SetParent(scalarFrame->GetFrame());
+  scalarVisibFrame->Create();
+  this->Script("pack %s -side top -anchor nw -fill x -pady 0",
+               scalarVisibFrame->GetWidgetName());
+  
+  // scalar visibility
+  this->ScalarVisibilityButton = vtkKWCheckButtonWithLabel::New();
+  this->ScalarVisibilityButton->SetParent ( scalarVisibFrame );
+  this->ScalarVisibilityButton->Create ( );
+  this->ScalarVisibilityButton->SetLabelText("Scalar Visibility");
+  this->ScalarVisibilityButton->SetBalloonHelpString("set model scalar visibility.");
+  //this->Script ( "pack %s -side top -anchor nw -expand y -fill x -padx 2 -pady 2",
+  //               this->ScalarVisibilityButton->GetWidgetName() );
+
+  
+  // a menu of the scalar fields available to be set
+  this->ScalarMenu = vtkKWMenuButtonWithLabel::New();
+  this->ScalarMenu->SetParent ( scalarVisibFrame );
+  this->ScalarMenu->Create();
+  this->ScalarMenu->SetLabelText("Set Active Scalar:");
+  this->ScalarMenu->SetBalloonHelpString("set which scalar field is displayed on the model");
+  this->ScalarMenu->GetWidget()->SetWidth(20);
+  // pack the scalars frame
+  this->Script("pack %s %s -side left -anchor w -padx 2 -pady 2", 
+               this->ScalarVisibilityButton->GetWidgetName(),
+               this->ScalarMenu->GetWidgetName());
+
+  // scalar use auto range
+  this->AutoScalarRangeCheckButton = vtkKWCheckButtonWithLabel::New();
+  this->AutoScalarRangeCheckButton->SetParent ( scalarFrame->GetFrame() );
+  this->AutoScalarRangeCheckButton->Create ( );
+  this->AutoScalarRangeCheckButton->SetLabelText("Auto Scalar Range");
+  this->AutoScalarRangeCheckButton->SetLabelWidth(20);
+  this->AutoScalarRangeCheckButton->SetBalloonHelpString("Use automatic scalar range, resets min/max scalar range from the active scalar array. Currently, min/max scalar range is still used when checked, use this to reset the range to the full range.");
+  this->Script ( "pack %s -side top -anchor nw -fill x -padx 2 -pady 2",
+                 this->AutoScalarRangeCheckButton->GetWidgetName());
+
+  // scalar range
+  this->MinScalarRangeEntry = vtkKWEntryWithLabel::New();
+  this->MinScalarRangeEntry->SetParent(scalarFrame->GetFrame());
+  this->MinScalarRangeEntry->Create();
+  this->MinScalarRangeEntry->SetLabelText("Min Scalar Range");
+  //this->MinScalarRangeEntry->SetWidth ( 8 );
+  this->MinScalarRangeEntry->GetWidget()->SetValueAsDouble(0.0);
+  this->MinScalarRangeEntry->SetBalloonHelpString("Set the minimum scalar range to display from the currently active scalar array. Changes here do not work with color transfer function scalar color maps (for example, FreeSurfer color maps)");
+  this->Script("pack %s -side top -anchor e -padx 20 -pady 10", 
+               this->MinScalarRangeEntry->GetWidgetName());
+
+  this->MaxScalarRangeEntry = vtkKWEntryWithLabel::New();
+  this->MaxScalarRangeEntry->SetParent( scalarFrame->GetFrame() );
+  this->MaxScalarRangeEntry->Create();
+  this->MaxScalarRangeEntry->SetLabelText("Max Scalar Range");
+  //this->MaxScalarRangeEntry->SetWidth ( 8 );
+  this->MaxScalarRangeEntry->GetWidget()->SetValueAsDouble(1.0);
+  this->MaxScalarRangeEntry->SetBalloonHelpString("Set the maximum scalar range to display from the currently active scalar array. Changes here do not work with color transfer function scalar color maps (for example, FreeSurfer color maps)");
+  this->Script("pack %s -side top -anchor e -padx 20 -pady 10", 
+               this->MaxScalarRangeEntry->GetWidgetName());
+  
+  // a selector to change the color node associated with this display
+  this->ColorSelectorWidget = vtkSlicerNodeSelectorWidget::New() ;
+  this->ColorSelectorWidget->SetParent ( scalarFrame->GetFrame() );
+  this->ColorSelectorWidget->Create ( );
+  this->ColorSelectorWidget->SetNodeClass("vtkMRMLColorNode", NULL, NULL, NULL);
+  this->ColorSelectorWidget->AddExcludedChildClass("vtkMRMLDiffusionTensorDisplayPropertiesNode");
+  this->ColorSelectorWidget->ShowHiddenOn();
+  this->ColorSelectorWidget->SetMRMLScene(this->GetMRMLScene());
+  this->ColorSelectorWidget->SetBorderWidth(2);
+  // this->ColorSelectorWidget->SetReliefToGroove();
+  this->ColorSelectorWidget->SetPadX(2);
+  this->ColorSelectorWidget->SetPadY(2);
+  this->ColorSelectorWidget->GetWidget()->GetWidget()->IndicatorVisibilityOff();
+  this->ColorSelectorWidget->GetWidget()->GetWidget()->SetWidth(24);
+  this->ColorSelectorWidget->SetLabelText( "Scalar Color Map Select: ");
+  this->ColorSelectorWidget->SetBalloonHelpString("select a color node from the current mrml scene.");
+  this->Script ( "pack %s -side top -anchor nw -fill x -padx 2 -pady 2",
+                 this->ColorSelectorWidget->GetWidgetName());
+    
+  this->SurfaceMaterialPropertyWidget = vtkKWSurfaceMaterialPropertyWidget::New();
+  this->SurfaceMaterialPropertyWidget->SetParent ( modelDisplayFrame );  this->SurfaceMaterialPropertyWidget->Create ( );
+  this->SurfaceMaterialPropertyWidget->SetBalloonHelpString("set model surface properties.");
+  this->Script("pack forget %s", this->SurfaceMaterialPropertyWidget->GetWidgetName());
+  this->Script( "pack configure %s -expand n", this->SurfaceMaterialPropertyWidget->GetWidgetName());
+  this->Script ( "pack %s -expand n -side top -anchor nw -fill x -padx 2 -pady 2",
                  this->SurfaceMaterialPropertyWidget->GetWidgetName() );
 
   // add observers
@@ -671,6 +818,10 @@ void vtkSlicerModelDisplayWidget::CreateWidget ( )
   this->SelectedButton->GetWidget()->AddObserver(vtkKWCheckButton::SelectedStateChangedEvent, (vtkCommand *)this->GUICallbackCommand );
   this->VisibilityButton->GetWidget()->AddObserver(vtkKWCheckButton::SelectedStateChangedEvent, (vtkCommand *)this->GUICallbackCommand );
   this->ScalarVisibilityButton->GetWidget()->AddObserver(vtkKWCheckButton::SelectedStateChangedEvent, (vtkCommand *)this->GUICallbackCommand );
+  this->AutoScalarRangeCheckButton->GetWidget()->AddObserver(vtkKWCheckButton::SelectedStateChangedEvent, (vtkCommand *)this->GUICallbackCommand );
+  this->MinScalarRangeEntry->GetWidget()->AddObserver ( vtkKWEntry::EntryValueChangedEvent, this->GUICallbackCommand);
+  this->MaxScalarRangeEntry->GetWidget()->AddObserver ( vtkKWEntry::EntryValueChangedEvent, this->GUICallbackCommand);
+    
   this->ScalarMenu->GetWidget()->GetMenu()->AddObserver(vtkKWMenu::MenuItemInvokedEvent, (vtkCommand *)this->GUICallbackCommand);
   this->ClippingButton->GetWidget()->AddObserver(vtkKWCheckButton::SelectedStateChangedEvent, (vtkCommand *)this->GUICallbackCommand );
   this->SliceIntersectionVisibilityButton->GetWidget()->AddObserver(vtkKWCheckButton::SelectedStateChangedEvent, (vtkCommand *)this->GUICallbackCommand );
@@ -684,5 +835,8 @@ void vtkSlicerModelDisplayWidget::CreateWidget ( )
   this->ColorSelectorWidget->AddObserver (vtkSlicerNodeSelectorWidget::NodeSelectedEvent, (vtkCommand *)this->GUICallbackCommand );
    
   modelDisplayFrame->Delete();
+  scalarVisibFrame->Delete();
   scalarFrame->Delete();
+
 }
+

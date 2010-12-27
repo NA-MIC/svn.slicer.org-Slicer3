@@ -327,6 +327,7 @@ void vtkSlicerApplicationGUI::TearDownViewers()
 {
   // Called by Slicer3.cxx on exit
 
+  this->Built = false;
   this->UnpackMainViewer();
 
   this->DestroyMain3DViewer ( );
@@ -401,6 +402,37 @@ void vtkSlicerApplicationGUI::ProcessLoadSceneCommand()
     {
     vtkErrorMacro ( "ProcessLoadSceneCommand: Got NULL SlicerWindow." );
     return;
+    }
+
+  if (this->GetMRMLScene() && this->GetMRMLScene()->IsModifiedSinceRead())
+    {
+    vtkKWMessageDialog *dialog = vtkKWMessageDialog::New();
+    dialog->SetParent ( this->MainSlicerWindow );
+    dialog->SetStyleToOkOtherCancel();
+    dialog->SetText("Scene contains data that has not been saved");
+    dialog->SetOKButtonText("Save Data...");
+    dialog->SetOtherButtonText("Load New Scene");
+    dialog->SetCancelButtonText("Cancel Load Scene");
+    dialog->Create ( );
+    dialog->SetMasterWindow( this->MainSlicerWindow );
+    dialog->SetOptions(
+    vtkKWMessageDialog::QuestionIcon | 
+    vtkKWMessageDialog::Beep | 
+    vtkKWMessageDialog::YesDefault);
+
+    dialog->ModalOn();
+    dialog->Invoke();
+    int status = dialog->GetStatus();
+    dialog->Delete();
+    if (status == vtkKWMessageDialog::StatusOK)
+      {
+        //save      
+        this->ProcessSaveSceneAsCommand();
+      }
+    else if (status == vtkKWMessageDialog::StatusCanceled)
+      {
+      return;
+      }
     }
 
   if ( !this->LoadSceneDialog->IsCreated() )
@@ -821,22 +853,60 @@ void vtkSlicerApplicationGUI::ProcessAddTransformCommand()
 //---------------------------------------------------------------------------
 void vtkSlicerApplicationGUI::ProcessCloseSceneCommand()
 {
-  vtkKWMessageDialog *dialog = vtkKWMessageDialog::New();
-  dialog->SetParent ( this->MainSlicerWindow );
-  dialog->SetStyleToOkCancel();
-  dialog->SetText("Are you sure you want to close the scene?");
-  dialog->Create ( );
-  dialog->SetMasterWindow( this->MainSlicerWindow );
-  dialog->ModalOn();
-  if (dialog->Invoke())
+  if (this->GetMRMLScene() && this->GetMRMLScene()->IsModifiedSinceRead())
     {
-    if (this->GetMRMLScene())
+    vtkKWMessageDialog *dialog = vtkKWMessageDialog::New();
+    dialog->SetParent ( this->MainSlicerWindow );
+    dialog->SetStyleToOkOtherCancel();
+    dialog->SetText("Scene contains data that has not been saved");
+    dialog->SetOKButtonText("Save Data...");
+    dialog->SetOtherButtonText("Close Scene");
+    dialog->SetCancelButtonText("Cancel Close Scene");
+    dialog->Create ( );
+    dialog->SetMasterWindow( this->MainSlicerWindow );
+    dialog->SetOptions(
+    vtkKWMessageDialog::QuestionIcon | 
+    vtkKWMessageDialog::Beep | 
+    vtkKWMessageDialog::YesDefault);
+
+    dialog->ModalOn();
+    dialog->Invoke();
+    int status = dialog->GetStatus();
+    if (status == vtkKWMessageDialog::StatusOK)
       {
-      this->MRMLScene->Clear(false);
-      this->OnViewNodeNeeded();
+        //save      
+        this->ProcessSaveSceneAsCommand();
       }
+    else if (status == vtkKWMessageDialog::StatusOther)
+      {
+      if (this->GetMRMLScene())
+        {
+        this->MRMLScene->Clear(false);
+        this->OnViewNodeNeeded();
+        }
+      }
+    dialog->Delete();
+
     }
-  dialog->Delete();
+  else 
+    {
+    vtkKWMessageDialog *dialog = vtkKWMessageDialog::New();
+    dialog->SetParent ( this->MainSlicerWindow );
+    dialog->SetStyleToOkCancel();
+    dialog->SetText("Are you sure you want to close the scene?");
+    dialog->Create ( );
+    dialog->SetMasterWindow( this->MainSlicerWindow );
+    dialog->ModalOn();
+    if (dialog->Invoke())
+      {
+      if (this->GetMRMLScene())
+        {
+        this->MRMLScene->Clear(false);
+        this->OnViewNodeNeeded();
+        }
+      }
+    dialog->Delete();
+   }
 }
 
 //---------------------------------------------------------------------------
@@ -1004,6 +1074,10 @@ const char* vtkSlicerApplicationGUI::GetCurrentLayoutStringName ( )
         {
         return ( "Dual 3D layout" );
         }
+      else if (layout == vtkMRMLLayoutNode::SlicerLayoutTriple3DEndoscopyView )
+        {
+        return ( "Triple 3D layout" );
+        }
       else
         {
         return (NULL);
@@ -1114,6 +1188,17 @@ void vtkSlicerApplicationGUI::UpdateLayout ( )
     //TEST
     this->ApplicationToolbar->ResumeViewRockOrSpin(mode);
     }
+  else if ( target == vtkMRMLLayoutNode::SlicerLayoutTriple3DEndoscopyView &&
+      this->GetCurrentLayout()!= vtkMRMLLayoutNode::SlicerLayoutTriple3DEndoscopyView )
+    {
+#ifndef TOOLBAR_DEBUG
+    mode = this->ApplicationToolbar->StopViewRockOrSpin();
+#endif
+    this->RepackMainViewer (vtkMRMLLayoutNode::SlicerLayoutTriple3DEndoscopyView, NULL );
+    this->SetCurrentLayout ( vtkMRMLLayoutNode::SlicerLayoutTriple3DEndoscopyView );
+    //TEST
+    this->ApplicationToolbar->ResumeViewRockOrSpin(mode);
+    }
   else if ( target == vtkMRMLLayoutNode::SlicerLayoutOneUp3DView &&
             this->GetCurrentLayout()!= vtkMRMLLayoutNode::SlicerLayoutOneUp3DView )
     {
@@ -1201,7 +1286,8 @@ void vtkSlicerApplicationGUI::UpdateLayout ( )
     this->RepackMainViewer ( vtkMRMLLayoutNode::SlicerLayoutOneUpRedSliceView, "Red");
     this->SetCurrentLayout ( vtkMRMLLayoutNode::SlicerLayoutOneUpRedSliceView );
     }
-  else if ( (target == vtkMRMLLayoutNode::SlicerLayoutSideBySideLightboxView ) )
+  else if ( target == vtkMRMLLayoutNode::SlicerLayoutSideBySideLightboxView &&
+      this->GetCurrentLayout()!= vtkMRMLLayoutNode::SlicerLayoutSideBySideLightboxView)
     {
     // TO DO
 #ifndef TOOLBAR_DEBUG
@@ -1210,7 +1296,8 @@ void vtkSlicerApplicationGUI::UpdateLayout ( )
     this->RepackMainViewer ( vtkMRMLLayoutNode::SlicerLayoutSideBySideLightboxView, NULL );
     this->SetCurrentLayout ( vtkMRMLLayoutNode::SlicerLayoutSideBySideLightboxView);
     }
-  else if ( (target == vtkMRMLLayoutNode::SlicerLayoutCompareView) )
+  else if ( target == vtkMRMLLayoutNode::SlicerLayoutCompareView &&
+      this->GetCurrentLayout()!= vtkMRMLLayoutNode::SlicerLayoutCompareView)
     {
 #ifndef TOOLBAR_DEBUG
     mode = this->ApplicationToolbar->StopViewRockOrSpin();
@@ -1218,7 +1305,8 @@ void vtkSlicerApplicationGUI::UpdateLayout ( )
     this->RepackMainViewer ( vtkMRMLLayoutNode::SlicerLayoutCompareView, NULL);
     this->SetCurrentLayout ( vtkMRMLLayoutNode::SlicerLayoutCompareView );
     }
-  else if ( (target == vtkMRMLLayoutNode::SlicerLayoutCompareWidescreenView) )
+  else if ( target == vtkMRMLLayoutNode::SlicerLayoutCompareWidescreenView &&
+      this->GetCurrentLayout()!= vtkMRMLLayoutNode::SlicerLayoutCompareWidescreenView )
     {
 #ifndef TOOLBAR_DEBUG
     mode = this->ApplicationToolbar->StopViewRockOrSpin();
@@ -2596,10 +2684,55 @@ void vtkSlicerApplicationGUI::UpdateMain3DViewers()
 
   vtksys_stl::map<vtkMRMLViewNode*, int> view_nodes;
 
+  int numViewerNeeded = 1;
+  vtkMRMLLayoutNode *layout = this->GetGUILayoutNode();
+  if (layout)
+    {
+    int lay = layout->GetViewArrangement();
+    if (lay == vtkMRMLLayoutNode::SlicerLayoutDual3DView)
+      {
+      numViewerNeeded = 2;
+      }
+    if (lay == vtkMRMLLayoutNode::SlicerLayoutTriple3DEndoscopyView)
+      {
+      numViewerNeeded = 3;
+      }
+    }
+
+  // make sure that we have no more than numViewerNeeded visible View nodes
+  int numVisible = 0;
+  int n;
+  int nnodes = this->MRMLScene->GetNumberOfNodesByClass("vtkMRMLViewNode");
+  for (n = 0; n < nnodes; n++)
+    {
+    vtkMRMLViewNode *node = vtkMRMLViewNode::SafeDownCast (
+      this->MRMLScene->GetNthNodeByClass(n, "vtkMRMLViewNode"));
+    if (node && node->GetVisibility())
+      {
+      numVisible++;
+      }
+    if (numVisible > numViewerNeeded)
+      {
+      node->SetVisibility(0);
+      }
+  }
+
+  std::list<vtkSlicerViewerWidget *> nodelessViewers;
+  int nViewers = this->Internals->ViewerWidgets.size();
+  for (int i=0; i<nViewers; i++) 
+    {
+    if (this->Internals->ViewerWidgets[i]->GetViewNode() == NULL)
+      {
+      nodelessViewers.push_back(this->Internals->ViewerWidgets[i]);
+      }
+    }
+   
+
+
   int nb_added = 0;
   int nb_fidlist_added = 0;
   vtkMRMLViewNode *node = NULL;
-  int n, nnodes = this->MRMLScene->GetNumberOfNodesByClass("vtkMRMLViewNode");
+  nnodes = this->MRMLScene->GetNumberOfNodesByClass("vtkMRMLViewNode");
   for (n = 0; n < nnodes; n++)
     {
     node = vtkMRMLViewNode::SafeDownCast (
@@ -2609,21 +2742,46 @@ void vtkSlicerApplicationGUI::UpdateMain3DViewers()
       view_nodes[node] = 1;
       if (!this->GetViewerWidgetForNode(node))
         {
-        vtkSlicerViewerWidget *viewer_widget = vtkSlicerViewerWidget::New();
-        viewer_widget->SetApplication(app);
-        viewer_widget->SetParent(this->MainSlicerWindow);
-        viewer_widget->SetAndObserveViewNode(node);
-        viewer_widget->SetMRMLScene(this->MRMLScene);
-        viewer_widget->Create();
+        // try to re-use an existing viewer first
+        vtkSlicerViewerWidget *viewer_widget = NULL;
+        if (nodelessViewers.size() > 0)
+          {
+          viewer_widget = nodelessViewers.front();
+          viewer_widget->SetAndObserveMRMLScene(this->MRMLScene);
+          viewer_widget->SetAndObserveViewNode(node);
+          viewer_widget->AddMRMLSceneObservers();
+          node->InvokeEvent(
+              vtkMRMLViewNode::GraphicalResourcesCreatedEvent, viewer_widget);
+          viewer_widget->UpdateFromMRML();
+          nodelessViewers.pop_front();
+          }
+        else
+          {
+          viewer_widget = vtkSlicerViewerWidget::New();
+          viewer_widget->SetApplication(app);
+          viewer_widget->SetApplicationLogic(this->GetApplicationLogic());
+          viewer_widget->SetParent(this->MainSlicerWindow);
+          viewer_widget->SetAndObserveMRMLScene(this->MRMLScene);
+          viewer_widget->SetAndObserveViewNode(node);
+          viewer_widget->AddMRMLSceneObservers();
+          viewer_widget->Create();
+          this->Internals->ViewerWidgets.push_back(viewer_widget);
+          node->InvokeEvent(
+            vtkMRMLViewNode::GraphicalResourcesCreatedEvent, viewer_widget);
+          viewer_widget->UpdateFromMRML();
+          nb_added++;
+          }
+        }
+      else
+        {
+        vtkSlicerViewerWidget *viewer_widget = this->GetViewerWidgetForNode(node);
+        viewer_widget->SetAndObserveMRMLScene( this->MRMLScene );
+        viewer_widget->AddMRMLSceneObservers();
         viewer_widget->UpdateFromMRML();
-        viewer_widget->SetApplicationLogic(this->GetApplicationLogic());
-        this->Internals->ViewerWidgets.push_back(viewer_widget);
-        node->InvokeEvent(
-          vtkMRMLViewNode::GraphicalResourcesCreatedEvent, viewer_widget);
-        nb_added++;
         }
       if (!this->GetFiducialListWidgetForNode(node))
         {
+        // TODO: try to re-use an existing viewer first, see above
         vtkSlicerFiducialListWidget *fidlist_widget = vtkSlicerFiducialListWidget::New();
         fidlist_widget->SetApplication(app);
         fidlist_widget->SetParent(this->MainSlicerWindow);
@@ -2756,7 +2914,7 @@ void vtkSlicerApplicationGUI::OnViewNodeNeeded()
     }
 
   // No visible 3D view node, let's add one for convenience
-  int nnodes = GetNumberOfVisibleViewNodes();
+  int nnodes = this->GetNumberOfVisibleViewNodes();
   if (nnodes<1)
     {
     vtkMRMLViewNode *view_node = vtkMRMLViewNode::New();
@@ -2787,6 +2945,35 @@ void vtkSlicerApplicationGUI::OnViewNodeAdded(vtkMRMLViewNode *view_node)
     view_node->SetActive(1);
     }
   this->UpdateMain3DViewers();
+
+  if (this->GUILayoutNode) 
+  {
+    int target = this->GUILayoutNode->GetViewArrangement();
+    char *whichSlice = NULL;
+    switch (target)
+    {
+      case vtkMRMLLayoutNode::SlicerLayoutOneUpRedSliceView:
+        whichSlice = "Red";
+      break;
+      case vtkMRMLLayoutNode::SlicerLayoutOneUpYellowSliceView:
+        whichSlice = "Yellow";
+        break;
+      case vtkMRMLLayoutNode::SlicerLayoutOneUpGreenSliceView:
+        whichSlice = "Green";
+        break;
+      case vtkMRMLLayoutNode::SlicerLayoutOneUpSliceView:
+        whichSlice =  "Red";
+        break;
+    }
+    this->RepackMainViewer (target, whichSlice );
+    this->CurrentLayout = target;
+#ifndef TOOLBAR_DEBUG
+    if(this->ApplicationToolbar)
+      {
+      this->ApplicationToolbar->UpdateLayoutMenu();
+      }
+#endif
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -2829,7 +3016,10 @@ void vtkSlicerApplicationGUI::UpdateActiveViewerWidgetDependencies(
   
 #ifndef VIEWCONTROL_DEBUG
   vtkSlicerViewControlGUI *vcGUI = this->GetViewControlGUI ( );
-  vcGUI->SetViewNode(active_viewer ? active_viewer->GetViewNode() : NULL);
+  if ( vcGUI )
+    {
+    vcGUI->SetViewNode(active_viewer ? active_viewer->GetViewNode() : NULL);
+    }
   //this->InitializeViewControlGUI();
 #endif
 
@@ -2839,21 +3029,6 @@ void vtkSlicerApplicationGUI::UpdateActiveViewerWidgetDependencies(
       active_viewer->GetViewNode()->GetName());
     }
 
-  vtkMRMLLayoutNode *layout = this->GetGUILayoutNode();
-  if (layout)
-    {
-    // Since neither UpdateLayout or RepackMainViewer can be called
-    // correctly on their own...
-    int old_ar = layout->GetViewArrangement();
-    layout->SetViewArrangement(vtkMRMLLayoutNode::SlicerLayoutNone);
-    this->UpdateLayout();
-    layout->SetViewArrangement(
-      old_ar != vtkMRMLLayoutNode::SlicerLayoutNone
-      ? old_ar : vtkMRMLLayoutNode::SlicerLayoutInitialView);
-    // WHY THE HELL isn't *this* SetViewArrangement not triggering
-    // ProcessMRMLEvents!!! Forcing with UpdateLayout()!!
-    this->UpdateLayout();
-    }
 }
 
 //---------------------------------------------------------------------------
@@ -3124,6 +3299,9 @@ void vtkSlicerApplicationGUI::PackMainViewer ( int arrangmentType, const char *w
         case vtkMRMLLayoutNode::SlicerLayoutDual3DView:
           this->PackDual3DView();
           break;
+        case vtkMRMLLayoutNode::SlicerLayoutTriple3DEndoscopyView:
+          this->PackTriple3DEndoscopyView();
+          break;
         default:
           this->PackConventionalView ( );
           break;
@@ -3187,6 +3365,9 @@ void vtkSlicerApplicationGUI::UnpackMainViewer ( )
           break;
         case vtkMRMLLayoutNode::SlicerLayoutDual3DView:
           this->UnpackDual3DView();
+          break;
+        case vtkMRMLLayoutNode::SlicerLayoutTriple3DEndoscopyView:
+          this->UnpackTriple3DEndoscopyView();
           break;
         default:
           this->UnpackConventionalView ( );
@@ -3506,6 +3687,126 @@ void vtkSlicerApplicationGUI::PackConventionalView ( )
 }
 
 //---------------------------------------------------------------------------
+void vtkSlicerApplicationGUI::PackTriple3DEndoscopyView ()
+{
+  if ( this->GetApplication() != NULL )
+    {
+    vtkMRMLLayoutNode *layout = this->GetGUILayoutNode();
+    if ( layout == NULL )
+      {
+      return;
+      }
+
+    // here we want to pack one conventional 3D viewer at the top.
+    // and we want the bottom frame to be split evenly between
+    // an endoscopic view and a conventional 3D viewer set up to
+    // do volume rendering.
+
+    // Show the top and bottom panels
+    this->MainSlicerWindow->GetSecondarySplitFrame()->SetFrame2Visibility(1);
+    this->MainSlicerWindow->GetSecondarySplitFrame()->SetFrame1Visibility(1);
+    // Don't use tabs
+    this->MainSlicerWindow->GetViewNotebook()->SetAlwaysShowTabs ( 0 );
+
+    // pack the top.
+    this->Script ( "pack %s -side top -fill both -expand 1 -padx 0 -pady 0 ", this->GridFrame1->GetWidgetName ( ) );
+    this->Script ("grid columnconfigure %s 0 -weight 1", this->GridFrame1->GetWidgetName() );
+    this->Script ("grid rowconfigure %s 0 -weight 1", this->GridFrame1->GetWidgetName() );
+
+    // and pack the bottom, make both bottom viewers resize equally.
+    this->Script ( "pack %s -side top -fill both -expand 1 -padx 0 -pady 0 ", this->GridFrame2->GetWidgetName ( ) );
+    this->Script ("grid columnconfigure %s 0 -weight 1", this->GridFrame2->GetWidgetName() );
+    this->Script ("grid columnconfigure %s 1 -weight 1", this->GridFrame2->GetWidgetName() );
+    this->Script ("grid rowconfigure %s 0 -weight 1", this->GridFrame2->GetWidgetName() );
+
+    // Do we need to make some more 3D viewer nodes?
+    // We will need 3 for this layout.
+
+    // Make sure that we have 3 ViewNodes visible
+    // find first one visible and make two more visible
+    int numViewNodes = this->MRMLScene->GetNumberOfNodesByClass("vtkMRMLViewNode");
+    vtkMRMLViewNode *viewNodeVisible = NULL;
+    int countVisible = 0;
+    for (int i=0; i<numViewNodes; i++) 
+      {
+      vtkMRMLViewNode *viewNode = (vtkMRMLViewNode *)this->MRMLScene->GetNthNodeByClass(i,"vtkMRMLViewNode");
+      if (viewNode && viewNode->GetVisibility())
+        {
+        viewNodeVisible = viewNode;
+        countVisible++;
+        break;
+        }
+      }
+    for (int i=0; i<numViewNodes; i++) 
+      {
+      vtkMRMLViewNode *viewNode = (vtkMRMLViewNode *)this->MRMLScene->GetNthNodeByClass(i,"vtkMRMLViewNode");
+      if (viewNode && viewNode->GetVisibility() == 0 && viewNode != viewNodeVisible)
+        {
+        viewNode->SetVisibility(1);
+        countVisible++;
+        if (countVisible == 3)
+          {
+          break;
+          }
+        }
+      }
+
+    if (this->GetNumberOfVisibleViewNodes() < 3)
+      {
+      vtkMRMLViewNode *vnode;
+      for ( int n=this->GetNumberOfVisibleViewNodes(); n < 3; n++ )
+        {
+        // Need another view node.  When the view node is added to the
+        // scene, a viewer widget will be constructed automatically
+        vnode = vtkMRMLViewNode::New();
+        this->MRMLScene->AddNode(vnode);
+        vnode->Delete();
+        this->OnViewNodeAdded(vnode);
+        }
+      }
+
+    this->UpdateMain3DViewers();
+
+    // Pack the 3D viewers
+    for (size_t i=0; i < (this->Internals->ViewerWidgets.size() > 3 ? 3 : this->Internals->ViewerWidgets.size()); i++)
+      {
+      vtkSlicerViewerWidget *viewer_widget = this->Internals->ViewerWidgets[i];
+      if (viewer_widget)
+        {
+        if ( i == 2 )
+          {
+          viewer_widget->GridWidget(this->GridFrame1, 0, 0);
+          }
+        else if ( i == 1 || i == 0 )
+          {
+          viewer_widget->GridWidget(this->GridFrame2, 0, i);
+          }
+        }
+      }
+
+    //--- no slice viewers are used in this layout.... so pack none of them.
+
+    //--- Configure the second viewerWidget to have endoscopic-type camera.
+    
+    //--- Configure the third viewerWidget to do volume rendering (?)
+
+    // finally, modify the layout node
+    layout->DisableModifiedEventOn();
+    layout->SetBottomPanelVisibility(1);
+    int cur = layout->GetViewArrangement();
+    if ( cur != vtkMRMLLayoutNode::SlicerLayoutTriple3DEndoscopyView)
+      {
+      layout->SetViewArrangement ( vtkMRMLLayoutNode::SlicerLayoutTriple3DEndoscopyView );
+      }
+    layout->DisableModifiedEventOff();
+    }
+}
+
+
+
+
+
+//---------------------------------------------------------------------------
 void vtkSlicerApplicationGUI::PackDual3DView ( )
 {
   if ( this->GetApplication() != NULL )
@@ -3542,7 +3843,31 @@ void vtkSlicerApplicationGUI::PackDual3DView ( )
 
 
     // Do we need to make another 3D viewer node?
-    if (GetNumberOfVisibleViewNodes() < 2)
+
+    // Make sure that we have 2 ViewNodes visible
+    // find first one visible and make one more visible
+    int numViewNodes = this->MRMLScene->GetNumberOfNodesByClass("vtkMRMLViewNode");
+    vtkMRMLViewNode *viewNodeVisible = NULL;
+    for (int i=0; i<numViewNodes; i++) 
+      {
+      vtkMRMLViewNode *viewNode = (vtkMRMLViewNode *)this->MRMLScene->GetNthNodeByClass(i,"vtkMRMLViewNode");
+      if (viewNode && viewNode->GetVisibility())
+        {
+        viewNodeVisible = viewNode;
+        break;
+        }
+      }
+    for (int i=0; i<numViewNodes; i++) 
+      {
+      vtkMRMLViewNode *viewNode = (vtkMRMLViewNode *)this->MRMLScene->GetNthNodeByClass(i,"vtkMRMLViewNode");
+      if (viewNode && viewNode->GetVisibility() == 0 && viewNode != viewNodeVisible)
+        {
+        viewNode->SetVisibility(1);
+        break;
+        }
+      }
+
+    if (this->GetNumberOfVisibleViewNodes() < 2)
       {
       // Need another view node.  When the view node is added to the
       // scene, a viewer widget will be constructed automatically
@@ -3551,6 +3876,8 @@ void vtkSlicerApplicationGUI::PackDual3DView ( )
       second->Delete();
       this->OnViewNodeAdded(second);
       }
+
+    this->UpdateMain3DViewers();
 
     // Pack the 3D viewers
     for (size_t i=0; i < (this->Internals->ViewerWidgets.size() > 2 ? 2 : this->Internals->ViewerWidgets.size()); i++)
@@ -4537,6 +4864,47 @@ void vtkSlicerApplicationGUI::UnpackConventionalView()
     }
 }
 
+
+//---------------------------------------------------------------------------
+void vtkSlicerApplicationGUI::UnpackTriple3DEndoscopyView()
+{
+  // Unpack the 3D viewer widget
+  // (we don't know if it is the active widget or not)
+  this->GridFrame1->UnpackChildren();
+  this->GridFrame2->UnpackChildren();
+
+
+  if (this->MainSlicerWindow->GetViewFrame())
+    {
+    this->MainSlicerWindow->GetViewFrame()->UnpackChildren();
+    }
+
+    // Hide the secondary panel
+  if ( this->MainSlicerWindow )
+    {
+    if ( this->MainSlicerWindow->GetSecondarySplitFrame() )
+      {
+      this->MainSlicerWindow->GetSecondarySplitFrame()->SetFrame1Visibility(0);
+      }
+    }
+
+  int nViewers = this->Internals->ViewerWidgets.size();
+  if (nViewers > 1)
+    {
+    for (int i=1; i<nViewers; i++) 
+      {
+      if (this->Internals->ViewerWidgets[i]->GetViewNode())
+        {
+        this->Internals->ViewerWidgets[i]->SetAndObserveMRMLScene(NULL);
+        this->Internals->ViewerWidgets[i]->GetViewNode()->SetVisibility(0);
+        }
+      }
+    }
+
+}
+
+
+
 //---------------------------------------------------------------------------
 void vtkSlicerApplicationGUI::UnpackDual3DView()
 {
@@ -4569,6 +4937,19 @@ void vtkSlicerApplicationGUI::UnpackDual3DView()
     if ( this->MainSlicerWindow->GetSecondarySplitFrame() )
       {
       this->MainSlicerWindow->GetSecondarySplitFrame()->SetFrame1Visibility(0);
+      }
+    }
+
+  int nViewers = this->Internals->ViewerWidgets.size();
+  if (nViewers > 1)
+    {
+    for (int i=1; i<nViewers; i++) 
+      {
+      if (this->Internals->ViewerWidgets[i]->GetViewNode())
+        {
+        this->Internals->ViewerWidgets[i]->GetViewNode()->SetVisibility(0);
+        this->Internals->ViewerWidgets[i]->SetAndObserveMRMLScene(NULL);
+        }
       }
     }
 }
