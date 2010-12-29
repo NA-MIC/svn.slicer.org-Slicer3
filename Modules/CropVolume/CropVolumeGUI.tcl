@@ -318,8 +318,13 @@ proc CropVolumeProcessGUIEvents {this caller event} {
     set roiNode [$::CropVolume($this,roiSelector) GetSelected]
 
     set inputVolume [$::CropVolume($this,inputSelector) GetSelected]
-    if {$inputVolume == "" || $inputVolume == $::CropVolume($this,inputVolume) || $roiNode == ""} {
-      puts "Something not set, returning"
+    if {$inputVolume == "" || $inputVolume == $::CropVolume($this,inputVolume) || $roiNode == ""} {      
+      # if roilabelNode is not empty, and the selector becomes empty, this
+      # means the scene was closed and we need to reset the pointer
+      # Deletion of the node will be taken care of by closing the scene, I
+      # don't see other scenarios where this can happen
+      set ::CropVolume($this,roilabelNode) ""
+
       return
     }
     set ::CropVolume($this,inputVolume) $inputVolume
