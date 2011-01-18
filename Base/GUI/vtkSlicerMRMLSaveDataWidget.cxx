@@ -967,7 +967,7 @@ void vtkSlicerMRMLSaveDataWidget::UpdateRowFileFormatWithName(int row)
         cb->SetValue(strFormat.c_str());
         }
       this->MultiColumnList->GetWidget()->SetCellText(
-        row,Format_Column,fileName.c_str());
+        row,Format_Column,strFormat.c_str());
       }
     else
       {
