@@ -799,6 +799,11 @@ if {  [BuildThis $::NUMPY_TEST_FILE "python"] && !$::USE_SYSTEM_PYTHON && [strin
 
     if { $isWindows } {
 
+        # store the old path - on some systems (some cyginw installs)
+        # having the vc and devenv paths prefixed to the path
+        # prevents subsequent cmake builds from functioning
+        set ::GENLIB(prePythonPATH) $::env(PATH)
+
         # prepare the environment for numpy build script
         # - the path setup depends on how cygwin was configured (either
         # with or without the /cygdrive portion of the path)
@@ -842,6 +847,10 @@ if {  [BuildThis $::NUMPY_TEST_FILE "python"] && !$::USE_SYSTEM_PYTHON && [strin
             }
           }
         }
+
+        # restore the old path 
+        set ::env(PATH) $::GENLIB(prePythonPATH)
+
     } else {
         if { $isDarwin } {
             if { ![info exists ::env(DYLD_LIBRARY_PATH)] } { set ::env(DYLD_LIBRARY_PATH) "" }
