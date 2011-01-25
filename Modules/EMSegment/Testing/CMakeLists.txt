@@ -12,6 +12,8 @@ set(EMSegment_TUTORIAL_DIR
   ${EMSegment_SOURCE_DIR}/Testing/TestData/TutorialTest)
 set(EMSegment_TUTORIAL2_DIR
   ${EMSegment_SOURCE_DIR}/Testing/TestData/TutorialTest2)
+set(EMSegment_TESTDATA_DIR
+  ${EMSegment_SOURCE_DIR}/Testing/TestData)
 
 # Extra Tests:
 # Change these to 1 if you want to run the extra EMSegment tests.  They
@@ -397,7 +399,7 @@ if(NOT DISABLE_CXX_TESTING)
     EMSegCL_EFBogusMRMLScene
     ${Slicer3_EXE} ${WRAPPED_EXE_PREFIX}/EMSegmentCommandLine
     --no-error-popup
-    --verbose --dontWriteResults --mrmlSceneFileName /tmp/bogus_file_scene.mrml
+    --verbose --dontWriteResults --mrmlSceneFileName ${Slicer3_BINARY_DIR}/Testing/Temporary/bogus_file_scene.mrml
     )
   set_tests_properties(
     EMSegCL_EFBogusMRMLScene
@@ -462,8 +464,10 @@ if(NOT DISABLE_CXX_TESTING)
     ${EMSegment_TUTORIAL_DIR}/Template_small.mrml
     --targetVolumeFileNames
     ${EMSegment_TUTORIAL_DIR}/VolumeData/targetT1Normed_small.mhd,${EMSegment_TUTORIAL_DIR}/VolumeData/targetT2Normed_small.mhd
+    --resultVolumeFileName
+    ${Slicer3_BINARY_DIR}/Testing/Temporary/EMSegCL_IntermediateResults_FinalResult.nrrd
     --intermediateResultsDirectory
-    /tmp
+    ${Slicer3_BINARY_DIR}/Testing/Temporary
     )
   set_tests_properties(
     EMSegCL_IntermediateResults
