@@ -66,6 +66,7 @@ PURPOSE.  See the above copyright notices for more information.
 #include "GenericTransformImage.h"
 
 #include "itkGridImageSource.h"
+#include "itkMedianImageFilter.h"
 
 typedef float PixelType;
 // Dimension and MaxInputDimension comes from an enum at the start of
@@ -194,8 +195,6 @@ int BRAINSFitIGTPrimary(int argc, char *argv[])
   PARSE_ARGS;
 
   itk::AddExtraTransformRegister();
-
-  RegisterBrains2MaskFactory();
 
 #ifdef USE_DEBUG_IMAGE_VIEWER
   if ( UseDebugImageViewer )
