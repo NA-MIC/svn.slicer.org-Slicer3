@@ -233,26 +233,51 @@ int vtkMRMLColorTableStorageNode::ReadData(vtkMRMLNode *refNode)
     for (int i = 0; i < maxID+1; i++)
       {
       colorNode->GetLookupTable()->SetTableValue(i, 0.0, 0.0, 0.0, 0.0);
-      } 
+      }
+    // do a little sanity check, if never get an rgb bigger than 1.0, report
+    // it as a possibly miswritten file
+    bool biggerThanOne = false;
     for (unsigned int i = 0; i < lines.size(); i++)
       {
       std::stringstream ss;
       ss << lines[i];
-      int id;
+      int id = 0;
       std::string name;
-      double r, g, b, a;
+      double r = 0.0, g = 0.0, b = 0.0, a = 0.0;
       ss >> id;
       ss >> name;
       ss >> r;
       ss >> g;
       ss >> b;
-      ss >> a;
-      
+      // check that there's still something left in the stream
+      if (ss.str().length() == 0)
+        {
+        std::cout << "Error in parsing line " << i << ", no alpha information!" << std::endl;
+        }
+      else
+        {
+        ss >> a;
+        }
+      if (!biggerThanOne &&
+          (r > 1.0 || g > 1.0 || b > 1.0))
+        {
+        biggerThanOne = true;
+        }
       // the file values are 0-255, colour look up table needs 0-1
       r = r / 255.0;
       g = g / 255.0;
       b = b / 255.0;
       a = a / 255.0;
+      // if the name has ticks around it, from copying from a mrml file, trim
+      // them off the string
+      if (name.find("'") != std::string::npos)
+        {
+        size_t firstnottick = name.find_first_not_of("'");
+        size_t lastnottick = name.find_last_not_of("'");
+        std::string withoutTicks = name.substr(firstnottick, (lastnottick-firstnottick) + 1);
+        vtkDebugMacro("ReadData: Found ticks around name \"" << name << "\", using name without ticks instead:  \"" << withoutTicks << "\"");
+        name = withoutTicks;
+        }
       if (i < 10)
         {
         vtkDebugMacro("(first ten) Adding colour at id " << id << ", name = " << name.c_str() << ", r = " << r << ", g = " << g << ", b = " << b << ", a = " << a);
@@ -266,6 +291,10 @@ int vtkMRMLColorTableStorageNode::ReadData(vtkMRMLNode *refNode)
         vtkWarningMacro("ReadData: unable to set color " << id << " with name " << name.c_str() << ", breaking the loop over " << lines.size() << " lines in the file " << this->FileName);
         return 0;
         }
+      }
+    if (!biggerThanOne)
+      {
+      vtkWarningMacro("ReadData: possibly malformed colour table file:\n" << this->FileName << ".\n\tNo RGB values are greater than 1. Valid values are 0-255");
       }
     colorNode->NamesInitialisedOn();
     }
