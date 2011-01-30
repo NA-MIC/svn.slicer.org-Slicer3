@@ -917,7 +917,7 @@ itcl::body SliceSWidget::updateAnnotations {r a s} {
       continue
     } 
     
-    set laybelText ""
+    set labelText ""
     set voxelText ""
     set ijkText ""
     set xyText ""
