@@ -172,6 +172,10 @@ itcl::body SlicePlaneSWidget::updateViewer { } {
 
 itcl::body SlicePlaneSWidget::processEvent { {caller ""} {event ""} } {
 
+  if { $enabled != "true" } {
+    return
+  }
+
   if { [info command $caller] == ""} {
       return
   }
@@ -183,10 +187,19 @@ itcl::body SlicePlaneSWidget::processEvent { {caller ""} {event ""} } {
     return
   }
 
+  set sliceNode [[$sliceGUI GetLogic] GetSliceNode]
+
+  if { $caller == $sliceNode } {
+    # if not visible, don't bother calculating anything
+    if { ![$sliceNode GetWidgetVisible] } {
+      $o(planeWidget) Off
+      return
+    }
+  }
+
   # catch any changes to the active viewer
   $this updateViewer
 
-  set sliceNode [[$sliceGUI GetLogic] GetSliceNode]
 
   if { $caller == $sliceGUI } {
 
@@ -309,7 +322,6 @@ itcl::body SlicePlaneSWidget::updateNodeFromWidget {sliceNode planeRepresentatio
   # make the other slice planes orthogonal to the one being moved if they are linked
   if { [$_sliceCompositeNode GetLinkedControl] == 1  } {
     set sliceLogics [$this getLinkedSliceLogics]
-
     if { [$sliceNode GetLayoutName] == "Red" } {
       if { [$this isCompareViewMode] == 0} {
         foreach logic $sliceLogics {
