@@ -3,11 +3,14 @@
 #include <ostream>
 
 #include "vtkBMPReader.h"
+#include "vtkPNGReader.h"
 #include "vtkBMPWriter.h"
 #include "vtkCellArray.h"
 #include "vtkCylinderSource.h"
+#include "vtkDirectory.h"
 #include "vtkFloatArray.h"
 #include "vtkImageData.h"
+#include "vtkImageReader.h"
 #include "vtkImageGradientMagnitude.h"
 #include "vtkImageMapper.h"
 #include "vtkIndent.h"
@@ -17,6 +20,7 @@
 #include "vtkKWEvent.h"
 #include "vtkKWHistogramSet.h"
 #include "vtkKWMessageDialog.h"
+#include "vtkKWMenu.h"
 #include "vtkKWPiecewiseFunctionEditor.h"
 #include "vtkKWProgressGauge.h"
 #include "vtkKWTkUtilities.h"
@@ -433,16 +437,44 @@ void vtkVolumeRenderingGUI::TearDownGUI(void)
     this->RemoveGUIObservers();
 
     this->DeleteRenderingFrame();
+    
+    this->RemoveVolumeFromViewers();
+  }
+}
 
-    int numViewer = this->GetApplicationGUI()->GetNumberOfViewerWidgets();
+void vtkVolumeRenderingGUI::AddVolumeToViewers()
+{
+  vtkMRMLVolumeRenderingParametersNode* vspNode = this->GetCurrentParametersNode();
+  int numViewer = this->GetApplicationGUI()->GetNumberOfViewerWidgets();
   
-    for (int i = 0; i < numViewer; i++)
+  for (int i = 0; i < numViewer; i++)
+  {
+    vtkSlicerViewerWidget *slicer_viewer_widget = this->GetApplicationGUI()->GetNthViewerWidget(i);
+  
+    if (slicer_viewer_widget)
     {
-      vtkSlicerViewerWidget *slicer_viewer_widget = this->GetApplicationGUI()->GetNthViewerWidget(i);
-      if (slicer_viewer_widget)
-      {
-        slicer_viewer_widget->GetMainViewer()->RemoveViewProp(this->GetLogic()->GetVolumeActor() );
-      }
+      slicer_viewer_widget->GetMainViewer()->GetRenderWindow()->AddObserver(vtkCommand::AbortCheckEvent, (vtkCommand*)this->GUICallbackCommand);
+      slicer_viewer_widget->GetMainViewer()->GetRenderWindow()->AddObserver(vtkCommand::EndEvent, (vtkCommand*)this->GUICallbackCommand);
+      if ( vspNode && !(i > 0 && vspNode->GetCurrentVolumeMapper() == 1) )
+        {
+        slicer_viewer_widget->GetMainViewer()->AddViewProp(this->GetLogic()->GetVolumeActor() );
+        }
+      slicer_viewer_widget->GetMainViewer()->GetRenderWindowInteractor()->Enable();
+      slicer_viewer_widget->RequestRender();
+    }
+  }
+}
+
+void vtkVolumeRenderingGUI::RemoveVolumeFromViewers()
+{
+  int numViewer = this->GetApplicationGUI()->GetNumberOfViewerWidgets();
+
+  for (int i = 0; i < numViewer; i++)
+  {
+    vtkSlicerViewerWidget *slicer_viewer_widget = this->GetApplicationGUI()->GetNthViewerWidget(i);
+    if (slicer_viewer_widget)
+    {
+      slicer_viewer_widget->GetMainViewer()->RemoveViewProp( this->GetLogic()->GetVolumeActor() );
     }
   }
 }
@@ -897,17 +929,7 @@ void vtkVolumeRenderingGUI::ProcessMRMLEvents(vtkObject *caller, unsigned long e
   {
     this->DeleteRenderingFrame();
 
-    int numViewer = this->GetApplicationGUI()->GetNumberOfViewerWidgets();
-  
-    for (int i = 0; i < numViewer; i++)
-    {
-      vtkSlicerViewerWidget *slicer_viewer_widget = this->GetApplicationGUI()->GetNthViewerWidget(i);
-      if (slicer_viewer_widget)
-      {
-        slicer_viewer_widget->GetMainViewer()->RemoveViewProp(this->GetLogic()->GetVolumeActor() );
-        slicer_viewer_widget->RequestRender();
-      }
-    }
+    this->RemoveVolumeFromViewers();
 
     this->GetLogic()->Reset();
 
@@ -940,20 +962,8 @@ void vtkVolumeRenderingGUI::ProcessMRMLEvents(vtkObject *caller, unsigned long e
   }
   else if (event == vtkMRMLViewNode::GraphicalResourcesCreatedEvent)
   {
-    int numViewer = this->GetApplicationGUI()->GetNumberOfViewerWidgets();
-    
-    for (int i = 0; i < numViewer; i++)
-    {
-      vtkSlicerViewerWidget *slicer_viewer_widget = this->GetApplicationGUI()->GetNthViewerWidget(i);
-    
-      if (slicer_viewer_widget)
-      {
-        slicer_viewer_widget->GetMainViewer()->GetRenderWindow()->AddObserver(vtkCommand::AbortCheckEvent, (vtkCommand*)this->GUICallbackCommand);
-        slicer_viewer_widget->GetMainViewer()->GetRenderWindow()->AddObserver(vtkCommand::EndEvent, (vtkCommand*)this->GUICallbackCommand);
-        slicer_viewer_widget->GetMainViewer()->AddViewProp(this->GetLogic()->GetVolumeActor() );
-        slicer_viewer_widget->RequestRender();
-      }
-    }
+    this->RemoveVolumeFromViewers();
+    this->AddVolumeToViewers();
   }
 
   this->ProcessingMRMLEvents = 0;
@@ -1014,9 +1024,11 @@ void vtkVolumeRenderingGUI::UpdateGUI()
   //  presets
   this->NS_VolumePropertyPresets->SetMRMLScene(this->Presets);
   this->NS_VolumePropertyPresets->UpdateMenu();
+  this->PopulatePresetIcons(this->NS_VolumePropertyPresets->GetWidget()->GetWidget()->GetMenu());
 
   this->NS_VolumePropertyPresetsFg->SetMRMLScene(this->Presets);
   this->NS_VolumePropertyPresetsFg->UpdateMenu();
+  this->PopulatePresetIcons(this->NS_VolumePropertyPresetsFg->GetWidget()->GetWidget()->GetMenu());
 
   //then set menu selected node
   vtkMRMLVolumeRenderingParametersNode* vspNode = this->GetCurrentParametersNode();
@@ -1422,15 +1434,14 @@ void vtkVolumeRenderingGUI::InitializePipelineFromImageData()
 
   this->GetApplicationGUI()->SetExternalProgress(buf, 0.9);
 
+  this->AddVolumeToViewers();
+
   for (int i = 0; i < numViewer; i++)
   {
     vtkSlicerViewerWidget *slicer_viewer_widget = this->GetApplicationGUI()->GetNthViewerWidget(i);
-    
     if (slicer_viewer_widget)
     {
-      slicer_viewer_widget->GetMainViewer()->AddViewProp(this->GetLogic()->GetVolumeActor() );
       slicer_viewer_widget->GetMainViewer()->GetRenderWindowInteractor()->Enable();
-      slicer_viewer_widget->RequestRender();
     }
   }
 
@@ -1542,6 +1553,8 @@ void vtkVolumeRenderingGUI::InitializePipelineFromImageDataFg()
 
   this->GetApplicationGUI()->SetExternalProgress(buf, 0.9);
 
+  this->AddVolumeToViewers();
+
   for (int i = 0; i < numViewer; i++)
   {
     vtkSlicerViewerWidget *slicer_viewer_widget = this->GetApplicationGUI()->GetNthViewerWidget(i);
@@ -1591,6 +1604,8 @@ void vtkVolumeRenderingGUI::InitializePipelineFromParametersNode()
 
   //init mappers, transfer functions, and so on    
   int numViewer = this->GetApplicationGUI()->GetNumberOfViewerWidgets();
+
+  this->RemoveVolumeFromViewers();
   
   for (int i = 0; i < numViewer; i++)
   {
@@ -1636,13 +1651,14 @@ void vtkVolumeRenderingGUI::InitializePipelineFromParametersNode()
     selectedImageData->AddObserver(vtkMRMLScalarVolumeNode::ImageDataModifiedEvent, (vtkCommand *) this->MRMLCallbackCommand );
   }
 
+  this->AddVolumeToViewers();
+
   for (int i = 0; i < numViewer; i++)
   {
     vtkSlicerViewerWidget *slicer_viewer_widget = this->GetApplicationGUI()->GetNthViewerWidget(i);
     
     if (slicer_viewer_widget)
     {
-      slicer_viewer_widget->GetMainViewer()->AddViewProp(this->GetLogic()->GetVolumeActor() );
       slicer_viewer_widget->GetMainViewer()->GetRenderWindowInteractor()->Enable();
       slicer_viewer_widget->RequestRender();
     }
@@ -1675,6 +1691,50 @@ void vtkVolumeRenderingGUI::LoadPresets()
 
   this->Presets->SetURL(presetFileName.c_str());
   this->Presets->Connect();
+}
+
+void vtkVolumeRenderingGUI::PopulatePresetIcons(vtkKWMenu *menu)
+{
+  // look in the directory for icons related to named presets
+  // - check for png files
+  // - check menu for item that match png file base name
+  // - read the png and create a kw icon
+  // - assign the icon for the menu item
+  vtkDirectory *iconDirectory = vtkDirectory::New();
+  vtkPNGReader *reader = vtkPNGReader::New();
+
+  vtksys_stl::string iconDirName(
+    this->GetLogic()->GetModuleShareDirectory());
+  iconDirName += "/ImageData/";
+
+  iconDirectory->Open(iconDirName.c_str());
+
+  // create icons for .png files in directory
+  vtkIdType numFiles = iconDirectory->GetNumberOfFiles();
+  for (vtkIdType i = 0; i < numFiles; i++)
+    {
+    vtksys_stl::string fileName(iconDirectory->GetFile(i));
+    if ( fileName.size() > 4 && !fileName.compare(fileName.size()-4, 4, ".png") )
+      {
+      int itemCount = menu->GetNumberOfItems();
+      for (int itemIndex = 0; itemIndex < itemCount; itemIndex++)
+        {
+        const char *itemLabel = menu->GetItemLabel(itemIndex);
+        if ( itemLabel && !strncmp(fileName.c_str(), itemLabel, strlen(itemLabel)) )
+          {
+          reader->SetFileName( vtksys_stl::string(iconDirName + fileName).c_str() );
+          reader->Update();
+          vtkKWIcon *icon = vtkKWIcon::New();
+          this->ApplicationGUI->SetIconImage(icon, reader->GetOutput());
+          menu->SetItemImageToIcon( itemIndex, icon );
+          menu->SetItemCompoundModeToLeft( itemIndex );
+          icon->Delete();
+          }
+        }
+      }
+    }
+  reader->Delete();
+  iconDirectory->Delete();
 }
 
 vtkMRMLVolumePropertyNode* vtkVolumeRenderingGUI::GetVolumePropertyNode()

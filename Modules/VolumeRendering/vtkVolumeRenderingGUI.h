@@ -30,6 +30,7 @@ Version:   $Revision: 1.3 $
 
 #include <string>
 
+class vtkKWMenu;
 class vtkKWCheckButtonWithLabel;
 class vtkSlicerVolumeRenderingHelper;
 class vtkSlicerVolumePropertyWidget;
@@ -69,6 +70,11 @@ public:
     // This method releases references and key-bindings,
     // and optionally removes observers.
     virtual void TearDownGUI ( );
+
+    // Description:
+    // Central spots to manage volume actors/mappers and render widgets
+    virtual void AddVolumeToViewers ( );
+    virtual void RemoveVolumeFromViewers ( );
 
     // Description:
     // Methods for adding module-specific key bindings and
@@ -195,6 +201,7 @@ protected:
     void UpdatePipelineByROI();
 
     void LoadPresets();
+    void PopulatePresetIcons(vtkKWMenu *menu);
 
     int ValidateParametersNode(vtkMRMLVolumeRenderingParametersNode* vspNode);
 
