@@ -221,7 +221,7 @@ void vtkEMSegmentParametersSetStep::UpdateTasksCallback()
   //
   // the url to the EMSegment task repository
   //std::string taskRepository = "http://people.csail.mit.edu/pohl/EMSegmentUpdates/";
-  std::string taskRepository = "http://slicer.org/EMSegmentUpdates/";
+  std::string taskRepository = "http://slicer.org/EMSegmentUpdates/3.6.3/";
 
   //
   // ** PATH MANAGEMENT **
@@ -243,7 +243,9 @@ void vtkEMSegmentParametersSetStep::UpdateTasksCallback()
   // ** HTTP ACCESS **
   //
   // our HTTP handler
-  vtkHTTPHandler* httpHandler = vtkHTTPHandler::New();
+  //vtkHTTPHandler* httpHandler = vtkHTTPHandler::New();
+  vtkHTTPHandler* httpHandler = vtkHTTPHandler::SafeDownCast(this->GetSlicerApplication()->GetMRMLScene()->FindURIHandlerByName("HTTPHandler"));
+
 
   // prevent funny behavior on windows with the side-effect of more network resources are used
   // (o_o) who cares about traffic or the tcp/ip ports? *g
@@ -305,9 +307,11 @@ void vtkEMSegmentParametersSetStep::UpdateTasksCallback()
   //  regex_search(htmlManifest, regexResult, mrmlExpression);   
   // but right now, we have to manually parse the string.
   // at least we can use std::string methods :D
-  std::string beginTaskFilenameTag(".tcl\"> ");
+  //
+  // Fix for recent webservers does not include a space after HTML tags
+  std::string beginTaskFilenameTag(".tcl\">");
   std::string endTaskFilenameTag(".tcl</a>");
-  std::string beginMrmlFilenameTag(".mrml\"> ");
+  std::string beginMrmlFilenameTag(".mrml\">");
   std::string endMrmlFilenameTag(".mrml</a>");  
   
   bool tclFilesExist = false;
@@ -550,9 +554,6 @@ void vtkEMSegmentParametersSetStep::UpdateTasksCallback()
   //
   // ** ALL DONE, NOW CLEANUP **
   //
-  
-  // delete the HTTP handler
-  httpHandler->Delete();
   
   // delete the htmlManifest char buffer
   delete[] htmlManifest;
