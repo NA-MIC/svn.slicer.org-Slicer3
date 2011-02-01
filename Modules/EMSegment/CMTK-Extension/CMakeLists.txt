@@ -26,7 +26,7 @@ message("######### CMAKE_CURRENT_BINARY_DIR: ${CMAKE_CURRENT_BINARY_DIR}")
 
 set(PROJECTNAME CMTK)
 ExternalProject_Add(${PROJECTNAME}
-  SVN_REPOSITORY "https://www.nitrc.org/svn/cmtk/trunk/core"
+  SVN_REPOSITORY "https://www.nitrc.org/svn/cmtk/tags/Slicer3"
 #  SVN_USERNAME slicerbot
 #  SVN_PASSWORD slicer
   CMAKE_ARGS
@@ -56,5 +56,3 @@ install(
               GROUP_EXECUTE GROUP_READ
               WORLD_EXECUTE WORLD_READ
 )
-
-
