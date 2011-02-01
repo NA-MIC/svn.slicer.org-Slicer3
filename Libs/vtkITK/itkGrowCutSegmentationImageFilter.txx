@@ -79,7 +79,7 @@ template< class TInputImage, class TOutputImage, class TWeightPixelType>
 
   m_ConfThresh = 0.2;
   
-  m_MaxIterations = 10000;
+  m_MaxIterations = 500;
   m_ObjectRadius = 10;
   
   m_SeedStrength = 1.0;
@@ -88,14 +88,6 @@ template< class TInputImage, class TOutputImage, class TWeightPixelType>
   
   m_WeightImage = WeightImageType::New();
 
-  //m_StateImage = OutputImageType::New();
-
-  //m_DistancesImage = WeightImageType::New();
-  
-  //m_MaxSaturationImage = WeightImageType::New();
-  
-  //m_PrevWeightImage = WeightImageType::New();
-  
   m_ObjectLabel = static_cast<OutputPixelType>( NumericTraits<OutputPixelType>::max(OutputPixelType() ));
   m_BackgroundLabel = static_cast<OutputPixelType>( 1 );
   m_UnknownLabel = static_cast<OutputPixelType>( NumericTraits<OutputPixelType>::ZeroValue() );
@@ -313,31 +305,6 @@ GrowCutSegmentationImageFilter<TInputImage, TOutputImage, TWeightPixelType>
     m_WeightImage->FillBuffer( 0.0 );   
   }
   
-  /*
-  if(stateImage->GetBufferedRegion().GetNumberOfPixels() == 0)
-    {
-      m_StateImage->CopyInformation(m_LabelImage);
-      m_StateImage->SetBufferedRegion( m_LabelImage->GetBufferedRegion() );
-      m_StateImage->Allocate();
-      m_StateImage->FillBuffer(UNLABELED);
-    }
-
-  if(m_DistancesImage->GetBufferedRegion().GetNumberOfPixels() == 0 )
-    {
-      m_DistancesImage->CopyInformation( m_WeightImage );
-      m_DistancesImage->SetBufferedRegion( m_WeightImage->GetBufferedRegion() );  
-      m_DistancesImage->Allocate();
-      m_DistancesImage->FillBuffer( 0 );     
-    }
-
-  if(m_MaxSaturationImage->GetBufferedRegion().GetNumberOfPixels() == 0)
-    {
-      m_MaxSaturationImage->CopyInformation( m_WeightImage );
-      m_MaxSaturationImage->SetBufferedRegion( m_WeightImage->GetBufferedRegion() );  
-      m_MaxSaturationImage->Allocate();
-      m_MaxSaturationImage->FillBuffer( 0 );     
-    }
-  */
 }
 
 
@@ -407,6 +374,7 @@ ComputeLabelVolumes(TOutputImage *outputImage, vcl_vector< unsigned > &volumes,
 }
 
 
+
 template<class TInputImage, class TOutputImage, class TWeightPixelType>
 bool GrowCutSegmentationImageFilter<TInputImage, TOutputImage, TWeightPixelType>::
 InitializeStateImage( OutputImageType *stateImage)
@@ -464,7 +432,7 @@ InitializeStateImage( OutputImageType *stateImage)
     }
       }
   }
-   
+  
   state.Set(static_cast< OutputPixelType>(LABELED));
       }
     }
@@ -472,11 +440,11 @@ InitializeStateImage( OutputImageType *stateImage)
   for (unsigned i = 0; i < labelImage->GetImageDimension(); i++)
     {
       /* m_roiStart[i] = (midROI[i]-m_ObjectRadius >=0 && midROI[i]-m_ObjectRadius <= m_roiStart[i]) ? 
-  (midROI[i]-m_ObjectRadius) : 0; //m_roiStart[i];
-  m_roiEnd[i] = (midROI[i]+m_ObjectRadius < (unsigned)lsize[i] && midROI[i]+m_ObjectRadius >= m_roiEnd[i]) ?
-  (midROI[i]+m_ObjectRadius) : lsize[i]-1; //m_roiEnd[i];
+   (midROI[i]-m_ObjectRadius) : 0; //m_roiStart[i];
+   m_roiEnd[i] = (midROI[i]+m_ObjectRadius < (unsigned)lsize[i] && midROI[i]+m_ObjectRadius >= m_roiEnd[i]) ?
+   (midROI[i]+m_ObjectRadius) : lsize[i]-1; //m_roiEnd[i];
       */
-    
+      
       m_roiStart[i] = (m_roiStart[i] - m_ObjectRadius >= 0)? (m_roiStart[i] - m_ObjectRadius) : 0;
       m_roiEnd[i] = (static_cast<unsigned int>(m_roiEnd[i] + m_ObjectRadius) < lsize[i]) ? 
   (m_roiEnd[i] + m_ObjectRadius) : lsize[i]-1;
@@ -571,7 +539,7 @@ MaskSegmentedImageByWeight( float confThresh)
     {
       label.Set(static_cast< OutputPixelType > (0));
       //  ++numOutPixels;
-    }
+  }
     //else 
     // {
     //  ++numInPixels;
@@ -702,13 +670,11 @@ GrowCutSegmentationImageFilter<TInputImage, TOutputImage, TWeightPixelType>
   singleIteration->SetMaxIterations( this->GetMaxIterations());
   singleIteration->SetObjectRadius(this->GetObjectRadius() );
 
-
   singleIteration->SetROIStart( this->GetROIStart() );
   singleIteration->SetROIEnd( this->GetROIEnd() );
   
   singleIteration->GetOutput()->SetBufferedRegion( 
   this->GetOutput()->GetBufferedRegion() );
-
   
   // Create Progress Accumulator for tracking the progress
   //ProgressAccumulator::Pointer progress = ProgressAccumulator::New();
@@ -718,8 +684,6 @@ GrowCutSegmentationImageFilter<TInputImage, TOutputImage, TWeightPixelType>
   // run until convergence
   
   unsigned int iter = 0;
-
-  
   //time_t startTime;
   //time_t endTime;
   time_t start;
@@ -727,12 +691,12 @@ GrowCutSegmentationImageFilter<TInputImage, TOutputImage, TWeightPixelType>
 
   unsigned int maxRadius = 0;
   
-  float totalROIVolume = 1.0;
+  unsigned totalROIVolume = 1;
 
   for (unsigned n = 0; n < ndims; n++)
     {
       //prevUnlabeledPix *= (m_roiEnd[n]-m_roiStart[n]);
-      totalROIVolume *= (m_roiEnd[n]-m_roiStart[n]+1);
+      totalROIVolume *= (m_roiEnd[n]-m_roiStart[n]);
       
       if(n == 0)
        {
@@ -747,52 +711,21 @@ GrowCutSegmentationImageFilter<TInputImage, TOutputImage, TWeightPixelType>
   maxRadius = static_cast< unsigned int>(vcl_ceil(maxRadius*0.5));
 
   
-  float threshSaturation = .96; //.999; // Determine the saturation according to the size of the object
-  float threshUnchanged = 0.05;
+ // float threshSaturation = .96; //.999; // Determine the saturation according to the size of the object
+ // float threshUnchanged = 0.05;
+ // float threshUnlabeledLimit = 0;
   
-  //  OutputImagePointer tmpLabels = OutputImageType::New();
-  // tmpLabels->CopyInformation( output );
-  //tmpLabels->SetBufferedRegion( output->GetBufferedRegion() );
-  //tmpLabels->Allocate();
-  
-  //WeightImagePointer tmpWeights = WeightImageType::New();
-  //tmpWeights->CopyInformation( m_WeightImage );
-  // tmpWeights->SetBufferedRegion( m_WeightImage->GetBufferedRegion() );
-  //tmpWeights->Allocate();
-
-  //vcl_vector< unsigned > stateVolumes;
-  //stateVolumes.resize(3);
+  unsigned threshSaturation = 96; // .96*100
+  unsigned threshUnchanged = 5;
   
   time(&start);
 
   // set up the grow cut update filter here... 
-  //typedef GrowCutSegmentationUpdateFilter< InputImageType, OutputImageType> GrowCutUpdateFilterType;
-  //typename GrowCutUpdateFilterType::Pointer updateFilter = GrowCutUpdateFilterType::New();
   
-  
+  unsigned prevModifiedPix = 0;
   while (iter < m_MaxIterations && !converged)
     {
       
-      //updateFilter->SetInputImage( inputImage );
-      //updateFilter->SetLabelImage( m_LabelImage );
-      //updateFilter->SetStrengthImage( m_WeightImage );
-      //updateFilter->SetDistanceImage( maxDistancesImage );
-      //updateFilter->SetStateImage( pixelStateImage );
-      //updateFilter->SetMaxSaturationImage( maxSaturationImage );
-      
-      //updateFilter->SetNumberOfThreads(1);
-
-      //updateFilter->SetMaxSeedStrength( m_SeedStrength );
-      //updateFilter->SetROI(m_roiStart, m_roiEnd);
-      
-      //updateFilter->Update();
-
-      //maxSaturationImage = updateFilter->GetMaxSaturationImage();
-      // m_WeightImage = updateFilter->GetStrengthImage();
-      // pixelStateImage = updateFilter->GetStateImage();
-      //m_LabelImage = updateFilter->GetOutput();
-
-
       //std::cout<<" running iteration ...... "<<iter<<std::endl;
       singleIteration->Update();
       //std::cout<<" DONE"<<std::endl;
@@ -812,46 +745,37 @@ GrowCutSegmentationImageFilter<TInputImage, TOutputImage, TWeightPixelType>
   (static_cast<unsigned > (totalROIVolume) -(currLocallySaturatedPix + 
                currSaturatedPix + changeablePix)) : 0;
       
-      converged = (unlabeled/totalROIVolume < threshUnchanged && 
-       ((currSaturatedPix+currLocallySaturatedPix)/totalROIVolume > threshSaturation));
+      unsigned currModified = currLocallySaturatedPix + currSaturatedPix;
+     
+      unsigned relUnlabeled = (unlabeled*100)/totalROIVolume;
+      unsigned relSaturated = ((currSaturatedPix+currLocallySaturatedPix)*100)/totalROIVolume;    
+      converged = (relUnlabeled < threshUnchanged && 
+       (relSaturated > threshSaturation || prevModifiedPix == currModified));
       
-      
-      if((iter % 40 == 0) || converged)
+      if((iter % 10 == 0) || converged)
   {
     std::cout<<" ITER "<<iter<<std::endl;
     std::cout<<" saturated Pixels "<<currSaturatedPix<<"( "<<
-      totalROIVolume<<") %"<<currSaturatedPix/totalROIVolume<<std::endl;
+      totalROIVolume<<") %"<<currSaturatedPix/(float)totalROIVolume<<std::endl;
     std::cout<<" locally saturated Pixels "<<currLocallySaturatedPix<<" %"<<
-      currLocallySaturatedPix/totalROIVolume<<std::endl;
+      currLocallySaturatedPix/(float)totalROIVolume<<std::endl;
     std::cout<<"Number of Labeled Pixels "<<changeablePix<<" %"<<
-      changeablePix/totalROIVolume<<std::endl;
-    
+      changeablePix/(float)totalROIVolume<<std::endl;
+    std::cout<<"Curr Saturated "<<relSaturated<<" %"<<std::endl;
+    std::cout<<" Prev Modified "<<prevModifiedPix<<" Curr Modified "<<currModified<<std::endl;
     std::cout<<"Unlabeled pixels "<<unlabeled<<" %"<<
-      unlabeled/totalROIVolume<<std::endl;
+      relUnlabeled<<std::endl;
     if(converged)
       std::cout<<" converged...."<<std::endl;
   }
       
-
-      // swap the weights and labels
-      //tmpWeights = m_WeightImage;
-      //m_WeightImage = m_PrevWeightImage;
-      //m_PrevWeightImage = tmpWeights;
-      
-      //tmpLabels = output;
-      //output = m_LabelImage; 
-      //m_LabelImage = tmpLabels;
-      
+     prevModifiedPix = currModified; 
       ++iter;
       m_WeightImage = singleIteration->GetUpdatedStrengthImage();
 
       if(!converged)
   {
     // assign the old output as input
-    //OutputImagePointer labelImage = singleIteration->GetOutput();
-    //m_LabelImage = singleIteration->GetOutput();
-    //output = singleIteration->GetOutput();
-    
     m_WeightImage->DisconnectPipeline();
     //m_LabelImage->DisconnectPipeline();
     
@@ -861,7 +785,7 @@ GrowCutSegmentationImageFilter<TInputImage, TOutputImage, TWeightPixelType>
       SetBufferedRegion(output->GetBufferedRegion() );
   }
 
-      this->UpdateProgress((currSaturatedPix+currLocallySaturatedPix)/totalROIVolume);
+      this->UpdateProgress((currSaturatedPix+currLocallySaturatedPix)/(float)totalROIVolume);
     }
   
     
@@ -869,25 +793,6 @@ GrowCutSegmentationImageFilter<TInputImage, TOutputImage, TWeightPixelType>
   m_WeightImage = singleIteration->GetUpdatedStrengthImage() ;
   m_LabelImage = singleIteration->GetOutput();
   
-  /*
-  // walk the output of the singleIteration
-  ImageRegionIterator<TOutputImage> singleIt(singleIteration->GetOutput(),
-          singleIteration->GetOutput()->GetBufferedRegion() );
-  // walk the real output of the filter
-  ImageRegionIterator<TOutputImage> outIt(output,
-                                          output->GetBufferedRegion());
-
-  outIt.GoToBegin(); singleIt.GoToBegin();
-  // cast and copy
-  while( !outIt.IsAtEnd() )
-    {
-      //outIt.Set( static_cast<OutputPixelType>( singleIt.Get() ) );
-      outIt.Set( singleIt.Get());
-      ++outIt;
-      ++singleIt;
-    }
-  */
-
   this->MaskSegmentedImageByWeight(m_ConfThresh);
     
   this->GraftOutput(m_LabelImage);
@@ -976,7 +881,7 @@ GrowCutSegmentationImageFilter<TInputImage, TOutputImage, TWeightPixelType>
     {
       unsigned long int x = m_roiEnd[d]-m_roiStart[d]+1; // > 0 ? m_roiEnd[d]-m_roiStart[d] : 0; 
       iIndex[d] = m_roiStart[d] > regionStart[d] ? m_roiStart[d] : regionStart[d];
-      iSize[d] = x < regionSize[d] ? (x > 0 ? x : 0) : regionSize[d];
+      iSize[d] = x < regionSize[d] ? (x > 0 ? x : 1) : regionSize[d];
       
     }
   
@@ -1083,7 +988,6 @@ GrowCutSegmentationImageFilter<TInputImage, TOutputImage, TWeightPixelType>
       stateIt.OverrideBoundaryCondition( &cbcl ); 
       oldWeightIt.OverrideBoundaryCondition( &cbcw ); 
       maxSatIt.OverrideBoundaryCondition( &cbcw ); 
-      
       
       newLabelIt = IteratorOut(outputImage, *fitIn);
       newWeightIt = IteratorWeight(m_WeightImage, *fitIn);
