@@ -31,6 +31,7 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/Algorithm
   ${CMAKE_CURRENT_SOURCE_DIR}/Registration
   ${CMAKE_CURRENT_SOURCE_DIR}/Graph
+  ${CMAKE_CURRENT_SOURCE_DIR}/Tasks
   ${Slicer3_Libs_INCLUDE_DIRS}
   ${Slicer3_Base_INCLUDE_DIRS}
   ${vtkSlicerVolumesModuleLogic_SOURCE_DIR}
@@ -47,6 +48,7 @@ file(GLOB headers
   "${CMAKE_CURRENT_SOURCE_DIR}/Algorithm/*.txx"
   "${CMAKE_CURRENT_SOURCE_DIR}/Registration/*.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/Graph/*.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/Tasks/*.h"
   )
 
 file(GLOB TCLFILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "Tcl/*.tcl" )
@@ -79,9 +81,11 @@ endforeach(file)
 #)
 ###
 
-file(COPY Tasks
-  DESTINATION ${CMAKE_BINARY_DIR}/${Slicer3_INSTALL_MODULES_SHARE_DIR}/${PROJECT_NAME}/
-  PATTERN .svn EXCLUDE
+ADD_CUSTOM_TARGET(copytasks ALL
+  ${CMAKE_COMMAND}
+  -DSRC=${CMAKE_CURRENT_SOURCE_DIR}/Tasks
+  -DDST=${CMAKE_BINARY_DIR}/${Slicer3_INSTALL_MODULES_SHARE_DIR}/${PROJECT_NAME}/
+  -P ${CMAKE_CURRENT_SOURCE_DIR}/copytasks.cmake
 )
 
 install(
@@ -146,6 +150,8 @@ set(EMSegment_SRCS
   ${CMAKE_CURRENT_SOURCE_DIR}/Algorithm/vtkSimonParameterReaderWriter.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/Algorithm/vtkTimeDef.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/Algorithm/vtkImageMeanIntensityNormalization.cxx
+  ${CMAKE_CURRENT_SOURCE_DIR}/Algorithm/vtkImageLabelPropagation.cxx 
+  ${CMAKE_CURRENT_SOURCE_DIR}/Algorithm/vtkImageIslandFilter.cxx 
   # Registration
   ${CMAKE_CURRENT_SOURCE_DIR}/Registration/vtkRigidRegistrator.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/Registration/vtkBSplineRegistrator.cxx
@@ -155,6 +161,7 @@ set(EMSegment_SRCS
   #  ${CMAKE_CURRENT_SOURCE_DIR}/Algorithm/vtkImageEMAtlasSegmenter.cxx
   #  ${CMAKE_CURRENT_SOURCE_DIR}/Algorithm/vtkImageEMAtlasSuperClass.cxx
   #  ${CMAKE_CURRENT_SOURCE_DIR}/Algorithm/vtkImageEMMarkov.cxx
+  ${CMAKE_CURRENT_SOURCE_DIR}/Tasks/vtkCTHandBoneClass.cxx
   )
 
  set(EMSegment_SRCS ${EMSegment_SRCS}

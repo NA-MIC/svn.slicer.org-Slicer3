@@ -443,10 +443,10 @@ int main(int argc, char** argv)
   if (writeIntermediateResults &&
       !vtksys::SystemTools::FileExists(intermediateResultsDirectory.c_str()))
     {
-    std::cerr << "Error: intermediate results directory does not exist." 
+    std::cout << "Warning: intermediate results directory does not exist. "
+              << "We will try to create it for you."
               << std::endl;
-    std::cerr << intermediateResultsDirectory << std::endl;      
-    return EXIT_FAILURE;
+    std::cout << intermediateResultsDirectory << std::endl;
     }
 
   if (!vtksys::SystemTools::FileExists(mrmlSceneFileName.c_str()))
@@ -1044,9 +1044,8 @@ int main(int argc, char** argv)
     // 
     // Setting up everything for new semgnetation mode with sourcing tcl file 
     //
-    int newVersionFlag =  1;
-    if (  newVersionFlag  ) 
-       {
+
+      
        // =======================================================================
        //
        //  NEW VERSION
@@ -1080,8 +1079,7 @@ int main(int argc, char** argv)
          }
        if (cNode->GetImageData()->GetScalarRange()[0] < 0 )
          {
-           cout << "Input Channel Error: Volume of " << i + 1 << "th is negative - we can only process non-negative volumes !" << endl;
-           return EXIT_FAILURE; 
+           cout << "WARNING: Input Channel warning: Volume " << i + 1 << " contains negative values - negative values will be set to 0 !" << endl;
          }
 
      }
@@ -1122,7 +1120,13 @@ int main(int argc, char** argv)
 
           if (verbose) std::cerr << "EMSEG: Start Segmentation." << std::endl;
 
-          emLogic->StartSegmentationWithoutPreprocessing(app,appLogic);
+          int return_value;
+          return_value = emLogic->StartSegmentationWithoutPreprocessing(app,appLogic);
+          if ( return_value == 1 )
+          {
+            std::cerr << "ERROR: StartSegmentationWithoutPreprocessing failed." << std::endl;
+            throw std::runtime_error("");
+          }
 
           if (verbose) std::cerr << "Segmentation complete." << std::endl;
           std::cerr << "============ End of New Pipeline =========================" << std::endl;
@@ -1133,22 +1137,6 @@ int main(int argc, char** argv)
          throw std::runtime_error("ERROR: failed to run preprocessing/segmentation.");
        }
        
-       }
-    else 
-      {
-    //
-    // OLD Version run the segmentation
-    try
-      {
-        if (verbose) std::cerr << "Starting segmentation..." << std::endl;
-        emLogic->StartSegmentation(app,appLogic);
-        if (verbose) std::cerr << "Segmentation complete." << std::endl;
-      }
-    catch (...)
-      {
-        throw std::runtime_error("ERROR: failed to run segmentation.");
-      }
-      }
     }
   catch (std::runtime_error& e)
     {

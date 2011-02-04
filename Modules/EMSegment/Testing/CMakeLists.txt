@@ -49,6 +49,18 @@ if(NOT DISABLE_CXX_TESTING)
   # add test executables
   ############################################################################
   add_executable(
+    vtkEMSegmentRemoteIOTest
+    vtkEMSegmentRemoteIOTest.cxx
+
+    )
+  target_link_libraries(
+    vtkEMSegmentRemoteIOTest
+    RemoteIO
+    vtkCommon
+    )
+
+
+  add_executable(
     vtkEMSegmentBlackBoxSegmentationTest
     vtkEMSegmentBlackBoxSegmentationTest.cxx
     vtkEMSegmentTestUtilities.cxx
@@ -476,6 +488,163 @@ if(NOT DISABLE_CXX_TESTING)
     "Error writing intermediate results"
     )
 
+  # Task test - small
+  add_test(
+    EMSegCL_TaskMRIHumanBrain_small
+    ${Slicer3_EXE} ${WRAPPED_EXE_PREFIX}/EMSegmentCommandLine
+    --no-error-popup
+    --verbose --mrmlSceneFileName
+    ${EMSegment_TESTDATA_DIR}/MRI-Human-Brain_small.mrml
+    --targetVolumeFileNames
+    ${EMSegment_TESTDATA_DIR}/MRI-Human-Brain/small_MRIHumanBrain_T1_aligned.nrrd
+    --resultVolumeFileName
+    ${EMSegment_BINARY_DIR}/small_MRIHumanBrain_T1.nrrd
+    )
+  set_tests_properties(
+    EMSegCL_TaskMRIHumanBrain_small
+    PROPERTIES
+    FAIL_REGULAR_EXPRESSION
+    "ERROR"
+    )
+
+  # Task test - very small
+  add_test(
+    EMSegCL_TaskMRIHumanBrain_very_small
+    ${Slicer3_EXE} ${WRAPPED_EXE_PREFIX}/EMSegmentCommandLine
+    --no-error-popup
+    --verbose --mrmlSceneFileName
+    ${EMSegment_TESTDATA_DIR}/MRI-Human-Brain_very_small.mrml
+    --targetVolumeFileNames
+    ${EMSegment_TESTDATA_DIR}/MRI-Human-Brain/very_small_MRIHumanBrain_T1_aligned.nrrd
+    --resultVolumeFileName
+    ${EMSegment_BINARY_DIR}/very_small_MRIHumanBrain_T1.nrrd
+    )
+  set_tests_properties(
+    EMSegCL_TaskMRIHumanBrain_very_small
+    PROPERTIES
+    FAIL_REGULAR_EXPRESSION
+    "ERROR"
+    )
+
+
+  # Task test - small
+  add_test(
+    EMSegCL_TaskMRIHumanBrainParcellation_small
+    ${Slicer3_EXE} ${WRAPPED_EXE_PREFIX}/EMSegmentCommandLine
+    --no-error-popup
+    --verbose --mrmlSceneFileName
+    ${EMSegment_TESTDATA_DIR}/MRI-Human-Brain-Parcellation_small.mrml
+    --targetVolumeFileNames
+    ${EMSegment_TESTDATA_DIR}/MRI-Human-Brain-Parcellation/small_MRIHumanBrainParcellation_T1.nrrd
+    --resultVolumeFileName
+    ${EMSegment_BINARY_DIR}/small_MRIHumanBrainParcellation_T1.nrrd
+    )
+  set_tests_properties(
+    EMSegCL_TaskMRIHumanBrainParcellation_small
+    PROPERTIES
+    FAIL_REGULAR_EXPRESSION
+    "ERROR"
+    )
+
+  # Task test - very small
+  add_test(
+    EMSegCL_TaskMRIHumanBrainParcellation_very_small
+    ${Slicer3_EXE} ${WRAPPED_EXE_PREFIX}/EMSegmentCommandLine
+    --no-error-popup
+    --verbose --mrmlSceneFileName
+    ${EMSegment_TESTDATA_DIR}/MRI-Human-Brain-Parcellation_very_small.mrml
+    --targetVolumeFileNames
+    ${EMSegment_TESTDATA_DIR}/MRI-Human-Brain-Parcellation/very_small_MRIHumanBrainParcellation_T1.nrrd
+    --resultVolumeFileName
+    ${EMSegment_BINARY_DIR}/very_small_MRIHumanBrainParcellation_T1.nrrd
+    )
+  set_tests_properties(
+    EMSegCL_TaskMRIHumanBrainParcellation_very_small
+    PROPERTIES
+    FAIL_REGULAR_EXPRESSION
+    "ERROR"
+    )
+
+
+  # Task test - small
+  add_test(
+    EMSegCL_TaskMRIHumanBrainFullParcellation_small
+    ${Slicer3_EXE} ${WRAPPED_EXE_PREFIX}/EMSegmentCommandLine
+    --no-error-popup
+    --verbose --mrmlSceneFileName
+    ${EMSegment_TESTDATA_DIR}/MRI-Human-Brain-Full-Parcellation_small.mrml
+    --targetVolumeFileNames
+    ${EMSegment_TESTDATA_DIR}/MRI-Human-Brain/small_MRIHumanBrain_T1_aligned.nrrd
+    --resultVolumeFileName
+    ${EMSegment_BINARY_DIR}/small_MRIHumanBrainFullParcellation_T1.nrrd
+    )
+  set_tests_properties(
+    EMSegCL_TaskMRIHumanBrainFullParcellation_small
+    PROPERTIES
+    FAIL_REGULAR_EXPRESSION
+    "ERROR"
+    )
+
+  # Task test - very small
+  add_test(
+    EMSegCL_TaskMRIHumanBrainFullParcellation_very_small
+    ${Slicer3_EXE} ${WRAPPED_EXE_PREFIX}/EMSegmentCommandLine
+    --no-error-popup
+    --verbose --mrmlSceneFileName
+    ${EMSegment_TESTDATA_DIR}/MRI-Human-Brain-Full-Parcellation_very_small.mrml
+    --targetVolumeFileNames
+    ${EMSegment_TESTDATA_DIR}/MRI-Human-Brain/very_small_MRIHumanBrain_T1_aligned.nrrd
+    --resultVolumeFileName
+    ${EMSegment_BINARY_DIR}/very_small_MRIHumanBrainFullParcellation_T1.nrrd
+    )
+  set_tests_properties(
+    EMSegCL_TaskMRIHumanBrainFullParcellation_very_small
+    PROPERTIES
+    FAIL_REGULAR_EXPRESSION
+    "ERROR"
+    )
+
+
+  # Task test - small
+  add_test(
+    EMSegCL_TaskNonHumanPrimate_small
+    ${Slicer3_EXE} ${WRAPPED_EXE_PREFIX}/EMSegmentCommandLine
+    --no-error-popup
+    --verbose --mrmlSceneFileName
+    ${EMSegment_TESTDATA_DIR}/Non-Human-Primate_small.mrml
+    --targetVolumeFileNames
+    ${EMSegment_TESTDATA_DIR}/Non-Human-Primate/Unbiased/small_NonHumanPrimate_T1.nrrd
+    --resultVolumeFileName
+    ${EMSegment_BINARY_DIR}/small_NonHumanPrimate_T1.nrrd
+    )
+  set_tests_properties(
+    EMSegCL_TaskNonHumanPrimate_small
+    PROPERTIES
+    FAIL_REGULAR_EXPRESSION
+    "ERROR"
+    )
+
+  # Task test - very small
+  add_test(
+    EMSegCL_TaskNonHumanPrimate_very_small
+    ${Slicer3_EXE} ${WRAPPED_EXE_PREFIX}/EMSegmentCommandLine
+    --no-error-popup
+    --verbose --mrmlSceneFileName
+    ${EMSegment_TESTDATA_DIR}/Non-Human-Primate_very_small.mrml
+    --targetVolumeFileNames
+    ${EMSegment_TESTDATA_DIR}/Non-Human-Primate/Unbiased/very_small_NonHumanPrimate_T1.nrrd
+    --resultVolumeFileName
+    ${EMSegment_BINARY_DIR}/very_small_NonHumanPrimate_T1.nrrd
+    )
+  set_tests_properties(
+    EMSegCL_TaskNonHumanPrimate_very_small
+    PROPERTIES
+    FAIL_REGULAR_EXPRESSION
+    "ERROR"
+    )
+
+
+
   # Does it fail elegently when a bogus result standard is specified?
   add_test(
     EMSegCL_EFBogusResultStandardImage
@@ -600,3 +769,14 @@ if(NOT DISABLE_CXX_TESTING)
   endif(EMSEG_RUN_EXTRA_SHORT_TESTS)
 
 endif(NOT DISABLE_CXX_TESTING)
+
+
+
+# Are we able to download our update file ?
+add_test(
+  RemoteIOTest
+  ${Slicer3_EXE} ${WRAPPED_TEST_EXE_PREFIX}/vtkEMSegmentRemoteIOTest
+  http://slicer.org/EMSegmentUpdates/
+  ${Slicer3_BINARY_DIR}/Testing/Temporary/EMSegmenterUpdates
+)
+

@@ -48,11 +48,13 @@ vtkMRMLEMSTreeParametersLeafNode::vtkMRMLEMSTreeParametersLeafNode()
   this->LogCovariance.clear();
   this->LogMeanCorrection.clear();
   this->LogCovarianceCorrection.clear();
+  this->SubParcellationVolumeName     = NULL;
 }
 
 //-----------------------------------------------------------------------------
 vtkMRMLEMSTreeParametersLeafNode::~vtkMRMLEMSTreeParametersLeafNode()
 {
+this->SetSubParcellationVolumeName(NULL);
 }
 
 //-----------------------------------------------------------------------------
@@ -123,6 +125,10 @@ void vtkMRMLEMSTreeParametersLeafNode::WriteXML(ostream& of, int nIndent)
     of << (*i)[0] << " " << (*i)[1] << " " << (*i)[2] << " ";
     }
   of << "\" ";
+
+   of << indent << "SubParcellationVolumeName=\"" 
+     << (this->SubParcellationVolumeName ? this->SubParcellationVolumeName : "")
+     << "\" "; 
 }
 
 //-----------------------------------------------------------------------------
@@ -292,6 +298,10 @@ void vtkMRMLEMSTreeParametersLeafNode::ReadXMLAttributes(const char** attrs)
         this->DistributionSamplePointsRAS.push_back(point);
         }
       }
+     else if (!strcmp(key, "SubParcellationVolumeName"))
+      {
+      this->SetSubParcellationVolumeName(val);
+      }
     }
 }
 
@@ -312,6 +322,7 @@ void vtkMRMLEMSTreeParametersLeafNode::Copy(vtkMRMLNode *rhs)
   this->SetDistributionSpecificationMethod
     (node->DistributionSpecificationMethod);
   this->DistributionSamplePointsRAS = node->DistributionSamplePointsRAS;
+  this->SetSubParcellationVolumeName(node->SubParcellationVolumeName);
 }
 
 //-----------------------------------------------------------------------------
@@ -373,6 +384,10 @@ void vtkMRMLEMSTreeParametersLeafNode::PrintSelf(ostream& os,
     {
     os << (*i)[0] << " " << (*i)[1] << " " << (*i)[2] << "\n";
     }
+
+ os << indent << "SubParcellationVolumeName: " 
+     << (this->SubParcellationVolumeName ? this->SubParcellationVolumeName :"(none)")
+     << "\n"; 
 }
 
 //-----------------------------------------------------------------------------

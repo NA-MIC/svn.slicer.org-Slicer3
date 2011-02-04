@@ -41,7 +41,7 @@
 #include "vtkHIDHandler.h"
 #include "vtkXNDHandler.h"
 #include "vtkSlicerXNATPermissionPrompterWidget.h"
-
+#include "vtkImageIslandFilter.h"
 
 // needed to translate between enums
 #include "EMLocalInterface.h"
@@ -125,6 +125,20 @@ vtkEMSegmentLogic::SaveIntermediateResults(vtkSlicerApplication* app, vtkSlicerA
 
   if (!vtksys::SystemTools::FileExists(outputDirectory.c_str()))
     {
+       // try to create directory
+       bool createdOK = true;
+       createdOK = vtksys::SystemTools::MakeDirectory(outputDirectory.c_str());
+       if (!createdOK) {
+              std::string  msg = "SaveIntermediateResults: could not create " + outputDirectory  + "!" ;
+              ErrorMsg += msg + "\n";
+              vtkErrorMacro(<< msg);
+              return false;
+       }
+    }
+
+  // check again whether or not directory exists
+  if (!vtksys::SystemTools::FileExists(outputDirectory.c_str()))
+    {
       std::string  msg = "SaveIntermediateResults: Directory " + outputDirectory  + " does not exist !" ;
       ErrorMsg += msg + "\n"; 
       vtkErrorMacro(<< msg);
@@ -190,46 +204,6 @@ int vtkEMSegmentLogic::SourcePreprocessingTclFiles(vtkSlicerApplication* app)
    return this->SourceTclFile(app,tclFile.c_str());
 }
 
-
-//----------------------------------------------------------------------------
-bool
-vtkEMSegmentLogic::
-StartPreprocessing()
-{
-  if (!this->MRMLManager->GetWorkingDataNode())
-  {
-    vtkErrorMacro("Can't preprocess because WorkingDataNode is null.");    
-    return false;
-  }
-
-  if (!this->StartPreprocessingInitializeInputData())
-    {
-    vtkWarningMacro
-      ("EMSEG Preprocessing Error: Failed to initialize input data");
-    return false;
-    }
-  if (!this->StartPreprocessingTargetIntensityNormalization())
-    {
-    vtkWarningMacro
-      ("EMSEG Preprocessing Error: Failed to normalize target images");
-    return false;
-    }
-  if (!this->StartPreprocessingTargetToTargetRegistration())
-    {
-    vtkWarningMacro
-      ("EMSEG Preprocessing Error: Failed to register target images");
-    return false;
-    }
-  if (!this->StartPreprocessingAtlasToTargetRegistration())
-    {
-    vtkWarningMacro
-      ("EMSEG Preprocessing Error: Failed to register atlas images");
-    return false;
-    }
-  // all OK
-  return true;
-}
-
 //----------------------------------------------------------------------------
 bool
 vtkEMSegmentLogic::
@@ -237,156 +211,8 @@ StartPreprocessingInitializeInputData()
 {
   this->MRMLManager->GetWorkingDataNode()->SetInputTargetNodeIsValid(1);
   this->MRMLManager->GetWorkingDataNode()->SetInputAtlasNodeIsValid(1);
-
-  this->MRMLManager->GetWorkingDataNode()->SetNormalizedTargetNodeIsValid(0);
   this->MRMLManager->GetWorkingDataNode()->SetAlignedTargetNodeIsValid(0);
   this->MRMLManager->GetWorkingDataNode()->SetAlignedAtlasNodeIsValid(0);
-
-  return true;
-}
-
-//----------------------------------------------------------------------------
-
-bool
-vtkEMSegmentLogic::
-StartPreprocessingTargetIntensityNormalization()
-{  
-  std::cout << " EMSEG: Starting intensity normalization..." << std::endl;
-
-  // get a pointer to the mrml manager for easy access
-  vtkEMSegmentMRMLManager* m = this->MRMLManager;
-
-  // get input target from working node
-  vtkMRMLEMSTargetNode* inputTarget = 
-    m->GetWorkingDataNode()->GetInputTargetNode();
-  if (inputTarget == NULL)
-    {
-    vtkWarningMacro("Input target node is null, aborting!");
-    return false;
-    }
-  if (!m->GetWorkingDataNode()->GetInputTargetNodeIsValid())
-    {
-    vtkWarningMacro("Input target node is invalid, aborting!");
-    return false;
-    }
-  
-  // check that global parameters exist
-  if (!this->MRMLManager->GetGlobalParametersNode())
-    {
-    vtkWarningMacro("Global parameters node is null, aborting!");
-    return false;
-    }
-
-  // set up the normalized target node
-  vtkMRMLEMSTargetNode* normalizedTarget = 
-    m->GetWorkingDataNode()->GetNormalizedTargetNode();
-  if (!normalizedTarget)
-    {
-    // clone intput to new normalized target node
-    std::cout << "  Cloning target node...";
-    normalizedTarget = m->CloneTargetNode(inputTarget, "NormalizedTarget");
-    std::cout << "Number of images is: " 
-              << normalizedTarget->GetNumberOfVolumes() << "..." << std::endl;
-    m->GetWorkingDataNode()->
-      SetNormalizedTargetNodeID(normalizedTarget->GetID());
-    std::cout << "Done" << std::endl;
-    }
-  else
-    {
-    std::cout << "  Synchronizing normalized target node...";
-    m->SynchronizeTargetNode(inputTarget, normalizedTarget, "NormalizedTarget");
-    std::cout << "Done" << std::endl;    
-    }
-  // enable this to speed things up
-//   else if (true || normalizedTarget->GetNumberOfVolumes() != inputTarget->GetNumberOfVolumes())
-//     {
-//     std::cout << "  Synchronizing normalized target node...";
-//     m->SynchronizeTargetNode(inputTarget, normalizedTarget, "NormalizedTarget");
-//     std::cout << "Done" << std::endl;
-//     }
-//   else
-//     {
-//     if (!m->GetUpdateIntermediateData())
-//       {
-//       std::cout << "  Using current normalized images." << std::endl;
-//       m->GetWorkingDataNode()->SetNormalizedTargetNodeIsValid(1);
-//       return true;
-//       }
-//     }
-  
-  //
-  // apply normalization
-  for (int i = 0; i < normalizedTarget->GetNumberOfVolumes(); ++i)
-    {
-    if (!m->GetNthTargetVolumeIntensityNormalizationEnabled(i))
-      {
-      // don't apply normaliation to this image
-      std::cout << "  Skipping image " << i 
-                << " (no normalization requested)." << std::endl;
-      continue;
-      }
-    std::cout << "  Normalizing image " << i << "..." << std::endl;
-    
-    // get image data
-    vtkImageData* inData = 
-      inputTarget->GetNthVolumeNode(i)->GetImageData();
-    vtkImageData* outData = 
-      normalizedTarget->GetNthVolumeNode(i)->GetImageData(); 
-    if (inData == NULL)
-      {
-      vtkErrorMacro("Normalization input is null, skipping: " << i);
-      continue;
-      }
-    if (outData == NULL)
-      {
-      vtkErrorMacro("Normalization output is null, skipping: " << i);
-      continue;
-      }
-
-    // setup vtk filter
-    vtkImageMeanIntensityNormalization* normFilter =
-      vtkImageMeanIntensityNormalization::New();
-    normFilter->SetNormValue
-      (m->GetNthTargetVolumeIntensityNormalizationNormValue(i));
-    normFilter->SetNormType
-      (m->GetNthTargetVolumeIntensityNormalizationNormType(i));
-    normFilter->SetInitialHistogramSmoothingWidth
-      (m->
-       GetNthTargetVolumeIntensityNormalizationInitialHistogramSmoothingWidth(i));
-    normFilter->SetMaxHistogramSmoothingWidth
-      (m->GetNthTargetVolumeIntensityNormalizationMaxHistogramSmoothingWidth(i));
-    normFilter->SetRelativeMaxVoxelNum
-      (m->GetNthTargetVolumeIntensityNormalizationRelativeMaxVoxelNum(i));
-    normFilter->SetPrintInfo
-      (m->GetNthTargetVolumeIntensityNormalizationPrintInfo(i));
-    normFilter->SetInput(inData);
-
-    // execute filter
-    try
-      {
-      normFilter->Update();
-      }
-    catch (...)
-      {
-      vtkWarningMacro("Error executing normalization filter for target image " 
-                      << i << ".  Skipping this image.");
-      }
-    
-    if (normFilter->GetErrorExecutionFlag())
-      {
-    outData->ShallowCopy(inData);
-    return false;
-      }
-
-    outData->ShallowCopy(normFilter->GetOutput());
-    normFilter->Delete();
-    }
-    
-  std::cout << " EMSEG: Normalization complete." << std::endl;
-  m->GetWorkingDataNode()->SetNormalizedTargetNodeIsValid(1);
-
-  // intensity statistics, if computed from data, must be updated
-  m->UpdateIntensityDistributions();
 
   return true;
 }
@@ -669,13 +495,20 @@ GuessRegistrationBackgroundLevel(vtkImageData* imageData)
                        MapCompare<T>::map_value_comparer);
 
     std::cout << "   Background level guess : " 
-              << static_cast<int>(backgroundLevel) << "(" << percentageOfVoxels << "%) "
-              << "second place: "
-              << static_cast<int>(itor2->first) << "(" 
-              << 100.0 * static_cast<double>(itor2->second)/totalVoxelsCounted
-              << "%)"
+              << static_cast<int>(backgroundLevel) << " (" << percentageOfVoxels << "%) "
               << std::endl;
-    
+
+    /*
+    //ATTENTION: commented out because of a Windows runtime bug if accessing "static_cast<int>(itor2->first)"
+
+    int second_place = static_cast<int>(itor2->first);
+    double percentageOfVoxels_secondplace =
+      100.0 * static_cast<double>(itor2->second)/totalVoxelsCounted;
+
+    std::cout << "second place: " << second_place << " (" << percentageOfVoxels_secondplace << "%)"
+              << std::endl;
+    */
+
     return backgroundLevel;
     }
 }
@@ -907,247 +740,6 @@ SlicerImageResliceWithGrid(vtkMRMLVolumeNode* inputVolumeNode,
   totalTransform->Delete();
 }
 
-void
-vtkEMSegmentLogic::
-SlicerRigidRegister(vtkMRMLVolumeNode* fixedVolumeNode,
-                    vtkMRMLVolumeNode* movingVolumeNode,
-                    vtkMRMLVolumeNode* outputVolumeNode,
-                    vtkTransform* fixedRASToMovingRASTransform,
-                    int imageMatchType,
-                    int interpolationType,
-                    double backgroundLevel)
-{
-  vtkRigidRegistrator* registrator = vtkRigidRegistrator::New();
-
-  // set fixed image ------
-  registrator->SetFixedImage(fixedVolumeNode->GetImageData());
-  vtkMatrix4x4* IJKToRASMatrixFixed = vtkMatrix4x4::New();
-  fixedVolumeNode->GetIJKToRASMatrix(IJKToRASMatrixFixed);
-  registrator->SetFixedIJKToXYZ(IJKToRASMatrixFixed);
-  IJKToRASMatrixFixed->Delete();
-    
-  // set moving image ------
-  registrator->SetMovingImage(movingVolumeNode->GetImageData());
-  vtkMatrix4x4* IJKToRASMatrixMoving = vtkMatrix4x4::New();
-  movingVolumeNode->GetIJKToRASMatrix(IJKToRASMatrixMoving);
-  registrator->SetMovingIJKToXYZ(IJKToRASMatrixMoving);
-  IJKToRASMatrixMoving->Delete();
-
-  // set parameters ------  
-  switch (imageMatchType)
-    {
-    case vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationCenters:
-      registrator->SetImageToImageMetricToCrossCorrelation();
-      registrator->SetNumberOfIterations(0);      
-      break;
-    case vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationRigidNCCSlow:
-      registrator->SetImageToImageMetricToCrossCorrelation();
-      registrator->SetMetricComputationSamplingRatio(0.8);
-      registrator->SetNumberOfIterations(100);
-      break;
-    case vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationRigidMMISlow:
-      registrator->SetImageToImageMetricToMutualInformation();
-      registrator->SetMetricComputationSamplingRatio(0.8);
-      registrator->SetNumberOfIterations(100);
-      break;
-    case vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationRigidNCCFast:
-      registrator->SetImageToImageMetricToCrossCorrelation();
-      registrator->SetMetricComputationSamplingRatio(0.3333);
-      registrator->SetNumberOfIterations(5);
-      break;
-    case vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationRigidMMIFast:
-      registrator->SetImageToImageMetricToMutualInformation();
-      registrator->SetMetricComputationSamplingRatio(0.3333);
-      registrator->SetNumberOfIterations(5);
-      break;
-    case vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationRigidNCC:
-      registrator->SetImageToImageMetricToCrossCorrelation();
-      registrator->SetMetricComputationSamplingRatio(0.3333);
-      registrator->SetNumberOfIterations(10);
-      break;
-    case vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationRigidMMI:
-    default:
-      registrator->SetImageToImageMetricToMutualInformation();
-      registrator->SetMetricComputationSamplingRatio(0.3333);
-      registrator->SetNumberOfIterations(10);
-      break;
-    }
-
-  registrator->SetTransformInitializationTypeToImageCenters();
-
-  switch (interpolationType)
-    {
-    case vtkEMSegmentMRMLManager::InterpolationNearestNeighbor:
-      registrator->SetIntensityInterpolationTypeToNearestNeighbor();
-      break;
-    case vtkEMSegmentMRMLManager::InterpolationCubic:
-      registrator->SetIntensityInterpolationTypeToCubic();
-      break;
-    case vtkEMSegmentMRMLManager::InterpolationLinear:
-    default:
-      registrator->SetIntensityInterpolationTypeToLinear();
-    }
-
-  try
-    {
-    //
-    // run registration
-    registrator->RegisterImages();
-    fixedRASToMovingRASTransform->DeepCopy(registrator->GetTransform());
-
-    if (outputVolumeNode != NULL)
-      {
-      //
-      // resample moving image
-      vtkEMSegmentLogic::SlicerImageReslice(movingVolumeNode, 
-                                            outputVolumeNode, 
-                                            fixedVolumeNode, 
-                                            fixedRASToMovingRASTransform,
-                                            interpolationType,
-                                            backgroundLevel);
-      }
-    }
-  catch (...)
-    {
-      std::cerr << "ERROR: Failed to register images!!!\n";
-    }
-    
-  //
-  // clean up
-  registrator->Delete();
-}
-
-void
-vtkEMSegmentLogic::
-SlicerBSplineRegister(vtkMRMLVolumeNode* fixedVolumeNode,
-                      vtkMRMLVolumeNode* movingVolumeNode,
-                      vtkMRMLVolumeNode* outputVolumeNode,
-                      vtkGridTransform* fixedRASToMovingRASTransform,
-                      vtkTransform* fixedRASToMovingRASAffineTransform,
-                      int imageMatchType,
-                      int interpolationType,
-                      double backgroundLevel)
-{
-  vtkBSplineRegistrator* registrator = vtkBSplineRegistrator::New();
-  
-  // set fixed image ------
-  registrator->SetFixedImage(fixedVolumeNode->GetImageData());
-  vtkMatrix4x4* IJKToRASMatrixFixed = vtkMatrix4x4::New();
-  fixedVolumeNode->GetIJKToRASMatrix(IJKToRASMatrixFixed);
-  registrator->SetFixedIJKToXYZ(IJKToRASMatrixFixed);
-  IJKToRASMatrixFixed->Delete();
-    
-  // set moving image ------
-  registrator->SetMovingImage(movingVolumeNode->GetImageData());
-  vtkMatrix4x4* IJKToRASMatrixMoving = vtkMatrix4x4::New();
-  movingVolumeNode->GetIJKToRASMatrix(IJKToRASMatrixMoving);
-  registrator->SetMovingIJKToXYZ(IJKToRASMatrixMoving);
-  IJKToRASMatrixMoving->Delete();
-
-  // set parameters ------  
-  switch (imageMatchType)
-    {
-    case 
-      vtkEMSegmentMRMLManager
-      ::AtlasToTargetDeformableRegistrationBSplineNCCSlow:
-      registrator->SetImageToImageMetricToCrossCorrelation();
-      registrator->SetNumberOfKnotPoints(5);
-      registrator->SetMetricComputationSamplingRatio(0.8);
-      registrator->SetNumberOfIterations(100);
-      break;
-    case 
-      vtkEMSegmentMRMLManager
-      ::AtlasToTargetDeformableRegistrationBSplineMMISlow:
-      registrator->SetImageToImageMetricToMutualInformation();
-      registrator->SetNumberOfKnotPoints(5);
-      registrator->SetMetricComputationSamplingRatio(0.8);
-      registrator->SetNumberOfIterations(100);
-      break;
-    case 
-      vtkEMSegmentMRMLManager
-      ::AtlasToTargetDeformableRegistrationBSplineNCCFast:
-      registrator->SetImageToImageMetricToCrossCorrelation();
-      registrator->SetNumberOfKnotPoints(5);
-      registrator->SetMetricComputationSamplingRatio(0.2);
-      registrator->SetNumberOfIterations(5);
-      break;
-    case 
-      vtkEMSegmentMRMLManager
-      ::AtlasToTargetDeformableRegistrationBSplineMMIFast:
-      registrator->SetImageToImageMetricToMutualInformation();
-      registrator->SetNumberOfKnotPoints(5);
-      registrator->SetMetricComputationSamplingRatio(0.2);
-      registrator->SetNumberOfIterations(5);
-      break;
-    case 
-      vtkEMSegmentMRMLManager::AtlasToTargetDeformableRegistrationBSplineNCC:
-      registrator->SetImageToImageMetricToCrossCorrelation();
-      registrator->SetNumberOfKnotPoints(5);
-      registrator->SetMetricComputationSamplingRatio(0.3333);
-      registrator->SetNumberOfIterations(10);
-      break;
-    case 
-      vtkEMSegmentMRMLManager::AtlasToTargetDeformableRegistrationBSplineMMI:
-    default:
-      registrator->SetImageToImageMetricToMutualInformation();
-      registrator->SetNumberOfKnotPoints(5);
-      registrator->SetMetricComputationSamplingRatio(0.3333);
-      registrator->SetNumberOfIterations(10);
-      break;
-    }
-
-  switch (interpolationType)
-    {
-    case vtkEMSegmentMRMLManager::InterpolationNearestNeighbor:
-      registrator->SetIntensityInterpolationTypeToNearestNeighbor();
-      break;
-    case vtkEMSegmentMRMLManager::InterpolationCubic:
-      registrator->SetIntensityInterpolationTypeToCubic();
-      break;
-    case vtkEMSegmentMRMLManager::InterpolationLinear:
-    default:
-      registrator->SetIntensityInterpolationTypeToLinear();
-    }
-
-  //
-  // initialize with affine transform if specified
-  if (fixedRASToMovingRASAffineTransform)
-    {
-    std::cout << "   Setting bulk transform...";
-    registrator->SetBulkTransform(fixedRASToMovingRASAffineTransform);
-    std::cout << "DONE" << std::endl;
-    }
-
-  try
-    {
-    //
-    // run registration
-    registrator->RegisterImages();
-    fixedRASToMovingRASTransform->
-      SetDisplacementGrid(registrator->GetTransform()->GetDisplacementGrid());
-
-    if (outputVolumeNode != NULL)
-      {
-      std::cout << "Resampling moving image..." << std::endl;
-      vtkEMSegmentLogic::SlicerImageResliceWithGrid(movingVolumeNode, 
-                                                    outputVolumeNode, 
-                                                    fixedVolumeNode, 
-                                                    fixedRASToMovingRASTransform,
-                                                    interpolationType,
-                                                    backgroundLevel);
-      }
-    std::cout << "Resampling moving image DONE" << std::endl;
-    }
-  catch (...)
-    {
-      fixedRASToMovingRASTransform->SetDisplacementGrid(NULL);
-      std::cerr << "ERROR: Failed to register images!!!\n";
-    }
-    
-  //
-  // clean up
-  registrator->Delete();
-}
 
 void vtkEMSegmentLogic::StartPreprocessingResampleAndCastToTarget(vtkMRMLVolumeNode* movingVolumeNode, vtkMRMLVolumeNode* fixedVolumeNode, vtkMRMLVolumeNode* outputVolumeNode)
 {
@@ -1192,7 +784,6 @@ void vtkEMSegmentLogic::StartPreprocessingResampleAndCastToTarget(vtkMRMLVolumeN
       outputVolumeNode->GetImageData()->DeepCopy(cast->GetOutput());
       cast->Delete();
     }
-
   std::cout << "Resampling and casting output volume \"" << outputVolumeNode->GetName() << "\" to reference target \"" << fixedVolumeNode->GetName() <<  "\" DONE" << std::endl;
 }
 
@@ -1213,466 +804,6 @@ double vtkEMSegmentLogic::GuessRegistrationBackgroundLevel(vtkMRMLVolumeNode* vo
       }
   std::cout << "   Guessed background level: " << backgroundLevel << std::endl;
   return backgroundLevel;
-}
-
-//----------------------------------------------------------------------------
-bool
-vtkEMSegmentLogic::
-StartPreprocessingTargetToTargetRegistration()
-{
-  std::cout << " EMSEG: Starting target-to-target registration..." 
-            << std::endl;
-  
-  // get a pointer to the mrml manager for easy access
-  vtkEMSegmentMRMLManager* m = this->MRMLManager;
-  
-  // get input target from working node
-  vtkMRMLEMSTargetNode* normalizedTarget = 
-    m->GetWorkingDataNode()->GetNormalizedTargetNode();
-  if (normalizedTarget == NULL)
-    {
-    vtkWarningMacro("Normalized target node is null, aborting!");
-    return false;
-    }
-  if (!m->GetWorkingDataNode()->GetNormalizedTargetNodeIsValid())
-    {
-    vtkWarningMacro("Normalized target node is invalid, aborting!");
-    return false;
-    }
-  
-  // check that global parameters exist
-  if (!this->MRMLManager->GetGlobalParametersNode())
-    {
-    vtkWarningMacro("Global parameters node is null, aborting!");
-    return false;
-    }
-  
-  // set up the aligned target node
-  vtkMRMLEMSTargetNode* alignedTarget = 
-    m->GetWorkingDataNode()->GetAlignedTargetNode();
-  if (!alignedTarget)
-    {
-    // clone intput to new aligned target node
-    std::cout << "  Cloning target node...";
-    alignedTarget = m->CloneTargetNode(normalizedTarget, "AlignedTarget");
-    std::cout << "  Number of images is: " 
-              << alignedTarget->GetNumberOfVolumes() << "..." << std::endl;
-    m->GetWorkingDataNode()->
-      SetAlignedTargetNodeID(alignedTarget->GetID());
-    std::cout << "Done." << std::endl;
-    }
-  else
-    {
-    std::cout << "  Synchronizing aligned target node...";
-    m->SynchronizeTargetNode(normalizedTarget, alignedTarget, "AlignedTarget");
-    std::cout << "Done" << std::endl;    
-    }
-
-//   else if (alignedTarget->GetNumberOfVolumes() != normalizedTarget->GetNumberOfVolumes())
-//     {
-//     m->SynchronizeTargetNode(normalizedTarget, alignedTarget, "AlignedTarget");
-//     }
-//   else
-//     {
-//     if (!m->GetUpdateIntermediateData())
-//       {
-//       std::cout << "  Using current target-to-target registered images." 
-//                 << std::endl;
-//       m->GetWorkingDataNode()->SetAlignedTargetNodeIsValid(1);
-//       return true;
-//       }
-//     }
-  
-  //
-  // apply registration
-  // align image i with image 0
-  int fixedTargetImageIndex = 0;
-  vtkMRMLVolumeNode* fixedVolumeNode = 
-    alignedTarget->GetNthVolumeNode(fixedTargetImageIndex);
-  vtkImageData* fixedImageData = fixedVolumeNode->GetImageData();
-  
-  for (int i = 0; i < alignedTarget->GetNumberOfVolumes(); ++i)
-    {
-      std::cout << "  Target image " << i << "...";
-
-    if (i == fixedTargetImageIndex)
-      {
-        std::cout <<  "Skipping fixed target image." << std::endl;
-      continue;
-      }
-
-    //
-    // get image data
-    vtkMRMLVolumeNode* movingVolumeNode = 
-      normalizedTarget->GetNthVolumeNode(i);
-    vtkImageData* movingImageData = movingVolumeNode->GetImageData();
-    vtkMRMLVolumeNode* outputVolumeNode = 
-      alignedTarget->GetNthVolumeNode(i);
-    vtkImageData* outImageData = outputVolumeNode->GetImageData(); 
-    
-    if (fixedImageData == NULL)
-      {
-      vtkWarningMacro("Fixed image is null, skipping: " << i);
-      return false;
-      }
-    if (movingImageData == NULL)
-      {
-      vtkWarningMacro("Moving image is null, skipping: " << i);
-      return false;
-      }
-    if (outImageData == NULL)
-      {
-      vtkWarningMacro("Registration output image is null, skipping: " << i);
-      return false;
-      }
-       
-    //
-    // apply rigid registration
-    if (this->MRMLManager->GetEnableTargetToTargetRegistration())
-      {
-    double backgroundLevel = this->GuessRegistrationBackgroundLevel(movingVolumeNode);
-    vtkTransform* fixedRASToMovingRASTransform = vtkTransform::New();
-    vtkEMSegmentLogic::SlicerRigidRegister
-        (fixedVolumeNode,
-         movingVolumeNode,
-         outputVolumeNode,
-         fixedRASToMovingRASTransform,
-         vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationRigidMMI,
-         vtkEMSegmentMRMLManager::InterpolationLinear,
-         backgroundLevel);
-
-      std::cout << "  Target-to-target transform (fixedRAS -->> movingRAS): " 
-                << std::endl;
-      for (unsigned int r = 0; r < 4; ++r)
-        {
-        std::cout << "   ";
-        for (unsigned int c = 0; c < 4; ++c)
-          {
-          std::cout 
-            << fixedRASToMovingRASTransform->GetMatrix()->GetElement(r,c)
-            << "   ";
-          }
-        std::cout << std::endl;
-        }
-      fixedRASToMovingRASTransform->Delete();
-
-      }
-    else
-      {
-      std::cout << "  Skipping registration of target image " 
-                << i << "." << std::endl;
-      this->StartPreprocessingResampleAndCastToTarget(movingVolumeNode, fixedVolumeNode, outputVolumeNode);
-      }
-    }    
-  std::cout << " EMSEG: Target-to-target registration complete." << std::endl;
-  m->GetWorkingDataNode()->SetAlignedTargetNodeIsValid(1);
-  
-  // intensity statistics, if computed from data, must be updated
-  m->UpdateIntensityDistributions();
-
-  // everything was OK
-  return true;
-}
-
-//----------------------------------------------------------------------------
-bool
-vtkEMSegmentLogic::
-StartPreprocessingAtlasToTargetRegistration()
-{
-  std::cout << " EMSEG: Starting atlas-to-target registration..." << std::endl;
-
-  // get a pointer to the mrml manager for easy access
-  vtkEMSegmentMRMLManager* m = this->MRMLManager;
-
-  // get input target from working node
-  vtkMRMLEMSTargetNode* alignedTarget = 
-    m->GetWorkingDataNode()->GetAlignedTargetNode();
-  if (alignedTarget == NULL)
-    {
-    vtkWarningMacro("Aligned target node is null, aborting!");
-    return false;
-    }
-  if (!m->GetWorkingDataNode()->GetAlignedTargetNodeIsValid())
-    {
-    vtkWarningMacro("Aligned target node is invalid, aborting!");
-    return false;
-    }
-
-  // get input atlas from working node
-  vtkMRMLEMSAtlasNode* inputAtlas = 
-    m->GetWorkingDataNode()->GetInputAtlasNode();
-  if (inputAtlas == NULL)
-    {
-    vtkWarningMacro("Input atlas node is null, aborting!");
-    return false;
-    }
-  if (!m->GetWorkingDataNode()->GetInputAtlasNodeIsValid())
-    {
-    vtkWarningMacro("Input atlas node is invalid, aborting!");
-    return false;
-    }
-
-  // check that global parameters exist
-  if (!m->GetGlobalParametersNode())
-    {
-    vtkWarningMacro("Global parameters node is null, aborting!");
-    return false;
-    }
-
-  // set up the aligned atlas node
-  vtkMRMLEMSAtlasNode* alignedAtlas = 
-    m->GetWorkingDataNode()->GetAlignedAtlasNode();
-  if (!alignedAtlas)
-    {
-    // clone intput to new aligned atlas node
-    std::cout << "  Cloning atlas node...";
-    alignedAtlas = m->CloneAtlasNode(inputAtlas, "AlignedAtlas");
-    std::cout << "Done." << std::endl;
-    std::cout << "  Node is " << (alignedAtlas ? "Non-null" : "Null")
-              << std::endl;
-    std::cout << "  Number of images is: " 
-              << alignedAtlas->GetNumberOfVolumes() << std::endl;
-    m->GetWorkingDataNode()->
-      SetAlignedAtlasNodeID(alignedAtlas->GetID());
-    }
-  else
-    {
-    std::cout << "  Synchronizing aligned atlas node...";
-    m->SynchronizeAtlasNode(inputAtlas, alignedAtlas, "AlignedAtlas");
-    std::cout << "Done" << std::endl;    
-    }
-//   else if (alignedAtlas->GetNumberOfVolumes() != inputAtlas->GetNumberOfVolumes())
-//     {
-//     m->SynchronizeAtlasNode(inputAtlas, alignedAtlas, "AlignedAtlas");
-//     }
-//   else
-//     {
-//     if (!m->GetUpdateIntermediateData())
-//       {
-//       std::cout << "  Using current atlas-to-target registered images." 
-//                 << std::endl;
-//       m->GetWorkingDataNode()->SetAlignedAtlasNodeIsValid(1);
-//       return true;
-//       }
-//     }
-  
-  // check that an atlas was selected for registration
-  int atlasRegistrationVolumeIndex = -1;
-  if (m->GetGlobalParametersNode()->GetRegistrationAtlasVolumeKey() != NULL)
-    {
-    std::string atlasRegistrationVolumeKey(m->GetGlobalParametersNode()->
-                                           GetRegistrationAtlasVolumeKey());
-    atlasRegistrationVolumeIndex = 
-      inputAtlas->GetIndexByKey(atlasRegistrationVolumeKey.c_str());
-    }
-
-  // get target image data
-  int fixedTargetImageIndex = 0;
-  vtkMRMLVolumeNode* fixedTargetVolumeNode = 
-    alignedTarget->GetNthVolumeNode(fixedTargetImageIndex);
-  vtkImageData* fixedTargetImageData = fixedTargetVolumeNode->GetImageData();
-
-  // create transforms
-  vtkTransform* fixedRASToMovingRASTransformAffine = vtkTransform::New();
-  vtkGridTransform* fixedRASToMovingRASTransformDeformable = NULL;
-
-  if (m->GetRegistrationAffineType() != 
-      vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationOff ||
-      m->GetRegistrationDeformableType() !=       
-      vtkEMSegmentMRMLManager::AtlasToTargetDeformableRegistrationOff)
-    {
-    if (atlasRegistrationVolumeIndex < 0)
-      {
-      vtkWarningMacro
-        ("Attempt to register atlas image but no atlas image selected!");
-      return false;
-      }
-
-    // 
-    // get moving, and output volume nodes    
-    vtkMRMLVolumeNode* movingAtlasVolumeNode = 
-      inputAtlas->GetNthVolumeNode(atlasRegistrationVolumeIndex);
-    vtkImageData* movingAtlasImageData = movingAtlasVolumeNode->GetImageData();
-    
-    vtkMRMLVolumeNode* outputAtlasVolumeNode = 
-      alignedAtlas->GetNthVolumeNode(atlasRegistrationVolumeIndex);
-    vtkImageData* outAtlasImageData = outputAtlasVolumeNode->GetImageData(); 
-    
-    if (fixedTargetImageData == NULL)
-      {
-      vtkErrorMacro("Fixed image is null, skipping");
-      return false;
-      }
-    if (movingAtlasImageData == NULL)
-      {
-      vtkErrorMacro("Moving image is null, skipping");
-      return false;
-      }
-    if (outAtlasImageData == NULL)
-      {
-      vtkErrorMacro("Registration output is null, skipping");
-      return false;
-      }
-
-    // affine registration
-    switch (m->GetRegistrationAffineType())
-      {
-      case vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationOff:
-        std::cout << "  Skipping affine registration of atlas image." 
-                  << std::endl;
-        break;
-      default:
-        // do rigid registration
-        std::cout << "  Registering atlas image rigid..." << std::endl;
-        vtkEMSegmentLogic::
-          SlicerRigidRegister(fixedTargetVolumeNode,
-                              movingAtlasVolumeNode,
-                              NULL,
-                              fixedRASToMovingRASTransformAffine,
-                              m->GetRegistrationAffineType(),
-                              m->GetRegistrationInterpolationType(),
-                              0);
-        
-        std::cout << "  Atlas-to-target transform (fixedRAS -->> movingRAS): " 
-                  << std::endl;
-        for (unsigned int r = 0; r < 4; ++r)
-          {
-          std::cout << "   ";
-          for (unsigned int c = 0; c < 4; ++c)
-            {
-            std::cout 
-              << fixedRASToMovingRASTransformAffine->GetMatrix()->GetElement(r,c)
-              << "   ";
-            }
-          std::cout << std::endl;
-          }
-        break;
-      }
-
-    // deformable registration
-    switch (m->GetRegistrationDeformableType())
-      {
-      case vtkEMSegmentMRMLManager::
-        AtlasToTargetDeformableRegistrationOff:
-        std::cout << "  Skipping deformable registration of atlas image." 
-                  << std::endl;
-        break;
-      default:
-        // do deformable registration
-        std::cout << "  Registering atlas image B-Spline..." << std::endl;
-        fixedRASToMovingRASTransformDeformable = vtkGridTransform::New();
-        fixedRASToMovingRASTransformDeformable->SetInterpolationModeToCubic();
-        vtkEMSegmentLogic::
-          SlicerBSplineRegister(fixedTargetVolumeNode,
-                                movingAtlasVolumeNode,
-                                NULL,
-                                fixedRASToMovingRASTransformDeformable,
-                                fixedRASToMovingRASTransformAffine,
-                                m->GetRegistrationDeformableType(),
-                                m->GetRegistrationInterpolationType(),
-                                0);
-        break;
-      }
-    }
-
-  //
-  // resample all the atlas images using the same target->atlas transform
-  for (int i = 0; i < alignedAtlas->GetNumberOfVolumes(); ++i)
-    {
-    //
-    // get image data
-    vtkMRMLVolumeNode* movingAtlasVolumeNode = inputAtlas->GetNthVolumeNode(i);
-    vtkImageData* movingAtlasImageData = movingAtlasVolumeNode->GetImageData();
-    vtkMRMLVolumeNode* outputAtlasVolumeNode = 
-      alignedAtlas->GetNthVolumeNode(i);
-    vtkImageData* outAtlasImageData = outputAtlasVolumeNode->GetImageData(); 
-
-    if (movingAtlasImageData == NULL)
-      {
-      vtkErrorMacro("Moving image is null, skipping: " << i);
-      return false;
-      }
-    if (outAtlasImageData == NULL)
-      {
-      vtkErrorMacro("Registration output is null, skipping: " << i);
-      return false;
-      }
-
-    std::cout << "  Resampling atlas image " << i << "..." << std::endl;
-
-    //
-    // guess background level    
-    double backgroundLevel = 0;
-    switch (movingAtlasVolumeNode->GetImageData()->GetScalarType())
-      {  
-      vtkTemplateMacro(backgroundLevel = (GuessRegistrationBackgroundLevel<VTK_TT>(movingAtlasVolumeNode->GetImageData())););
-      }
-    std::cout << "   Guessed background level: " << backgroundLevel
-              << std::endl;
-
-    //
-    // resample moving image
-    if (fixedRASToMovingRASTransformDeformable != NULL)
-      {
-      vtkEMSegmentLogic::
-        SlicerImageResliceWithGrid(movingAtlasVolumeNode, 
-                                   outputAtlasVolumeNode, 
-                                   fixedTargetVolumeNode,
-                                   fixedRASToMovingRASTransformDeformable,
-                                   m->GetRegistrationInterpolationType(),
-                                   backgroundLevel);
-      }
-    else
-      {
-      vtkEMSegmentLogic::
-        SlicerImageReslice(movingAtlasVolumeNode, 
-                           outputAtlasVolumeNode, 
-                           fixedTargetVolumeNode,
-                           fixedRASToMovingRASTransformAffine,
-                           m->GetRegistrationInterpolationType(),
-                           backgroundLevel);
-      }
-    }    
-  //
-  // clean up
-  fixedRASToMovingRASTransformAffine->Delete();
-  if (fixedRASToMovingRASTransformDeformable)
-    {
-    fixedRASToMovingRASTransformDeformable->Delete();
-    }
-  std::cout << " EMSEG: Atlas-to-target registration complete." << std::endl;
-  m->GetWorkingDataNode()->SetAlignedAtlasNodeIsValid(1);
-
-  // everything was OK
-  return true;
-}
-
-//----------------------------------------------------------------------------
-void
-vtkEMSegmentLogic::
-StartSegmentation(vtkSlicerApplication* app, vtkSlicerApplicationLogic *appLogic)
-{
-  //
-  // make sure preprocessing is up to date
-  //
-  std::cout << "EMSEG: Start preprocessing..." << std::endl; 
-
-  vtkMRMLEMSTargetNode *inputNodes = this->MRMLManager->GetTargetInputNode();
-  if (!inputNodes)
-    {
-      vtkErrorMacro("EMSEG: No Input defined");
-      return ;
-    } 
-
-
-  if (! this->StartPreprocessing())
-    {
-      vtkErrorMacro("Preprocessing Failed!  Aborting Segmentation.");
-      return;
-    }
-  
-  std::cout << "EMSEG: Preprocessing complete." << std::endl;
-  this->StartSegmentationWithoutPreprocessing(app,appLogic);
 }
 
 //----------------------------------------------------------------------------
@@ -1770,8 +901,8 @@ int vtkEMSegmentLogic::StartSegmentationWithoutPreprocessing(vtkSlicerApplicatio
     {
     ErrorMsg = "Exception thrown during segmentation: "  + std::string(e.what()) + "\n";
     vtkErrorMacro( << ErrorMsg );
-    //return EXIT_FAILURE;
-    }
+    return EXIT_FAILURE;
+    } 
 
   if (this->GetDebug())
   {
@@ -1784,21 +915,64 @@ int vtkEMSegmentLogic::StartSegmentationWithoutPreprocessing(vtkSlicerApplicatio
     vtkstd::cout << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << vtkstd::endl;
   }
 
+  // POST PROCESSING 
+  vtkstd::cout << "[Start] Postprocessing ..." << vtkstd::endl;
+  vtkImageData* postProcessing = vtkImageData::New(); 
+  postProcessing->ShallowCopy(segmenter->GetOutput());
+
+  // Subparcellation
+  if (this->MRMLManager->GetEnableSubParcellation()) {
+    vtkstd::cout << "=== Sub-Parcellation === " << vtkstd::endl;
+    this->SubParcelateSegmentation(postProcessing,this->MRMLManager->GetTreeRootNodeID()); 
+  }
+
+  // Island Removal
+  if (this->MRMLManager->GetMinimumIslandSize() > 1) {
+     vtkstd::cout << "=== Island removal === " << vtkstd::endl;
+     vtkImageData* input = vtkImageData::New();
+     input->DeepCopy(postProcessing);
+     vtkImageIslandFilter* islandFilter = vtkImageIslandFilter::New();
+     islandFilter->SetInput(input);
+     islandFilter->SetIslandMinSize(this->MRMLManager->GetMinimumIslandSize());
+     islandFilter->SetNeighborhoodDim3D();
+     islandFilter->SetPrintInformation(1);
+     islandFilter->Update();
+     postProcessing->DeepCopy(islandFilter->GetOutput());
+     islandFilter->Delete();
+     input->Delete();
+  }
+  vtkstd::cout << "[Done] Postprocessing" << vtkstd::endl;
   //
   // copy result to output volume
   //
   
   // set output of the filter to VolumeNode's ImageData
-  vtkImageData* image = vtkImageData::New(); 
-  image->ShallowCopy(segmenter->GetOutput());
-  outVolume->SetAndObserveImageData(image);
-  image->Delete();
+
+  outVolume->SetAndObserveImageData(postProcessing);
+  postProcessing->Delete();
   // make sure the output volume is a labelmap
   if (!outVolume->GetLabelMap())
   {
     vtkWarningMacro("Changing output image to labelmap");
     outVolume->LabelMapOn();
   }
+
+  vtkMRMLVolumeDisplayNode *outDisplayNode = vtkMRMLVolumeDisplayNode::SafeDownCast(outVolume->GetDisplayNode());
+  if (!outDisplayNode) 
+    {
+       vtkWarningMacro("Did not define lookup table bc display node is not defined ");
+    } 
+  else 
+    {
+      const char* colorID = this->MRMLManager->GetColormap();
+      if (colorID) 
+    {
+             outDisplayNode->SetAndObserveColorNodeID(colorID);
+    }
+    }
+
+    
+
   outVolume->SetModifiedSinceRead(1);
 
   //
@@ -2408,7 +1582,7 @@ vtksys_stl::string  vtkEMSegmentLogic::GetTclTaskDirectory(vtkSlicerApplication*
       // copy not always, only new files
       if (!vtksys::SystemTools::CopyADirectory(orig_task_dir.c_str(), copied_task_dir.c_str(), false, true) )
       {
-          vtkErrorMacro("GetTclTaskDirectory:: Couldn't copy task directory");
+    vtkErrorMacro("GetTclTaskDirectory:: Couldn't copy task directory " << orig_task_dir.c_str() << " to " << copied_task_dir.c_str());
           return vtksys::SystemTools::ConvertToOutputPath("");
       }
       return vtksys::SystemTools::ConvertToOutputPath(copied_task_dir.c_str());
@@ -2594,6 +1768,7 @@ void  vtkEMSegmentLogic::AutoCorrectSpatialPriorWeight(vtkIdType nodeID)
 
 //----------------------------------------------------------------------------
 // cannot be moved to vtkEMSEgmentGUI bc of command line interface !
+// This function is used for the UpdateButton in vtkEMSegmentParametersSetStep
 vtksys_stl::string vtkEMSegmentLogic::GetTemporaryTaskDirectory(vtkSlicerApplication* app)
 {
   // FIXME, what happens if user has no write permission to this directory
@@ -2606,7 +1781,7 @@ vtksys_stl::string vtkEMSegmentLogic::GetTemporaryTaskDirectory(vtkSlicerApplica
   const char* tmpDir = app->GetTemporaryDirectory();
   if (tmpDir)
     {
-      std::string tmpTaskDir(std::string(tmpDir) + std::string("/EMSegmentTask"));
+      std::string tmpTaskDir( std::string(tmpDir) + "/" + std::string(app->GetSvnRevision()) + std::string("/EMSegmentTask") );
       taskDir = vtksys::SystemTools::ConvertToOutputPath(tmpTaskDir.c_str());
     }
   else
@@ -2944,7 +2119,7 @@ CreatePackageFilenames(vtkMRMLScene* scene,
           volumeStorageNode = vtkMRMLVolumeArchetypeStorageNode::New();
           scene->AddNodeNoNotify(volumeStorageNode);
           volumeNode->SetAndObserveStorageNodeID(volumeStorageNode->GetID());
-          std::cout << "Added storage node : " << storageNode->GetID() 
+          std::cout << "Added storage node : " << volumeStorageNode->GetID() 
                     << std::endl;
           volumeStorageNode->Delete();
           storageNode = volumeStorageNode;
@@ -2966,56 +2141,9 @@ CreatePackageFilenames(vtkMRMLScene* scene,
           vtksys::SystemTools::JoinPath(scenePathComponents);
         
         storageNode->SetFileName(newFilename.c_str());
-    scenePathComponents.pop_back();
-    scenePathComponents.pop_back();
-    scenePathComponents.pop_back();
-        }
-      }  
-    }
-
-  // normalized target volumes
-  if (workingDataNode->GetNormalizedTargetNode())
-    {
-    for (int i = 0; i < numTargets; ++i)
-      {
-      vtkMRMLVolumeNode* volumeNode =
-        workingDataNode->GetNormalizedTargetNode()->GetNthVolumeNode(i);
-      if (volumeNode != NULL)
-        {
-        vtkMRMLStorageNode* storageNode = volumeNode->GetStorageNode();
-        vtkMRMLVolumeArchetypeStorageNode* volumeStorageNode = 
-          dynamic_cast<vtkMRMLVolumeArchetypeStorageNode*>(storageNode);
-        if (volumeStorageNode == NULL)
-          {
-          // create a new storage node for this volume
-          volumeStorageNode = vtkMRMLVolumeArchetypeStorageNode::New();
-          scene->AddNodeNoNotify(volumeStorageNode);
-          volumeNode->SetAndObserveStorageNodeID(volumeStorageNode->GetID());
-          std::cout << "Added storage node : " << volumeStorageNode->GetID() 
-                    << std::endl;
-          volumeStorageNode->Delete();
-          storageNode = volumeStorageNode;
-          }
-        volumeStorageNode->SetCenterImage(centerImages);
-          
-        // create new filename
-        vtkstd::stringstream defaultFilename;
-        defaultFilename << "Target" << i << "_Normalized.mhd";
-        std::string oldFilename       = 
-          (storageNode->GetFileName() ? storageNode->GetFileName() :
-           defaultFilename.str().c_str());
-        std::string oldFilenameNoPath = 
-          vtksys::SystemTools::GetFilenameName(oldFilename);
-        scenePathComponents.push_back("Target");
-        scenePathComponents.push_back("Normalized");
-        scenePathComponents.push_back(oldFilenameNoPath);
-        std::string newFilename = 
-          vtksys::SystemTools::JoinPath(scenePathComponents);
-        
-        storageNode->SetFileName(newFilename.c_str());
-    scenePathComponents.pop_back();
-    scenePathComponents.pop_back();
-    scenePathComponents.pop_back();
+        scenePathComponents.pop_back();
+        scenePathComponents.pop_back();
+        scenePathComponents.pop_back();
         }
       }  
     }
@@ -3285,4 +2413,71 @@ WritePackagedScene(vtkMRMLScene* scene)
     }  
 
   return allOK;
+}
+
+//-----------------------------------------------------------------------------
+void vtkEMSegmentLogic::SubParcelateSegmentation(vtkImageData* segmentation, vtkIdType nodeID)
+{
+  unsigned int numChildren =  this->MRMLManager->GetTreeNodeNumberOfChildren(nodeID);
+  for (unsigned int i = 0; i < numChildren; ++i)
+    {
+    vtkIdType childID = this->MRMLManager->GetTreeNodeChildNodeID(nodeID, i);
+    if (this->MRMLManager->GetTreeNodeIsLeaf(childID))
+      {
+    vtkMRMLVolumeNode*  parcellationNode =  this->MRMLManager->GetAlignedSubParcellationFromTreeNodeID(childID);
+        if ( ! parcellationNode || !parcellationNode->GetImageData() ) 
+      {
+            continue;
+      }
+        int childLabel =  this->MRMLManager->GetTreeNodeIntensityLabel(childID);
+        cout << "==> Subparcellate " <<  childLabel << endl;
+        vtkImageData* input = vtkImageData::New();
+    input->DeepCopy(segmentation);
+ 
+    vtkImageThreshold* roiMap =     vtkImageThreshold::New();
+        roiMap->SetInput(input);
+        roiMap->ThresholdBetween( childLabel,  childLabel);
+        roiMap->ReplaceOutOn();
+        roiMap->SetInValue(1);
+        roiMap->SetOutValue(0);
+        roiMap->Update();
+ 
+        vtkImageCast* castParcellation = vtkImageCast::New();
+        castParcellation->SetInput(parcellationNode->GetImageData());
+    castParcellation->SetOutputScalarType(roiMap->GetOutput()->GetScalarType());
+    castParcellation->Update();
+
+        vtkImageMathematics* roiParcellation = vtkImageMathematics::New();
+    roiParcellation->SetInput1(roiMap->GetOutput());
+    roiParcellation->SetInput2(castParcellation->GetOutput());
+        roiParcellation->SetOperationToMultiply();
+        roiParcellation->Update();
+
+    vtkImageThreshold* changedSeg =     vtkImageThreshold::New();
+        changedSeg->SetInput(input);
+        changedSeg->ThresholdBetween( childLabel,  childLabel);
+        changedSeg->ReplaceOutOff();
+        changedSeg->SetInValue(0);
+        changedSeg->Update();
+
+        vtkImageMathematics* parcellatedSeg = vtkImageMathematics::New();
+    parcellatedSeg->SetInput1(changedSeg->GetOutput());
+    parcellatedSeg->SetInput2(roiParcellation->GetOutput());
+        parcellatedSeg->SetOperationToAdd();
+        parcellatedSeg->Update();
+
+        segmentation->DeepCopy(parcellatedSeg->GetOutput());
+        parcellatedSeg->Delete();
+        changedSeg->Delete();
+        roiParcellation->Delete();
+        castParcellation->Delete();
+        roiMap->Delete();
+    input->Delete();
+      }
+    else
+      {
+        this->SubParcelateSegmentation(segmentation, childID); 
+      }
+
+    }
 }
