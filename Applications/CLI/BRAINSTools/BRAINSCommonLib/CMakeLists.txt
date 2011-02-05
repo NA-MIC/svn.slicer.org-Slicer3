@@ -6,7 +6,7 @@ cmake_policy(VERSION 2.8)
 enable_testing()
 include(Dart)
 include(CPack)
-#include(${BRAINS_CMAKE_HELPER_DIR}/CMakeBuildMacros.cmake)
+include(${BRAINS_CMAKE_HELPER_DIR}/CMakeBuildMacros.cmake)
 
 include(GenerateBRAINSCommonLibConfig.cmake)
 if(NOT SETIFEMPTY)
@@ -27,7 +27,7 @@ SETIFEMPTY(CMAKE_BUNDLE_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_BINARY_DIR}/bin)
 link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY} ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY})
 
 ###
-#CHECKIFSLICER3BUILD()  ## Call the convenience macro
+CHECKIFSLICER3BUILD()  ## Call the convenience macro
 
 if(NOT ITK_FOUND)
     find_package(ITK REQUIRED)
