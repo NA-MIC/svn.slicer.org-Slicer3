@@ -1288,8 +1288,6 @@ bool vtkSlicerModulesStep::UninstallExtension(const std::string& ExtensionName)
 
     app->SetPotentialModulePaths(paths.c_str());
 
-      app->SetModulePaths(paths.c_str());
-      }
     }
 
   return result;
