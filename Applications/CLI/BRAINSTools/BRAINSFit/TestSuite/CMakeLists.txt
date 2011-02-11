@@ -823,18 +823,20 @@ set(BRAINSFitTestName BRAINSFitTest_BSplineScaleRotationHeadMasksUShort)
 midas_add_test(NAME ${BRAINSFitTestName} COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSFitTest>
   --compare MIDAS{${BRAINSFitTestName}.result.nii.gz.md5}
             ${BRAINSFit_BINARY_DIR}/Testing/${BRAINSFitTestName}.test.nii.gz
-  --compareIntensityTolerance 9
+  --compareIntensityTolerance 2505
   --compareRadiusTolerance 0
   --compareNumberOfPixelsTolerance 1000
   BRAINSFitTest
   --costMetric MMI
+  --backgroundFillValue 10000
+  --scaleOutputValues
   --failureExitCode -1 --writeTransformOnFailure
   --numberOfIterations 2500,2500,500
   --splineGridSize 7,5,6
   --numberOfSamples 144000
   --translationScale 250
   --minimumStepLength 0.01,0.003,0.01
-  --outputVolumePixelType short
+  --outputVolumePixelType ushort
   --maskProcessingMode ROIAUTO
   --initializeTransformMode useCenterOfHeadAlign
   --transformType Rigid,ScaleVersor3D,BSpline
