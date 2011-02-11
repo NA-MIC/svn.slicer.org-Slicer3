@@ -124,17 +124,17 @@ midas_add_test(NAME ValidateBRAINSResampleTest3_nii COMMAND ${BRAINSResample_TES
 )
 
 if(0) ##This functionality does not work yet
-add_test(ValidateBRAINSResampleInvertTest ${BRAINSResample_TESTS}
+midas_add_test(NAME ValidateBRAINSResampleInvertTest COMMAND ${BRAINSResample_TESTS}
  --compare
-     ${BRAINSCommonLib_DATA_DIRS}/BRAINSResampleTest_Invert.output.nii.gz
+     MIDAS{BRAINSResampleTest_Invert.output.nii.gz.md5}
      ${CMAKE_CURRENT_BINARY_DIR}/InvertTransform_Test.nii.gz
      --compareIntensityTolerance 0
      --compareRadiusTolerance 0
      --compareNumberOfPixelsTolerance 0
    BRAINSResampleTest
    --invertTransform
-    --inputVolume ${BRAINSCommonLib_DATA_DIRS}/BRAINSFitTest_RigidRotationMasks.output.nii.gz
-    --referenceVolume ${BRAINSCommonLib_DATA_DIRS}/BRAINSFitTest_rotation.input.nii.gz
+   --inputVolume MIDAS{BRAINSFitTest_RigidRotationMasks.output.nii.gz.md5}
+   --referenceVolume MIDAS{BRAINSFitTest_rotation.input.nii.gz.md5}
     --outputVolume ${CMAKE_CURRENT_BINARY_DIR}/applyWarp_test4.nii.gz
     --pixelType short
     --warpTransform MIDAS{BRAINSFitTest_RigidRotationMasks.mat.md5}
