@@ -10,22 +10,37 @@ endif (WIN32)
 
 add_executable(BRATestImage TestImage.cxx)
 target_link_libraries(BRATestImage ${ITK_LIBRARIES})
-set_target_properties(BRATestImage PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${BRAINSROIAuto_BINARY_DIR})
+set_target_properties(BRATestImage PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${TESTING_BINARY_DIR})
 
 add_executable(BRATestCompare BRATestCompare.cxx)
 target_link_libraries(BRATestCompare ${ITK_LIBRARIES})
-set_target_properties(BRATestCompare PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${BRAINSROIAuto_BINARY_DIR})
+set_target_properties(BRATestCompare PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${TESTING_BINARY_DIR})
 
-add_test(BRATestImage ${LAUNCH_EXE} ${BRAINSROIAuto_BINARY_DIR}/${BUILD_SUBDIR}BRATestImage ${BRAINSROIAuto_BINARY_DIR}/sphere.nii.gz ${BRAINSROIAuto_BINARY_DIR}/GeneratedMaskSphere.nii.gz)
+include(${BRAINS_CMAKE_HELPER_DIR}/MIDAS.cmake)
+set(MIDAS_KEY_DIR "${PROJECT_SOURCE_DIR}/../BRAINSCommonLib/TestData")
 
-add_test(RunBRAINSROIAuto ${LAUNCH_EXE} ${TESTING_BINARY_DIR}/${BUILD_SUBDIR}BRAINSROIAuto
-  --inputVolume ${BRAINSROIAuto_BINARY_DIR}/sphere.nii.gz
-  --outputClippedVolumeROI ${BRAINSROIAuto_BINARY_DIR}/clippedSphere.nii.gz
-  --outputROIMaskVolume ${BRAINSROIAuto_BINARY_DIR}/maskSphere.nii.gz)
-set_tests_properties ( RunBRAINSROIAuto PROPERTIES DEPENDS BRATestImage)
+#add_test(
+#  NAME BRATestImage 
+#  COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRATestImage>
+#    ${BRAINSROIAuto_BINARY_DIR}/sphere.nii.gz 
+#    ${BRAINSROIAuto_BINARY_DIR}/GeneratedMaskSphere.nii.gz
+#  )
 
-add_test(CompareMasks ${LAUNCH_EXE} ${BRAINSROIAuto_BINARY_DIR}/${BUILD_SUBDIR}BRATestCompare
-  ${BRAINSROIAuto_BINARY_DIR}/GeneratedMaskSphere.nii.gz
-  ${BRAINSROIAuto_BINARY_DIR}/maskSphere.nii.gz)
-set_tests_properties ( CompareMasks PROPERTIES DEPENDS RunBRAINSROIAuto)
+midas_add_test(
+  NAME BRAINSROIAutoTest_GenerateBrainMask
+  COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSROIAuto>
+  --inputVolume MIDAS{test.nii.gz.md5}
+  --outputROIMaskVolume ${TESTING_BINARY_DIR}/BRAINSROIAutoTest_GenerateBrainMask.nii.gz
+  --ROIAutoDilateSize 10 
+  --outputVolumePixelType uchar
+  )
+set_tests_properties ( BRAINSROIAutoTest_GenerateBrainMask PROPERTIES DEPENDS BRATestImage)
+
+midas_add_test(
+  NAME BRAINSROIAutoTest_CompareBrainMasks
+  COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRATestCompare>
+  MIDAS{BRAINSROIAutoTest_GenerateBrainMask.result.nii.gz.md5}
+  ${TESTING_BINARY_DIR}/BRAINSROIAutoTest_GenerateBrainMask.nii.gz
+  )
+set_tests_properties ( BRAINSROIAutoTest_CompareBrainMasks PROPERTIES DEPENDS RunBRAINSROIAuto)
 
