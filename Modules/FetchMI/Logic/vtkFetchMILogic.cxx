@@ -97,63 +97,36 @@ vtkFetchMILogic::vtkFetchMILogic()
 
   // Temporary vars used for parsing xml.
   this->NumberOfTagsOnServer = 0;
-//  this->DebugOn();
 
-   //--- Initialize the XML writer collection with writers for all known services.
-   //--- Extend here as we support new web services.
-   vtkFetchMIWriterXND *xndw = vtkFetchMIWriterXND::New();
-   vtkFetchMIParserXND *xndp = vtkFetchMIParserXND::New();
-   vtkFetchMIWebServicesClientXND *xndc = vtkFetchMIWebServicesClientXND::New();
 
-   //--- Add all known servers and set their service type.
-   //--- Extend here as we support new web services.
-   const char *IDString = "XND";
-   const char *HandlerString = "XNDHandler";
-   vtkFetchMIServer *s1 = vtkFetchMIServer::New();
-   s1->SetParser ( xndp );
-   s1->SetWriter ( xndw );
-   s1->SetWebServicesClient ( xndc );
-   s1->SetName ( "http://xnd.slicer.org:8000" );
-   s1->SetServiceType ( IDString);
-   s1->SetURIHandlerName ( HandlerString);
-   s1->SetTagTableName ( IDString);
-   this->ServerCollection->AddItem ( s1 );
-   s1->Delete();
-   
-   vtkFetchMIServer *s2 = vtkFetchMIServer::New();
-   s2->SetParser ( xndp);
-   s2->SetWriter ( xndw);
-   s2->SetWebServicesClient (xndc);
-   s2->SetName ( "http://localhost:8081");
-   s2->SetServiceType ( IDString);
-   s2->SetURIHandlerName ( HandlerString);
-   s2->SetTagTableName ( IDString);
-   this->ServerCollection->AddItem ( s2 );
-   s2->Delete();
+  //--- DEVELOPER NOTE:
+  //--- Add all known servers and set their service type.
+  //--- Extend here as we support new web services.
+   this->AddNewServer ( "http://xnd.slicer.org:8000",
+                        "XND",
+                        "XNDHandler",
+                        "XND");
+   this->AddNewServer ( "http://localhost:8081",
+                        "XND",
+                        "XNDHandler",
+                        "XND");
+/*
+   this->AddNewServer ( "central.xnat.org",
+                        "XNE",
+                        "XNEHandler",
+                        "XNE");
+   this->AddNewServer ( "https://loci.ucsd.edu/hid",
+                        "HID",
+                        "HIDHandler",
+                        "HID");                        
+*/   
 
-   /*
-   IDString = "HID";
-   HandlerString = "HIDHandler";
-   vtkFetchMIServer *s3 = vtkFetchMIServer::New();
-   s3->SetName ( "https://loci.ucsd.edu/hid");
-   s3->SetServiceType ( IDString );
-   s3->SetURIHandlerName ( HandlerString);
-   s3->SetTagTableName ( IDString);
-   this->ServerCollection->AddItem ( s3 );
-   s3->Delete();
-   */
-   xndw->Delete();
-   xndp->Delete();
-   xndc->Delete();
-   
    if ( this->FetchMINode != NULL )
      {
      this->FetchMINode->InvokeEvent ( vtkMRMLFetchMINode::KnownServersModifiedEvent );
      }
-
    this->Visited = false;
    this->Raised = false;
-//   this->DebugOn();
 }
 
 
@@ -496,33 +469,79 @@ void vtkFetchMILogic::AddNewServer (const char *name,
     vtkErrorMacro ( "vtkFetchMILogic::AddNewServer: got NULL TagTable name");
     return;
     }
-  // Developers note: extend this check as new service types are added.
+  
+  vtkFetchMIServer *service = this->GetServerCollection()->FindServerByName ( name );
+  if ( service != NULL )
+    {
+    vtkWarningMacro ( "Web Service is already in the collection." );
+    return;
+    }
+
+  //---
+  //--- DEVELOPER NOTE:
+  //--- extend this process or generalize
+  //--- as new service types are added.
+  //---
+  
   if ( !(strcmp(type, "XND")))
     {
-    vtkFetchMIServer *localhost = this->GetServerCollection()->FindServerByName ( "http://localhost:8081");
-    if ( localhost != NULL )
-      {
-      vtkFetchMIServer *s1 = vtkFetchMIServer::New();
-      s1->SetName ( name );
-      s1->SetServiceType ( type );
-      s1->SetParser ( localhost->GetParser() );
-      s1->SetWriter (localhost->GetWriter() );
-      s1->SetWebServicesClient ( localhost->GetWebServicesClient() );
-      s1->SetURIHandlerName ( URIHandlerName );
-      s1->SetTagTableName ( TagTableName );
-      s1->SetTagTable ( this->FetchMINode->GetTagTableCollection()->FindTagTableByName ( "XND" ) );
-      this->ServerCollection->AddItem ( s1 );
-      s1->Delete();
-      }
-    else
-      {
-    vtkErrorMacro ( "Server is of unknown or unsupported type." );
-    return;
-      }
+    //--- Initialize the XML writer collection with writers for all known services.
+    //--- Extend here as we support new web services.
+    vtkFetchMIWriterXND *xndw = vtkFetchMIWriterXND::New();
+    vtkFetchMIParserXND *xndp = vtkFetchMIParserXND::New();
+    vtkFetchMIWebServicesClientXND *xndc = vtkFetchMIWebServicesClientXND::New();
+    vtkFetchMIServer *s = vtkFetchMIServer::New();
+    s->SetName ( name );
+    s->SetServiceType ( type );
+    s->SetParser ( xndp );
+    s->SetWriter ( xndw );
+    s->SetWebServicesClient ( xndc );
+    s->SetURIHandlerName ( URIHandlerName );
+    s->SetTagTableName ( TagTableName );
+    this->ServerCollection->AddItem ( s );
     if ( this->FetchMINode != NULL )
       {
+      if ( this->FetchMINode->GetTagTableCollection() )
+        {
+        s->SetTagTable ( this->FetchMINode->GetTagTableCollection()->FindTagTableByName ( "XND" ) );
+        }
       this->FetchMINode->InvokeEvent ( vtkMRMLFetchMINode::KnownServersModifiedEvent );
       }
+    s->Delete();
+    xndw->Delete();
+    xndp->Delete();
+    xndc->Delete();
+    }
+  else if ( !(strcmp (type, "XNE")))
+    {
+    /*
+    //--- Initialize the XML writer collection with writers for all known services.
+    //--- Extend here as we support new web services.
+    vtkFetchMIWriterXNE *xnew = vtkFetchMIWriterXNE::New();
+    vtkFetchMIParserXNE *xnep = vtkFetchMIParserXNE::New();
+    vtkFetchMIWebServicesClientXNE *xnec = vtkFetchMIWebServicesClientXNE::New();
+    vtkFetchMIServer *s = vtkFetchMIServer::New();
+    s->SetName ( name );
+    s->SetServiceType ( type );
+    s->SetParser ( xnep );
+    s->SetWriter ( xnew );
+    s->SetWebServicesClient ( xnec );
+    s->SetURIHandlerName ( URIHandlerName );
+    s->SetTagTableName ( TagTableName );
+    this->ServerCollection->AddItem ( s );
+    if ( this->FetchMINode != NULL )
+      {
+      if ( this->FetchMINode->GetTagTableCollection() )
+        {
+        s->SetTagTable ( this->FetchMINode->GetTagTableCollection()->FindTagTableByName ( "XNE" ) );
+        }
+      this->FetchMINode->InvokeEvent ( vtkMRMLFetchMINode::KnownServersModifiedEvent );
+      }
+    s->Delete();
+    xnew->Delete();
+    xnep->Delete();
+    xnec->Delete();
+    */
     }
   else
     {
@@ -601,8 +620,15 @@ void vtkFetchMILogic::RequestResourceUpload ( )
   // set storage nodes with filenames
   //---
   int retval = this->CheckStorageNodeFileNames();
-  // TO DO -- use this.
-//  int retval = this->CheckModifiedSinceRead();
+  if ( retval == 0 )
+    {
+    std::string msg = "Some files have no filenames. Please use the File->Save interface to name all unnamed datasets.";
+    this->FetchMINode->SetErrorMessage (msg.c_str() );
+    this->FetchMINode->InvokeEvent ( vtkMRMLFetchMINode::RemoteIOErrorEvent );
+    return;
+    }
+
+  retval = this->CheckModifiedSinceRead();
   if ( retval == 0 )
     {
     std::string msg = "Some files have been modified since read. Please save all unsaved data to local disk first to ensure some safe copy exists.";
@@ -610,7 +636,7 @@ void vtkFetchMILogic::RequestResourceUpload ( )
     this->FetchMINode->InvokeEvent ( vtkMRMLFetchMINode::RemoteIOErrorEvent );
     return;
     }
-
+  
   //---
   //--- Set filename on all storable nodes to include the cache path
   //--- so they are saved to cache prior to upload.
@@ -1128,7 +1154,8 @@ void vtkFetchMILogic::SaveResourceSelectionState ( )
   //--- select everything, so we upload scene + all data.
   //--- then restores GUI selection state reflected by GUI.
   //---
-  //--- Note to Developers: extend this as new storagenode types 
+  //--- DEVELOPER NOTE:
+  //--- extend this as new storagenode types 
   //--- are added to Slicer.
   this->TemporarySelectedStorableNodeIDs.clear();
   this->SetTemporarySceneSelected  (this->GetSceneSelected() );
@@ -1212,8 +1239,8 @@ void vtkFetchMILogic::SaveResourceSelectionState ( )
     vtkMRMLModelNode *mnode = vtkMRMLModelNode::SafeDownCast(node);
     if (mnode != NULL )
       {
-      vtkMRMLStorageNode *snode = mnode->GetStorageNode();
-      if ( snode)
+      vtkMRMLStorageNode* snode = mnode->GetStorageNode();
+      if ( snode )
         {
         this->SelectedStorableNodeIDs.push_back ( node->GetID() );
         }
@@ -1379,13 +1406,31 @@ void vtkFetchMILogic::ProcessMRMLEvents(vtkObject *caller,
   vtkMRMLFetchMINode* node = vtkMRMLFetchMINode::SafeDownCast ( caller );
   if ( node == this->FetchMINode && event == vtkMRMLFetchMINode::SelectedServerModifiedEvent )
     {
-    this->CurrentWebService = this->GetServerCollection()->FindServerByName ( this->FetchMINode->GetSelectedServer() );
-    this->CurrentWebService->SetTagTable (this->FetchMINode->GetTagTableCollection()->
-                                          FindTagTableByName (  this->CurrentWebService->GetTagTableName() ) );
+    this->UpdateCurrentWebService();
     }
 }
 
 
+
+
+//----------------------------------------------------------------------------
+void vtkFetchMILogic::UpdateCurrentWebService()
+{
+  if ( this->FetchMINode == NULL )
+    {
+    vtkErrorMacro ( "Got NULL FetchMINode." );
+    return;
+    }
+  if ( this->GetServerCollection () == NULL )
+    {
+    vtkErrorMacro ( "Got NULL ServerCollection." );
+    return;
+    }
+
+  this->CurrentWebService = this->GetServerCollection()->FindServerByName ( this->FetchMINode->GetSelectedServer() );
+  this->CurrentWebService->SetTagTable (this->FetchMINode->GetTagTableCollection()->
+                                          FindTagTableByName (  this->CurrentWebService->GetTagTableName() ) );
+}
 
 
 //----------------------------------------------------------------------------
@@ -1503,7 +1548,8 @@ void vtkFetchMILogic::DeselectScene()
 //----------------------------------------------------------------------------
 void vtkFetchMILogic::ApplySlicerDataTypeTag()
 {
-  //--- Note to developers: expand logic here as new node types are added.
+  //--- DEVELOPER NOTE:
+  //--- expand logic here as new node types are added.
   //--- always make sure the scene as a selected SlicerDataType tag.
   //--- NOTE:
   //--- currently, valid SlicerDataTypes include these:
@@ -1662,6 +1708,8 @@ void vtkFetchMILogic::SetSlicerDataTypeOnVolumeNodes()
       }
     }
 }
+
+
 
 
 //----------------------------------------------------------------------------
@@ -4018,6 +4066,12 @@ int vtkFetchMILogic::CheckStorageNodeFileNames()
         vtkErrorMacro("CheckStorageNodeFileNames: found a node with null storage node checked for upload.");
         return (0);
         }
+      //--- check for name
+      if ( snode->GetFileName() == NULL )
+        {
+        vtkErrorMacro("CheckStorageNodeFileNames: found a node with null filename.");
+        return (0);
+        }
       }
     }
   return (1);
@@ -4028,8 +4082,8 @@ int vtkFetchMILogic::CheckStorageNodeFileNames()
 //----------------------------------------------------------------------------
 int vtkFetchMILogic::CheckModifiedSinceRead()
 {
-  // Before upload, check to make sure all storable nodes have
-  // set storage nodes with filenames
+  // If we have unsaved data and something really bad happens
+  // during upload, want to give user a chance to save files to local disk.
 
   //--- Get the MRML Scene
   if ( this->GetMRMLScene() == NULL )
@@ -4528,6 +4582,16 @@ void vtkFetchMILogic::SetCacheFileNamesOnSelectedResources ( )
     vtkErrorMacro ("vtkFetchMILogic::SetCacheFileNamesOnSelectedResources Null scene. ");
     return;
     }
+  if ( this->GetMRMLScene()->GetCacheManager() == NULL )
+    {
+    vtkErrorMacro ("vtkFetchMILogic::SetCacheFileNamesOnSelectedResources Null cache manager.. ");
+    return;
+    }
+  if ( this->GetMRMLScene()->GetCacheManager()->GetRemoteCacheDirectory() == NULL )
+    {
+    vtkErrorMacro ("vtkFetchMILogic::SetCacheFileNamesOnSelectedResources Null RemoteIO cache directory.. ");
+    return;
+    }
   if ( this->GetFetchMINode() == NULL )
     {
     vtkErrorMacro ("vtkFetchMILogic::SetCacheFileNamesOnSelectedResources Null FetchMI node. ");
@@ -4577,6 +4641,12 @@ void vtkFetchMILogic::SetCacheFileNamesOnSelectedResources ( )
     if ( storableNode )
       {
 
+      //--- don't show nodes that should not be saved.
+      if ( storableNode->GetHideFromEditors())
+        {
+        continue;
+        }
+
       // for each storage node
       int numStorageNodes = storableNode->GetNumberOfStorageNodes();
       vtkMRMLStorageNode *storageNode;
@@ -4585,6 +4655,27 @@ void vtkFetchMILogic::SetCacheFileNamesOnSelectedResources ( )
         storageNode = storableNode->GetNthStorageNode(i);
         if ( storageNode )
           {
+
+          //--- set some default filenames
+          if (storageNode->GetFileName() == NULL &&
+              this->GetMRMLScene()->GetCacheManager()->GetRemoteCacheDirectory() != NULL)
+            {
+            std::string name (this->GetMRMLScene()->GetCacheManager()->GetRemoteCacheDirectory());
+            name += std::string(storableNode->GetName());
+            const char* ext = storageNode->GetDefaultWriteFileExtension();
+            if (ext) 
+              {
+              name += std::string(".");
+              name += std::string(ext);
+              }
+            storageNode->SetFileName(name.c_str());
+
+            // If the data is sitting in cache, it's vulnerable to overwriting or deleting.
+            // Mark the node as modified since read so that a user will be more likely
+            // to save it to a reliable location on local (or remote) disk.
+            storableNode->ModifiedSinceReadOn();
+            }
+
           //---
           // SPECIAL CASE: NEED TO HANDLE  A FEW NODE TYPES SEPARATELY WAY BECAUSE THEY HAVE NO WRITER!
           //---
@@ -4676,11 +4767,84 @@ void vtkFetchMILogic::SetCacheFileNamesOnSelectedResources ( )
           // if the URIHandler is set before calling CanHandleURI() on all scene handlers,
           // and if not, fix this logic to use the storage node's handler as set.
           // } // end LOOP THRU NODES.
+
           }
         }
       }
     }
 }
+
+
+//----------------------------------------------------------------------------
+const char *vtkFetchMILogic::CreateDefaultStorageNode( vtkMRMLStorableNode *node )
+{
+
+  if ( !this->MRMLScene )
+    {
+    vtkErrorMacro ( "Got NULL scene." );
+    return NULL;
+    }
+  if ( !node )
+    {
+    vtkErrorMacro ( "Got NULL storable node." );
+    return NULL;
+    }
+
+
+  vtkMRMLStorageNode* storageNode = node->CreateDefaultStorageNode();
+  storageNode->SetScene(this->GetMRMLScene());
+  this->SetMRMLScene(this->GetMRMLScene());
+  this->GetMRMLScene()->AddNode(storageNode);  
+  this->SetAndObserveMRMLScene(this->GetMRMLScene());
+  const char *id = storageNode->GetID();
+  node->SetAndObserveStorageNodeID(id);
+  storageNode->Delete();
+  return (id);
+}
+
+
+
+//----------------------------------------------------------------------------
+void vtkFetchMILogic::CreateDefaultFilename( vtkMRMLStorableNode *stnode, vtkMRMLStorageNode *snode)
+{
+  if ( !this->MRMLScene )
+    {
+    vtkErrorMacro ( "Got NULL scene." );
+    return;
+    }
+  if ( !this->MRMLScene->GetCacheManager() )
+    {
+    vtkErrorMacro ( "Got NULL cache manager" );
+    return;
+    }
+  if ( !stnode )
+    {
+    vtkErrorMacro ( "Got NULL storable node." );
+    return;
+    }
+  if ( !snode )
+    {
+    vtkErrorMacro ( "Got NULL storage node" );
+    return;
+    }
+
+  
+  //--- set a default filenames if the name is currently NULL
+  if (snode->GetFileName() == NULL)
+    {
+    std::string name = std::string(stnode->GetName());
+    const char* ext = snode->GetDefaultWriteFileExtension();
+    if (ext) 
+      {
+      name += std::string(".");
+      name += std::string(ext);
+      }
+    snode->SetFileName(name.c_str());
+    this->ApplySlicerDataTypeTag();
+    }
+  return;
+}
+
 
 
 
