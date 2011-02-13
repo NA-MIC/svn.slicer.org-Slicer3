@@ -137,6 +137,8 @@ void vtkHTTPHandler::InitTransfer( )
 int vtkHTTPHandler::CloseTransfer( )
 {
   curl_easy_cleanup(this->CurlHandle);
+  curl_global_cleanup();
+  this->CurlHandle = NULL;
   return EXIT_SUCCESS;
 }
 
@@ -163,18 +165,51 @@ void vtkHTTPHandler::StageFileRead(const char * source, const char * destination
     }
 
   //---
+  //--- try to open temporary bucket for download.
+  //--- once download is successful, move it to destination.
+  //--- otherwise return error,
+  //--- and make sure destination file is zero length.
+  //---
   //--- if it's open already, close it up.
   //---
   if ( this->LocalFile )
     {
-    fclose ( this->LocalFile );
+    if ( fclose(this->LocalFile) != 0 )
+      {
+      vtkErrorMacro ( "A remoteIO file was not properly closed." );
+      }
     this->LocalFile = NULL;
+    }
+
+  int useBucket = 1;
+  if ( useBucket )
+    {
+    std::string bucketName = vtksys::SystemTools::GetFilenameName (destination);
+    this->CreateFileBucket(bucketName.c_str() );
+    this->LocalFile = fopen (this->FileBucket, "wb");
+    }
+  if ( this->LocalFile == NULL )
+    {
+    vtkWarningMacro ( "Unable to open temporary download buffer. Writing directly to destination file.");
+    useBucket = 0;
+    this->LocalFile = fopen(destination, "wb");
+    }
+  if ( this->LocalFile == NULL )
+    {
+    vtkErrorMacro ( "Unable to open destination file. No file is downloaded.");
+    return;
     }
   
   //---
   //--- init and configure transfer
   //---
   this->InitTransfer( );
+  if ( this->CurlHandle == NULL )
+    {
+    vtkErrorMacro ( "Got NULL curl handle." );
+    return;
+    }
+
   if ( this->ForbidReuse )
     {
     curl_easy_setopt(this->CurlHandle, CURLOPT_FORBID_REUSE, 1);
@@ -184,30 +219,7 @@ void vtkHTTPHandler::StageFileRead(const char * source, const char * destination
   curl_easy_setopt(this->CurlHandle, CURLOPT_URL, source);
   curl_easy_setopt(this->CurlHandle, CURLOPT_FOLLOWLOCATION, true);
   curl_easy_setopt(this->CurlHandle, CURLOPT_WRITEFUNCTION, NULL); // write_callback);
-  
-  //---
-  //--- try to open temporary bucket for download.
-  //--- once download is successful, move it to destination.
-  //--- otherwise return error,
-  //--- and make sure destination file is zero length.
-  //---
-  int useBucket = 1;
-  if ( useBucket )
-    {
-    this->CreateFileBucket();
-    this->LocalFile = fopen (this->FileBucket, "wb");
-    }
-  if ( this->LocalFile == NULL )
-    {
-    vtkWarningMacro ( "Unable to open temporary download buffer. Writing directly to destination file.");
-    useBucket = 0;
-    this->LocalFile = fopen(destination, "wb");
-    }
   curl_easy_setopt(this->CurlHandle, CURLOPT_WRITEDATA, this->LocalFile);
-
-//  curl_easy_setopt(this->CurlHandle, CURLOPT_PROGRESSDATA, NULL);
-//  curl_easy_setopt(this->CurlHandle, CURLOPT_PROGRESSFUNCTION, ProgressCallback);
-
   // quick timeout during connection phase if URL is not accessible (e.g. blocked by a firewall)
   curl_easy_setopt(this->CurlHandle, CURLOPT_CONNECTTIMEOUT, 5); // in seconds (type long)
 
@@ -240,7 +252,10 @@ void vtkHTTPHandler::StageFileRead(const char * source, const char * destination
 
   if ( this->LocalFile )
     {
-    fclose(this->LocalFile);
+    if ( fclose(this->LocalFile) != 0 )
+      {
+      vtkErrorMacro ( "A remoteIO file was not properly closed." );
+      }
     this->LocalFile = NULL;
     }
 
@@ -256,7 +271,6 @@ void vtkHTTPHandler::StageFileRead(const char * source, const char * destination
            (vtksys::SystemTools::FileLength ( this->GetFileBucket()) != 0 ) )
         {
         vtkDirectory::Rename (this->GetFileBucket(), destination );
-//        vtksys::SystemTools::CopyFileIfDifferent ( this->GetFileBucket(), destination, true );
         }
       }
     }
@@ -273,15 +287,28 @@ void vtkHTTPHandler::StageFileRead(const char * source, const char * destination
 void vtkHTTPHandler::StageFileWrite(const char * source, const char * destination)
 {
 
+  // open file.
   if ( this->LocalFile != NULL )
     {
-    fclose( this->LocalFile );
-    LocalFile = NULL;
+    if ( fclose ( this->LocalFile ) != 0)
+      {
+      vtkErrorMacro ( "A remoteIO file was not properly closed." );
+      }
+    this->LocalFile = NULL;
+    }
+  this->LocalFile = fopen(source, "r");
+  if ( this->LocalFile == NULL )
+    {
+    vtkErrorMacro("StageFileWrite: unable to open file " << source );
+    return;
     }
 
-  this->LocalFile = fopen(source, "r");
-
   this->InitTransfer( );
+  if ( this->CurlHandle == NULL )
+    {
+    vtkErrorMacro ( "Got NULL curl handle." );
+    return;
+    }
   
   curl_easy_setopt(this->CurlHandle, CURLOPT_PUT, 1);
   curl_easy_setopt(this->CurlHandle, CURLOPT_URL, destination);
@@ -289,6 +316,7 @@ void vtkHTTPHandler::StageFileWrite(const char * source, const char * destinatio
   curl_easy_setopt(this->CurlHandle, CURLOPT_FOLLOWLOCATION, true);
   curl_easy_setopt(this->CurlHandle, CURLOPT_READFUNCTION, read_callback);
   curl_easy_setopt(this->CurlHandle, CURLOPT_READDATA, this->LocalFile);
+  curl_easy_setopt(this->CurlHandle, CURLOPT_CONNECTTIMEOUT, 10);  
   CURLcode retval = curl_easy_perform(this->CurlHandle);
 
    if (retval == CURLE_OK)
@@ -313,11 +341,36 @@ void vtkHTTPHandler::StageFileWrite(const char * source, const char * destinatio
 
   if ( this->LocalFile )
     {
-    fclose(this->LocalFile);
+    if ( fclose(this->LocalFile) != 0 )
+      {
+      vtkErrorMacro ( "A remoteIO file was not properly closed." );
+      }
     this->LocalFile = NULL;
     }
 }
 
+
+
+//--- for calling by the application. Return 1 for connected, 0 for not.
+//----------------------------------------------------------------------------
+bool vtkHTTPHandler::CheckConnectionAndServer ( const char *uri )
+{
+  if ( uri == NULL )
+    {
+    vtkErrorMacro ( "CheckConnectionAndServer: got NULL uri." );
+    return 0;
+    }
+  
+  const char *retval = this->CheckServerStatus ( uri );
+  if ( ( retval != NULL ) && ( !(strcmp (retval, "OK")) ))
+    {
+    return 1;
+    }
+  else
+    {
+    return 0;
+    }
+}
 
 
 //----------------------------------------------------------------------------
@@ -335,13 +388,19 @@ const char *vtkHTTPHandler::CheckServerStatus ( const char *uri )
 
   // configure a handle to send a generic ping.
   this->InitTransfer( );
+  if ( this->CurlHandle == NULL )
+    {
+    vtkErrorMacro ( "Got NULL curl handle." );
+    return ("Could not initialize check on server status.");
+    }
+
   curl_easy_setopt(this->CurlHandle, CURLOPT_URL, uri);
   curl_easy_setopt(this->CurlHandle, CURLOPT_NOPROGRESS, true);
   curl_easy_setopt(this->CurlHandle, CURLOPT_FOLLOWLOCATION, true);
   curl_easy_setopt(this->CurlHandle, CURLOPT_HEADER, true);
   curl_easy_setopt(this->CurlHandle, CURLOPT_NOBODY, true);  
-  curl_easy_setopt(this->CurlHandle, CURLOPT_CONNECTTIMEOUT, 30 );
-  curl_easy_setopt(this->CurlHandle, CURLOPT_TIMEOUT, 30 );
+  curl_easy_setopt(this->CurlHandle, CURLOPT_CONNECTTIMEOUT, 10 );
+  curl_easy_setopt(this->CurlHandle, CURLOPT_TIMEOUT, 10 );
   retval = curl_easy_perform(this->CurlHandle);
 
 /*
