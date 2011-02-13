@@ -12,7 +12,7 @@
 #include "vtkKWWizardStep.h"
 #include "vtkKWWizardWidget.h"
 #include "vtkKWWizardWorkflow.h"
-#include "vtkMRMLEMSTargetNode.h"
+#include "vtkMRMLEMSVolumeCollectionNode.h"
 #include "vtkMRMLEMSGlobalParametersNode.h"
 
 //----------------------------------------------------------------------------
@@ -30,6 +30,7 @@ vtkEMSegmentRegistrationParametersStep::vtkEMSegmentRegistrationParametersStep()
   this->RegistrationParametersAffineMenuButton        = NULL;
   this->RegistrationParametersDeformableMenuButton    = NULL;
   this->RegistrationParametersInterpolationMenuButton = NULL;
+  this->RegistrationParametersPackageMenuButton       = NULL;
   this->RegistrationAtlasInputFrame = NULL;
 }
 
@@ -65,6 +66,13 @@ vtkEMSegmentRegistrationParametersStep::~vtkEMSegmentRegistrationParametersStep(
     this->RegistrationParametersInterpolationMenuButton->SetParent(NULL);
     this->RegistrationParametersInterpolationMenuButton->Delete();
     this->RegistrationParametersInterpolationMenuButton = NULL;
+    }
+
+  if (this->RegistrationParametersPackageMenuButton)
+    {
+    this->RegistrationParametersPackageMenuButton->SetParent(NULL);
+    this->RegistrationParametersPackageMenuButton->Delete();
+    this->RegistrationParametersPackageMenuButton = NULL;
     }
 
   if (this->RegistrationParametersFrame)
@@ -153,14 +161,14 @@ void vtkEMSegmentRegistrationParametersStep::ShowUserInterface()
       SetLabelText("Affine Registration:");
 
     sprintf(buffer, "RegistrationAffineCallback %d",
-            vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationOff);
+            vtkEMSegmentMRMLManager::RegistrationOff);
     this->RegistrationParametersAffineMenuButton->GetWidget()->
       GetMenu()->AddRadioButton("None", this, buffer);
 
-    sprintf(buffer, "RegistrationAffineCallback %d", vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationRigidMMIFast);
+    sprintf(buffer, "RegistrationAffineCallback %d", vtkEMSegmentMRMLManager::RegistrationFast);
     this->RegistrationParametersAffineMenuButton->GetWidget()->GetMenu()->AddRadioButton("Fast", this, buffer);
  
-    sprintf(buffer, "RegistrationAffineCallback %d", vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationRigidMMISlow);
+    sprintf(buffer, "RegistrationAffineCallback %d", vtkEMSegmentMRMLManager::RegistrationSlow);
     this->RegistrationParametersAffineMenuButton->GetWidget()->GetMenu()->AddRadioButton("Accurate", this, buffer);
 
     this->RegistrationParametersAffineMenuButton->SetBalloonHelpString(
@@ -194,11 +202,11 @@ void vtkEMSegmentRegistrationParametersStep::ShowUserInterface()
       SetWidth(EMSEG_WIDGETS_LABEL_WIDTH);
     this->RegistrationParametersDeformableMenuButton->SetLabelText("Deformable Registration:");
 
-    sprintf(buffer, "RegistrationDeformableCallback %d", vtkEMSegmentMRMLManager::AtlasToTargetDeformableRegistrationOff);
+    sprintf(buffer, "RegistrationDeformableCallback %d", vtkEMSegmentMRMLManager::RegistrationOff);
     this->RegistrationParametersDeformableMenuButton->GetWidget()->GetMenu()->AddRadioButton("None", this, buffer);
-    sprintf(buffer, "RegistrationDeformableCallback %d", vtkEMSegmentMRMLManager::AtlasToTargetDeformableRegistrationBSplineMMIFast);
+    sprintf(buffer, "RegistrationDeformableCallback %d", vtkEMSegmentMRMLManager::RegistrationFast);
     this->RegistrationParametersDeformableMenuButton->GetWidget()->GetMenu()->AddRadioButton("Fast", this, buffer);
-    sprintf(buffer, "RegistrationDeformableCallback %d",vtkEMSegmentMRMLManager::AtlasToTargetDeformableRegistrationBSplineMMISlow);
+    sprintf(buffer, "RegistrationDeformableCallback %d",vtkEMSegmentMRMLManager::RegistrationSlow);
     this->RegistrationParametersDeformableMenuButton->GetWidget()->GetMenu()->AddRadioButton("Accurate", this, buffer);
 
     this->RegistrationParametersDeformableMenuButton->SetBalloonHelpString("Select deformable registration.");
@@ -276,95 +284,74 @@ void vtkEMSegmentRegistrationParametersStep::ShowUserInterface()
       SetEnabled(mrmlManager->HasGlobalParametersNode() ? enabled : 0);
     }
 
+
+    // Create the package menu button
+
+    if (!this->RegistrationParametersPackageMenuButton)
+      {
+      this->RegistrationParametersPackageMenuButton =
+        vtkKWMenuButtonWithLabel::New();
+      }
+    if (!this->RegistrationParametersPackageMenuButton->IsCreated())
+      {
+      this->RegistrationParametersPackageMenuButton->SetParent(
+        this->RegistrationParametersFrame->GetFrame());
+      this->RegistrationParametersPackageMenuButton->Create();
+      this->RegistrationParametersPackageMenuButton->GetWidget()->
+        SetWidth(EMSEG_MENU_BUTTON_WIDTH);
+      this->RegistrationParametersPackageMenuButton->GetLabel()->
+        SetWidth(EMSEG_WIDGETS_LABEL_WIDTH);
+      this->RegistrationParametersPackageMenuButton->
+        SetLabelText("Package:");
+      this->RegistrationParametersPackageMenuButton->SetBalloonHelpString(
+        "Select interpolation package.");
+
+      sprintf(buffer, "RegistrationPackageCallback %d",
+              vtkEMSegmentMRMLManager::CMTK);
+      this->RegistrationParametersPackageMenuButton->
+        GetWidget()->GetMenu()->AddRadioButton("CMTK", this, buffer);
+      sprintf(buffer, "RegistrationPackageCallback %d",
+              vtkEMSegmentMRMLManager::BRAINS);
+      this->RegistrationParametersPackageMenuButton->
+        GetWidget()->GetMenu()->AddRadioButton("BRAINS", this, buffer);
+      }
+
+
+    this->Script(
+      "pack %s -side top -anchor nw -padx 2 -pady 2",
+      this->RegistrationParametersPackageMenuButton->GetWidgetName());
+
+      {
+      vtksys_stl::string value;
+      int v = mrmlManager->GetRegistrationPackageType();
+      if (v == vtkEMSegmentMRMLManager::CMTK)
+        {
+        value = "CMTK";
+        }
+      else if (v == vtkEMSegmentMRMLManager::BRAINS)
+        {
+        value = "BRAINS";
+        }
+      this->RegistrationParametersPackageMenuButton->
+        GetWidget()->SetValue(value.c_str());
+      this->RegistrationParametersPackageMenuButton->
+        SetEnabled(mrmlManager->HasGlobalParametersNode() ? enabled : 0);
+      }
+
+
+
     {
-    vtksys_stl::string value;
-    int v = mrmlManager->GetRegistrationAffineType();
-    if (v == vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationOff)
-      {
-      value = "None";
-      }
-    else if 
-      (v == vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationCenters)
-      {
-      value = "Align Image Centers";
-      }
-    else if 
-      (v == vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationRigidMMIFast)
-      {
-      value = "Fast";
-      }
-    else if 
-      (v == vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationRigidMMI)
-      {
-      value = "Rigid, MI";
-      }
-    else if 
-      (v == vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationRigidMMISlow)
-      {
-      value = "Accurate";
-      }
-    else if 
-      (v == vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationRigidNCCFast)
-      {
-      value = "Rigid, NCC Fast";
-      }
-    else if 
-      (v == vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationRigidNCC)
-      {
-      value = "Rigid, NCC";
-      }
-    else if 
-      (v == vtkEMSegmentMRMLManager::AtlasToTargetAffineRegistrationRigidNCCSlow)
-      {
-      value = "Rigid, NCC Slow";
-      }
-    this->RegistrationParametersAffineMenuButton->
-      GetWidget()->SetValue(value.c_str());
-    this->RegistrationParametersAffineMenuButton->
-      SetEnabled(mrmlManager->HasGlobalParametersNode() ? enabled : 0);
+      int v = mrmlManager->GetRegistrationAffineType();
+      vtksys_stl::string value = RegistrationTypeValueToString(v);
+      this->RegistrationParametersAffineMenuButton->GetWidget()->SetValue(value.c_str());
+      this->RegistrationParametersAffineMenuButton->SetEnabled(mrmlManager->HasGlobalParametersNode() ? enabled : 0);
     }
 
     {
-    vtksys_stl::string value;
-    int v = mrmlManager->GetRegistrationDeformableType();
-    if (v == vtkEMSegmentMRMLManager::AtlasToTargetDeformableRegistrationOff)
-      {
-      value = "None";
-      }
-    else if (v == vtkEMSegmentMRMLManager::
-             AtlasToTargetDeformableRegistrationBSplineMMIFast)
-      {
-      value = "Fast";
-      }
-    else if (v == vtkEMSegmentMRMLManager::
-             AtlasToTargetDeformableRegistrationBSplineMMI)
-      {
-      value = "B-Spline, MI";
-      }
-    else if (v == vtkEMSegmentMRMLManager::
-             AtlasToTargetDeformableRegistrationBSplineMMISlow)
-      {
-      value = "Accurate";
-      }
-    else if (v == vtkEMSegmentMRMLManager::
-             AtlasToTargetDeformableRegistrationBSplineNCCFast)
-      {
-      value = "B-Spline, NCC Fast";
-      }
-    else if (v == vtkEMSegmentMRMLManager::
-             AtlasToTargetDeformableRegistrationBSplineNCC)
-      {
-      value = "B-Spline, NCC";
-      }
-    else if (v == vtkEMSegmentMRMLManager::
-             AtlasToTargetDeformableRegistrationBSplineNCCSlow)
-      {
-      value = "B-Spline, NCC Slow";
-      }
-    this->RegistrationParametersDeformableMenuButton->
-      GetWidget()->SetValue(value.c_str());
-    this->RegistrationParametersDeformableMenuButton->
-      SetEnabled(mrmlManager->HasGlobalParametersNode() ? enabled : 0);
+      int v = mrmlManager->GetRegistrationDeformableType();
+      vtksys_stl::string value = RegistrationTypeValueToString(v);
+      this->RegistrationParametersDeformableMenuButton->GetWidget()->SetValue(value.c_str());
+      this->RegistrationParametersDeformableMenuButton->SetEnabled(mrmlManager->HasGlobalParametersNode() ? enabled : 0);
     }
 }
 
@@ -423,6 +410,19 @@ void vtkEMSegmentRegistrationParametersStep::RegistrationInterpolationCallback(
 }
 
 //----------------------------------------------------------------------------
+void vtkEMSegmentRegistrationParametersStep::RegistrationPackageCallback(
+  int type)
+{
+  // The package type has changed because of user interaction
+
+  vtkEMSegmentMRMLManager *mrmlManager = this->GetGUI()->GetMRMLManager();
+  if (mrmlManager)
+    {
+    mrmlManager->SetRegistrationPackageType(type);
+    }
+}
+
+//----------------------------------------------------------------------------
 void vtkEMSegmentRegistrationParametersStep::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os,indent);
@@ -432,7 +432,7 @@ void vtkEMSegmentRegistrationParametersStep::PrintSelf(ostream& os, vtkIndent in
 void vtkEMSegmentRegistrationParametersStep::AssignAtlasScansToInputChannels(int enabled) 
 {
   vtkEMSegmentMRMLManager *mrmlManager = this->GetGUI()->GetMRMLManager();
-  vtkMRMLEMSTargetNode *inputNodes = mrmlManager->GetTargetInputNode();
+  vtkMRMLEMSVolumeCollectionNode *inputNodes = mrmlManager->GetTargetInputNode();
   vtkMRMLEMSGlobalParametersNode* globalNode = mrmlManager->GetGlobalParametersNode();
 
   if (!inputNodes || !globalNode) 
@@ -506,4 +506,18 @@ void vtkEMSegmentRegistrationParametersStep::RegistrationAtlasImageCallback(vtkI
     } 
 }
 
+//----------------------------------------------------------------------------
+vtkstd::string vtkEMSegmentRegistrationParametersStep::RegistrationTypeValueToString(int v)
+{
+    vtkstd::string value = "None";
+    if (v == vtkEMSegmentMRMLManager::RegistrationFast)
+      {
+      value = "Fast";
+      }
+    else if (v == vtkEMSegmentMRMLManager::RegistrationSlow)
+      {
+      value = "Accurate";
+      }
+    return value;
+} 
 

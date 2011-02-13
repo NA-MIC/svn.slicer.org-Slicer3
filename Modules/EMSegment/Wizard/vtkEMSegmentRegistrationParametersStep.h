@@ -6,7 +6,6 @@
 class vtkKWFrameWithLabel;
 class vtkKWMenuButtonWithLabel;
 class vtkKWFrame;
-#include <vtkstd/vector>
 
 class VTK_EMSEGMENT_EXPORT vtkEMSegmentRegistrationParametersStep : public vtkEMSegmentStep
 {
@@ -23,6 +22,7 @@ public:
   // Callbacks.
   virtual void RegistrationAtlasImageCallback(vtkIdType volumeId);
   virtual void RegistrationInterpolationCallback(int type);
+  virtual void RegistrationPackageCallback(int type);
   virtual void RegistrationDeformableCallback(int type);
   virtual void RegistrationAffineCallback(int type);
   virtual void RegistrationAtlasImageCallback(vtkIdType input_id,  vtkIdType volume_id);
@@ -42,10 +42,14 @@ protected:
   vtkKWMenuButtonWithLabel *RegistrationParametersAffineMenuButton;
   vtkKWMenuButtonWithLabel *RegistrationParametersDeformableMenuButton;
   vtkKWMenuButtonWithLabel *RegistrationParametersInterpolationMenuButton;
+  vtkKWMenuButtonWithLabel *RegistrationParametersPackageMenuButton;
 
 private:
-  vtkEMSegmentRegistrationParametersStep(const vtkEMSegmentRegistrationParametersStep&);
-  void operator=(const vtkEMSegmentRegistrationParametersStep&);
+   vtkEMSegmentRegistrationParametersStep(const vtkEMSegmentRegistrationParametersStep&);
+//BTX
+   vtkstd::string RegistrationTypeValueToString(int v);
+//ETX
+   void operator=(const vtkEMSegmentRegistrationParametersStep&);
 };
 
 #endif

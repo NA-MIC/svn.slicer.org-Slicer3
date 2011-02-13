@@ -12,18 +12,14 @@
 
 #include "vtkMRMLScene.h"
 
-#include "vtkMRMLEMSNode.h"
-#include "vtkMRMLEMSSegmenterNode.h"
 #include "vtkMRMLEMSTemplateNode.h"
 #include "vtkMRMLEMSTreeNode.h"
 #include "vtkMRMLEMSTreeParametersLeafNode.h"
 #include "vtkMRMLEMSTreeParametersParentNode.h"
 #include "vtkMRMLEMSTreeParametersNode.h"
 #include "vtkMRMLEMSWorkingDataNode.h"
-#include "vtkMRMLEMSIntensityNormalizationParametersNode.h"
 #include "vtkImageEMLocalSegmenter.h"
 #include "vtkImageEMLocalSuperClass.h"
-#include "vtkImageMeanIntensityNormalization.h"
 #include "vtkMath.h"
 #include "vtkImageReslice.h"
 #include "vtkRigidRegistrator.h"
@@ -32,6 +28,9 @@
 #include "vtkIdentityTransform.h"
 #include "vtkSlicerApplication.h"
 #include "vtkKWTkUtilities.h"
+
+#include "vtkMRMLEMSAtlasNode.h"
+#include "vtkMRMLEMSGlobalParametersNode.h"
 
 #include "vtkSlicerApplicationLogic.h"
 #include "vtkDataIOManagerLogic.h"
@@ -170,8 +169,8 @@ int vtkEMSegmentLogic::SourceTclFile(vtkSlicerApplication*app,const char *tclFil
 //----------------------------------------------------------------------------
 
 int vtkEMSegmentLogic::SourceTaskFiles(vtkSlicerApplication* app) { 
-  vtksys_stl::string generalFile = this->DefineTclTaskFullPathName(app, vtkMRMLEMSNode::GetDefaultTclTaskFilename());
-  vtksys_stl::string specificFile = this->DefineTclTaskFileFromMRML(app);
+  vtkstd::string generalFile = this->DefineTclTaskFullPathName(app, vtkMRMLEMSGlobalParametersNode::GetDefaultTaskTclFileName());
+  vtkstd::string specificFile = this->DefineTclTaskFileFromMRML(app);
   cout << "Sourcing general Task file : " << generalFile.c_str() << endl;
   // Have to first source the default file to set up the basic structure"
   if (this->SourceTclFile(app,generalFile.c_str()))
@@ -195,7 +194,7 @@ int vtkEMSegmentLogic::SourcePreprocessingTclFiles(vtkSlicerApplication* app)
       return 1;
     }
    // Source all files here as we otherwise sometimes do not find the function as Tcl did not finish sourcing but our cxx file is already trying to call the function 
-   vtksys_stl::string tclFile =  this->GetModuleShareDirectory();
+   vtkstd::string tclFile =  this->GetModuleShareDirectory();
 #ifdef _WIN32
    tclFile.append("\\Tcl\\EMSegmentAutoSample.tcl");
 #else
@@ -312,6 +311,8 @@ IsVolumeGeometryEqual(vtkMRMLVolumeNode* lhs,
   return equalExent && equalMatrix;
 }
 
+// loops through the faces of the image bounding box and counts all the different image values and stores them in a map
+// T represents the image data type
 template <class T>
 T
 vtkEMSegmentLogic::
@@ -474,40 +475,56 @@ GuessRegistrationBackgroundLevel(vtkImageData* imageData)
         }
       }
     }
-  
+
+  // all the information is stored in map m :  std::map<T, unsigned int>
+
   if (m.empty())
     {
+    // no image data provided?
     return 0;
     }
+  else if (m.size() == 1)
+    {
+      // Homogeneous background
+      return m.begin()->first;
+   }
   else
     {
+    // search for the largest element
     typename MapType::iterator itor = 
       std::max_element(m.begin(), m.end(),
                        MapCompare<T>::map_value_comparer);
 
+    // the iterator is pointing to the element with the largest value in the range [m.begin(), m.end()]
     T backgroundLevel = itor->first;
+
+    // how many counts?
     double percentageOfVoxels = 
       100.0 * static_cast<double>(itor->second)/totalVoxelsCounted;
+
+    std::cout << "   Background level guess : "<< std::endl
+              << "   first place: "
+              << static_cast<int>(backgroundLevel) << " (" << percentageOfVoxels << "%) "
+              << std::endl;
+
+
+    // erase largest element
     m.erase(itor);
 
+
+    // again, search for the largest element (second place)
     typename MapType::iterator itor2 = 
       std::max_element(m.begin(), m.end(),
                        MapCompare<T>::map_value_comparer);
 
-    std::cout << "   Background level guess : " 
-              << static_cast<int>(backgroundLevel) << " (" << percentageOfVoxels << "%) "
-              << std::endl;
+    T backgroundLevel_second_place = itor2->first;
 
-    /*
-    //ATTENTION: commented out because of a Windows runtime bug if accessing "static_cast<int>(itor2->first)"
-
-    int second_place = static_cast<int>(itor2->first);
     double percentageOfVoxels_secondplace =
       100.0 * static_cast<double>(itor2->second)/totalVoxelsCounted;
 
-    std::cout << "second place: " << second_place << " (" << percentageOfVoxels_secondplace << "%)"
+    std::cout << "   second place: "
+              << static_cast<int>(backgroundLevel_second_place) << " (" << percentageOfVoxels_secondplace << "%)"
               << std::endl;
-    */
 
     return backgroundLevel;
     }
@@ -824,9 +841,9 @@ int vtkEMSegmentLogic::StartSegmentationWithoutPreprocessing(vtkSlicerApplicatio
 
 
   // find output volume
-  if (!this->MRMLManager->GetSegmenterNode())
+  if (!this->MRMLManager->GetNode())
     {
-    ErrorMsg     = "Segmenter node is null---aborting segmentation.";
+    ErrorMsg     = "Template node is null---aborting segmentation.";
     vtkErrorMacro( << ErrorMsg );
     return EXIT_FAILURE;
     }
@@ -1172,7 +1189,7 @@ vtkEMSegmentLogic::
 CopyTargetDataToSegmenter(vtkImageEMLocalSegmenter* segmenter)
 {
   // !!! todo: TESTING HERE!!!
-  vtkMRMLEMSTargetNode* workingTarget = 
+  vtkMRMLEMSVolumeCollectionNode* workingTarget = 
     this->MRMLManager->GetWorkingDataNode()->GetAlignedTargetNode();
   unsigned int numTargetImages = workingTarget->GetNumberOfVolumes();
   std::cout << "Setting number of target images: " << numTargetImages 
@@ -1297,24 +1314,16 @@ CopyTreeDataToSegmenter(vtkImageEMLocalSuperClass* node, vtkIdType nodeID)
                     << " they sum to " << totalProbability);
     }
 
-  // update Markov matrices
+  // Set Markov matrices
   const unsigned int numDirections = 6;
-  bool nodeHasMatrix = 
-    this->MRMLManager->GetTreeClassInteractionNode(nodeID) != NULL;
-  if (!nodeHasMatrix)
-    {
-    vtkWarningMacro("CIM not available, using identity.");
-    }
   for (unsigned int d = 0; d < numDirections; ++d)
     {
     for (unsigned int r = 0; r < numChildren; ++r)
       {
       for (unsigned int c = 0; c < numChildren; ++c)
         {
-        double val = nodeHasMatrix 
-          ? this->MRMLManager->GetTreeNodeClassInteraction(nodeID, d, r, c)
-          : (r == c ? 1.0 : 0.0);
-        node->SetMarkovMatrix(val, d, c, r);
+          double val = (r == c ? 1.0 : 0.0);
+          node->SetMarkovMatrix(val, d, c, r);
         }
       }
     }
@@ -1561,17 +1570,13 @@ ConvertGUIEnumToAlgorithmEnumInterpolationType(int guiEnumValue)
 }
 
 //----------------------------------------------------------------------------
-vtksys_stl::string  vtkEMSegmentLogic::GetTclTaskDirectory(vtkSlicerApplication* app)
+vtkstd::string  vtkEMSegmentLogic::GetTclTaskDirectory(vtkSlicerApplication* app)
 {
-  // Later do automatically
-  vtksys_stl::string orig_task_dir = this->GetModuleShareDirectory() + vtksys_stl::string("/Tasks");
-
-
   //workaround for the mrml library, we need to have write access to this folder
   const char* tmp_dir = app->GetTemporaryDirectory();
   if (tmp_dir)
     {
-      std::string copied_task_dir(std::string(tmp_dir) + std::string("/EMSegmentTaskCopy"));
+      vtkstd::string copied_task_dir(std::string(tmp_dir) + std::string("/EMSegmentTaskCopy"));
 
       /**
         * Copy content directory to another directory with all files and
@@ -1579,13 +1584,17 @@ vtksys_stl::string  vtkEMSegmentLogic::GetTclTaskDirectory(vtkSlicerApplication*
         * always copied.  If it is false, only files that have changed or
         * are new are copied.
         */
-      // copy not always, only new files
-      if (!vtksys::SystemTools::CopyADirectory(orig_task_dir.c_str(), copied_task_dir.c_str(), false, true) )
+       // copy not always, only new files
+       // Later do automatically
+      vtkstd::string orig_task_dir = this->GetModuleShareDirectory() + vtkstd::string("/Tasks");
+      
+      if ( !vtksys::SystemTools::CopyADirectory(orig_task_dir.c_str(), copied_task_dir.c_str(), false, true) )
       {
-    vtkErrorMacro("GetTclTaskDirectory:: Couldn't copy task directory " << orig_task_dir.c_str() << " to " << copied_task_dir.c_str());
+          cout << "GetTclTaskDirectory:: Couldn't copy task directory " << orig_task_dir.c_str() << " to " << copied_task_dir.c_str() << endl;
+          vtkErrorMacro("GetTclTaskDirectory:: Couldn't copy task directory " << orig_task_dir.c_str() << " to " << copied_task_dir.c_str());
           return vtksys::SystemTools::ConvertToOutputPath("");
       }
-      return vtksys::SystemTools::ConvertToOutputPath(copied_task_dir.c_str());
+      return copied_task_dir;
     }
   else
     {
@@ -1599,10 +1608,10 @@ vtksys_stl::string  vtkEMSegmentLogic::GetTclTaskDirectory(vtkSlicerApplication*
 }
 
 //----------------------------------------------------------------------------
-vtksys_stl::string  vtkEMSegmentLogic::GetTclGeneralDirectory()
+vtkstd::string  vtkEMSegmentLogic::GetTclGeneralDirectory()
 {
   // Later do automatically
-  vtksys_stl::string file_path = this->GetModuleShareDirectory() +  vtksys_stl::string("/Tcl");
+  vtkstd::string file_path = this->GetModuleShareDirectory() +  vtkstd::string("/Tcl");
   return vtksys::SystemTools::ConvertToOutputPath(file_path.c_str());
 }
 
@@ -1619,7 +1628,7 @@ std::string vtkEMSegmentLogic::DefineTclTaskFileFromMRML(vtkSlicerApplication *a
 
   cout << "vtkEMSegmentLogic::DefineTclTaskFileFromMRML: " << tclFile.c_str() << " does not exist - using default file" << endl;
 
-  tclFile = this->DefineTclTaskFullPathName(app, vtkMRMLEMSNode::GetDefaultTclTaskFilename()); 
+  tclFile = this->DefineTclTaskFullPathName(app, vtkMRMLEMSGlobalParametersNode::GetDefaultTaskTclFileName()); 
   return tclFile;  
 }
 
@@ -1695,7 +1704,7 @@ void vtkEMSegmentLogic::UpdateIntensityDistributionAuto(vtkKWApplication* app, v
   }
 
   // get working node 
-  vtkMRMLEMSTargetNode* workingTarget = NULL;
+  vtkMRMLEMSVolumeCollectionNode* workingTarget = NULL;
   if (this->MRMLManager->GetWorkingDataNode()->GetAlignedTargetNode() &&
       this->MRMLManager->GetWorkingDataNode()->GetAlignedTargetNodeIsValid())
     {
@@ -1711,7 +1720,7 @@ void vtkEMSegmentLogic::UpdateIntensityDistributionAuto(vtkKWApplication* app, v
   
    // Sample
   {
-    vtksys_stl::stringstream CMD ;
+    vtkstd::stringstream CMD ;
     CMD <<  "::EMSegmenterAutoSampleTcl::EMSegmentGaussCurveCalculationFromID " << vtkKWTkUtilities::GetTclNameFromPointer(app->GetMainInterp(), this) << " " << vtkKWTkUtilities::GetTclNameFromPointer(app->GetMainInterp(), this->MRMLManager) << " 0.95 1 { " ;
     for (int i = 0 ; i < numTargetImages; i++) {
       CMD << workingTarget->GetNthVolumeNodeID(i) << " " ;
@@ -1769,7 +1778,7 @@ void  vtkEMSegmentLogic::AutoCorrectSpatialPriorWeight(vtkIdType nodeID)
 //----------------------------------------------------------------------------
 // cannot be moved to vtkEMSEgmentGUI bc of command line interface !
 // This function is used for the UpdateButton in vtkEMSegmentParametersSetStep
-vtksys_stl::string vtkEMSegmentLogic::GetTemporaryTaskDirectory(vtkSlicerApplication* app)
+vtkstd::string vtkEMSegmentLogic::GetTemporaryTaskDirectory(vtkSlicerApplication* app)
 {
   // FIXME, what happens if user has no write permission to this directory
   std::string taskDir("");
@@ -1796,23 +1805,27 @@ vtksys_stl::string vtkEMSegmentLogic::GetTemporaryTaskDirectory(vtkSlicerApplica
 // cannot be moved to vtkEMSEgmentGUI bc of command line interface !
 std::string vtkEMSegmentLogic::DefineTclTaskFullPathName(vtkSlicerApplication* app, const char* TclFileName)
 {
-  vtksys_stl::string tmp_full_file_path = this->GetTclTaskDirectory(app) + vtksys_stl::string("/") + vtksys_stl::string(TclFileName);
-  vtksys_stl::string full_file_path = vtksys::SystemTools::ConvertToOutputPath(tmp_full_file_path.c_str());
-  if (vtksys::SystemTools::FileExists(full_file_path.c_str()))
+
+//  std::string task_dir = this->GetTclTaskDirectory(app);
+//  cout << "TEST 1" << task_dir << " " << vtksys::SystemTools::FileExists(task_dir.c_str()) << endl;
+
+  vtkstd::string tmp_full_file_path = this->GetTclTaskDirectory(app) + vtkstd::string("/") + vtkstd::string(TclFileName);
+//  vtkstd::string full_file_path = vtksys::SystemTools::ConvertToOutputPath(tmp_full_file_path.c_str());
+  if (vtksys::SystemTools::FileExists(tmp_full_file_path.c_str()))
     {
-      return full_file_path;
+      return tmp_full_file_path;
     }
 
-  tmp_full_file_path = this->GetTemporaryTaskDirectory(app) + vtksys_stl::string("/") + vtksys_stl::string(TclFileName);
-  full_file_path = vtksys::SystemTools::ConvertToOutputPath(tmp_full_file_path.c_str());
-  if (vtksys::SystemTools::FileExists(full_file_path.c_str()))
+  tmp_full_file_path = this->GetTemporaryTaskDirectory(app) + vtkstd::string("/") + vtkstd::string(TclFileName);
+//  full_file_path = vtksys::SystemTools::ConvertToOutputPath(tmp_full_file_path.c_str());
+  if (vtksys::SystemTools::FileExists(tmp_full_file_path.c_str()))
     {
-       return full_file_path;
+       return tmp_full_file_path;
     }
 
   vtkErrorMacro("DefineTclTaskFullPathName : could not find tcl file with name  " << TclFileName ); 
-  full_file_path = vtksys_stl::string("");
-  return  full_file_path;
+  tmp_full_file_path = vtkstd::string("");
+  return  tmp_full_file_path;
 }
 
 //-----------------------------------------------------------------------------
@@ -2008,18 +2021,20 @@ CreatePackageFilenames(vtkMRMLScene* scene,
   // set up mrml manager for this new scene
   vtkEMSegmentMRMLManager* newSceneManager = vtkEMSegmentMRMLManager::New();
   newSceneManager->SetMRMLScene(scene);
-  vtkMRMLEMSNode* newEMSNode = dynamic_cast<vtkMRMLEMSNode*>
-    (scene->GetNthNodeByClass(0, "vtkMRMLEMSNode"));
-  if (newEMSNode == NULL)
+  vtkMRMLEMSTemplateNode* newEMSTemplateNode = dynamic_cast<vtkMRMLEMSTemplateNode*>(scene->GetNthNodeByClass(0, "vtkMRMLEMSTemplateNode"));
+  if (newEMSTemplateNode == NULL)
     {
-    vtkWarningMacro("CreatePackageFilenames: no EMS node!");
-    newSceneManager->Delete();
-    return;
+      vtkWarningMacro("CreatePackageFilenames: no EMSSegmenter node!");
+      newSceneManager->Delete();
+      return;
     }
-  else
+  if (newSceneManager->SetNodeWithCheck(newEMSTemplateNode))
     {
-    newSceneManager->SetNode(newEMSNode);
+       vtkWarningMacro("CreatePackageFilenames: not a valid template node!");
+       newSceneManager->Delete();
+       return;
     }
+   
   vtkMRMLEMSWorkingDataNode* workingDataNode = 
     newSceneManager->GetWorkingDataNode();
 
@@ -2033,22 +2048,28 @@ CreatePackageFilenames(vtkMRMLScene* scene,
     {
     if (workingDataNode->GetInputTargetNode()->GetNumberOfVolumes() > 0)
       {
-      vtkMRMLStorageNode* firstTargetStorageNode =
-        workingDataNode->GetInputTargetNode()->GetNthVolumeNode(0)->
-        GetStorageNode();
-      vtkMRMLVolumeArchetypeStorageNode* firstTargetVolumeStorageNode =
-        dynamic_cast<vtkMRMLVolumeArchetypeStorageNode*>
-        (firstTargetStorageNode);
-      if (firstTargetVolumeStorageNode != NULL)
-        {
-        centerImages = firstTargetVolumeStorageNode->GetCenterImage();
-        }
+    if (!workingDataNode->GetInputTargetNode()->GetNthVolumeNode(0)) 
+      {
+              vtkErrorMacro("CreatePackageFilenames: the first InputTagetNode is not defined!");
+              vtkIndent ind;
+          workingDataNode->GetInputTargetNode()->PrintSelf(cerr,ind);
+              cout << endl;
+      } 
+        else 
+          {
+            vtkMRMLStorageNode* firstTargetStorageNode = workingDataNode->GetInputTargetNode()->GetNthVolumeNode(0)->GetStorageNode();
+            vtkMRMLVolumeArchetypeStorageNode* firstTargetVolumeStorageNode = dynamic_cast<vtkMRMLVolumeArchetypeStorageNode*> (firstTargetStorageNode);
+            if (firstTargetVolumeStorageNode != NULL)
+            { 
+             centerImages = firstTargetVolumeStorageNode->GetCenterImage();
+            }
       }
+       }
     }
 
    // get the full path to the scene
   std::vector<std::string> scenePathComponents;
-  vtksys_stl::string rootDir = newSceneManager->GetMRMLScene()->GetRootDirectory();
+  vtkstd::string rootDir = newSceneManager->GetMRMLScene()->GetRootDirectory();
   if (rootDir.find_last_of("/") == rootDir.length() - 1)
     {
       vtkDebugMacro("em seg: found trailing slash in : " << rootDir);
@@ -2201,12 +2222,12 @@ CreatePackageFilenames(vtkMRMLScene* scene,
     GetNumberOfVolumes();
 
   // input atlas volumes
-  if (workingDataNode->GetInputAtlasNode())
+  if (newSceneManager->GetAtlasInputNode())
     {
     for (int i = 0; i < numAtlasVolumes; ++i)
       {
       vtkMRMLVolumeNode* volumeNode =
-        workingDataNode->GetInputAtlasNode()->GetNthVolumeNode(i);
+         newSceneManager->GetAtlasInputNode()->GetNthVolumeNode(i);
       if (volumeNode != NULL)
         {
         vtkMRMLStorageNode* storageNode = volumeNode->GetStorageNode();

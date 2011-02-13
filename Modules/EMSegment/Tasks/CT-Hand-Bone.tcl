@@ -28,7 +28,6 @@ namespace eval EMSegmenterPreProcessingTcl {
     variable CheckButtonSize 3
     variable VolumeMenuButtonSize 0
     variable TextEntrySize 0
-    variable UseBRAINS 1
 
     # Check Button
     variable atlasAlignedFlagID 0
@@ -100,7 +99,7 @@ namespace eval EMSegmenterPreProcessingTcl {
 
         set inputTargetNode [$workingDN GetInputTargetNode]
         set alignedTargetNode [$workingDN GetAlignedTargetNode]
-        set inputAtlasNode [$workingDN GetInputAtlasNode]
+        set inputAtlasNode [$mrmlManager GetInputAtlasNode]
         set alignedAtlasNode [$workingDN GetAlignedAtlasNode]
 
         if { $inputTargetNode != "" } {

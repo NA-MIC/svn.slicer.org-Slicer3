@@ -8,8 +8,6 @@
 #include "vtkMRMLScalarVolumeDisplayNode.h"
 #include "vtkEMSegmentLogic.h"
 #include "vtkEMSegmentMRMLManager.h"
-#include "vtkMRMLEMSSegmenterNode.h"
-#include "vtkMRMLEMSNode.h"
 
 #include "EMSegmentCommandLineCLP.h"
 
@@ -22,6 +20,11 @@
 #include "vtkITKArchetypeImageSeriesScalarReader.h"
 #include "vtkImageData.h"
 #include "vtkDataIOManagerLogic.h"
+#include "vtkMRMLEMSVolumeCollectionNode.h"
+#include "vtkMRMLEMSAtlasNode.h"
+#include "vtkMRMLEMSWorkingDataNode.h"
+#include "vtkMRMLEMSGlobalParametersNode.h"
+#include "vtkMRMLEMSTemplateNode.h"
 
 // -============================
 // This is necessary to load EMSegment package in TCL interp.
@@ -256,22 +259,22 @@ bool ImageDiff(vtkImageData* resultData, std::string standardFilename)
       {
       //
       // display spacing and origin info for resultData
-      std::cerr << "Image spacing and/or origin does not match standard!" 
+      std::cout << "Image spacing and/or origin does not match standard!" 
                 << std::endl;
-      std::cerr << "result origin: " 
+      std::cout << "result origin: " 
                 << resultData->GetOrigin()[0] << " "
                 << resultData->GetOrigin()[1] << " "
                 << resultData->GetOrigin()[2] << std::endl;
-      std::cerr << "result spacing: " 
+      std::cout << "result spacing: " 
                 << resultData->GetSpacing()[0] << " "
                 << resultData->GetSpacing()[1] << " "
                 << resultData->GetSpacing()[2] << std::endl;
 
-      std::cerr << "Standard origin: " 
+      std::cout << "Standard origin: " 
                 << standardReader->GetOutput()->GetOrigin()[0] << " "
                 << standardReader->GetOutput()->GetOrigin()[1] << " "
                 << standardReader->GetOutput()->GetOrigin()[2] << std::endl;
-      std::cerr << "Standard spacing: " 
+      std::cout << "Standard spacing: " 
                 << standardReader->GetOutput()->GetSpacing()[0] << " "
                 << standardReader->GetOutput()->GetSpacing()[1] << " "
                 << standardReader->GetOutput()->GetSpacing()[2] << std::endl;
@@ -280,7 +283,7 @@ bool ImageDiff(vtkImageData* resultData, std::string standardFilename)
     }
   if (!imagesDiffer)
     {
-    std::cerr << "Result image origin and spacing match." << std::endl;
+    std::cout << "Result image origin and spacing match." << std::endl;
     }
 
   //
@@ -302,7 +305,7 @@ bool ImageDiff(vtkImageData* resultData, std::string standardFilename)
     
   if (imagesDiffer)
     {
-    std::cerr << "((temporarily not) ignoring zero) Num / Min / Max / Mean difference = " 
+    std::cout << "((temporarily not) ignoring zero) Num / Min / Max / Mean difference = " 
               << differenceAccumulator->GetVoxelCount()  << " / "
               << differenceAccumulator->GetMin()[0]      << " / "
               << differenceAccumulator->GetMax()[0]      << " / "
@@ -310,7 +313,7 @@ bool ImageDiff(vtkImageData* resultData, std::string standardFilename)
     }
   else
     {
-    std::cerr << "Result image voxels match." << std::endl;
+    std::cout << "Result image voxels match." << std::endl;
     }
 
   standardReader->Delete();
@@ -405,12 +408,12 @@ int main(int argc, char** argv)
 
   bool useDefaultParametersNode = parametersMRMLNodeName.empty();
   bool useDefaultTarget         = targetVolumeFileNames.empty();
-  bool useDefaultAtlas          = true;
+  bool useDefaultAtlas          = atlasVolumeFileNames.empty();
   bool useDefaultOutput         = resultVolumeFileName.empty();
   bool writeIntermediateResults = !intermediateResultsDirectory.empty();
   bool segmentationSucceeded    = true;
 
-  if (verbose) std::cerr << "Starting EMSegment Command Line." << std::endl;
+  if (verbose) std::cout << "Starting EMSegment Command Line." << std::endl;
 
   if (!generateEmptyMRMLSceneAndQuit.empty())
     {
@@ -582,36 +585,9 @@ int main(int argc, char** argv)
                                    currentStep++ / totalSteps,
                                    0.2f);
 
-/*
-    // Little hack to load in the data first with my own method - write the file in the temp dir and then load it in 
-    // make sure the tmp directory exists   
-    // To do so first source generic file
-    vtksys_stl::string generalFile =  emLogic->DefineTclTaskFullPathName(app, vtkMRMLEMSNode::GetDefaultTclTaskFilename());
-    
-    if (emLogic->SourceTclFile(app,generalFile.c_str()))
-    {
-
-      throw std::runtime_error("ERROR: could not source  tcl file . "); 
-    }  
-
-    // An error will apear here bc the emlogic is not fully set up yet bc we first have to read in the mrml file - just ignore it 
-    cout << "=============================================================" << endl;
-    cout << "Ignore the following msg: TCL: EMSegmenterPreProcessingTcl::InitVariables: WorkingData not defined" << endl;
-    std::string CMD = "::EMSegmenterPreProcessingTcl::InitVariables " + emLogicTcl + " " + emMRMLManagerTcl + " NULL";
-    app->Script(CMD.c_str());
-    cout << "=============================================================" << endl;
-
-    // Now load data down from web if needed and write file to temp directory with new path 
-    CMD = "::EMSegmenterPreProcessingTcl::ReplaceInSceneURINameWithFileName " + mrmlSceneFileName;
-    mrmlSceneFileName = app->Script(CMD.c_str());
-    if ( mrmlSceneFileName.empty()) 
-        {
-           throw std::runtime_error("ERROR: could not download data. "); 
-        }
-*/
     mrmlScene->SetURL(mrmlSceneFileName.c_str());
 
-    //
+  //
   // global try block makes sure data is cleaned up if anything goes
   // wrong
   try 
@@ -620,18 +596,29 @@ int main(int argc, char** argv)
     // read the mrml scene
     try 
       {
-      if (verbose) std::cerr << "Reading MRML scene...";
+      if (verbose) std::cout << "Reading MRML scene...";
       // 
       mrmlScene->Connect();
-      if (verbose) std::cerr << "DONE" << std::endl;
+      if (verbose) std::cout << "DONE" << std::endl;
       }
     catch (...)
       {
       throw std::runtime_error("ERROR: failed to import mrml scene.");
       }
 
+    if (verbose) {
+        std::cout << "=============== Print EMSegmentMRMLManager" << std::endl;
+        emMRMLManager->Print(std::cout);
+
+        std::cout << "=============== Print PrintVolumeInfo(mrmlScene)" << std::endl;
+        emMRMLManager->PrintVolumeInfo(mrmlScene);
+
+        //std::cout << "=============== Print Tree" << std::endl;
+        //emMRMLManager->PrintTree();
+    }
+
     int numParameterSets = emMRMLManager->GetNumberOfParameterSets();
-    if (verbose) std::cerr << "Imported: " << mrmlScene->GetNumberOfNodes()
+    if (verbose) std::cout << "Imported: " << mrmlScene->GetNumberOfNodes()
                            << (mrmlScene->GetNumberOfNodes() == 1 
                                ? " node" : " nodes")
                            << ", including " << numParameterSets 
@@ -643,8 +630,14 @@ int main(int argc, char** argv)
                                      currentStep / totalSteps,
                                      0.4f);
 
+
+    // =======================================================================
+    // Define EMS Template
+    // =======================================================================
+
     //
     // make sure there is at least one parameter set
+    //
     if (numParameterSets < 1)
       {
       throw std::
@@ -656,7 +649,7 @@ int main(int argc, char** argv)
     int parameterNodeIndex = 0;
     if (useDefaultParametersNode)
       {
-      if (verbose) std::cerr << "Using default parameter set named: " 
+      if (verbose) std::cout << "Using default parameter set named: " 
                              << emMRMLManager->GetNthParameterSetName(0) 
                              << std::endl;    
       }
@@ -664,13 +657,13 @@ int main(int argc, char** argv)
       {
       // search for the named parameter set
       bool foundParameters = false;
-      if (verbose) std::cerr << "Searching for an EM parameter node named: " 
+      if (verbose) std::cout << "Searching for an EM parameter node named: " 
                              << parametersMRMLNodeName << std::endl;
       
       for (int i = 0; i < numParameterSets; ++i)
         {
         std::string currentNodeName(emMRMLManager->GetNthParameterSetName(i)); 
-        if (verbose) std::cerr << "Node " << i 
+        if (verbose) std::cout << "Node " << i 
                                << " name: " << currentNodeName << std::endl;
         if (parametersMRMLNodeName == currentNodeName)
           {
@@ -712,63 +705,37 @@ int main(int argc, char** argv)
     // this is a hack; do better !!!
     emMRMLManager->ChangeTreeNodeDistributionsFromManualSamplingToManual();
 
-    //
-    // make sure the basic parameters are available
-    if (!emMRMLManager->GetSegmenterNode())
-      {
-      throw std::runtime_error("ERROR: MRML: Missing segmenter node.");
-      }
-    if (!emMRMLManager->GetTemplateNode())
-      {
-      throw std::runtime_error("ERROR: MRML: Missing template node.");
-      }
-    if (!emMRMLManager->GetGlobalParametersNode())
-      {
-      throw std::runtime_error("ERROR: MRML: Missing global parameters node.");
-      }
-
     progressReporter.ReportProgress("Loading Data...", 
                                      currentStep / totalSteps,
                                      0.6f);
 
-    //
-    // set the target images
-    if (useDefaultTarget)
-      {
-      if (!emMRMLManager->GetTargetInputNode())
-        {
-        throw std::runtime_error("ERROR: no default target node available.");
-        }
-      if (verbose) 
-        std::cerr << "Using default target node named: " 
-                  << emMRMLManager->GetTargetInputNode()->GetName()
-                  << std::endl;
-      }
-    else
+    // =======================================================================
+    // Define Target Images 
+    // =======================================================================
+    if (!useDefaultTarget)
       {
       try 
         {
         if (verbose) 
-          std::cerr << "Adding a target node..."; 
+          std::cout << "Adding a target node..."; 
 
         // create target node
-        vtkMRMLEMSTargetNode* targetNode = vtkMRMLEMSTargetNode::New();
+        vtkMRMLEMSVolumeCollectionNode* targetNode = vtkMRMLEMSVolumeCollectionNode::New();
         mrmlScene->AddNodeNoNotify(targetNode);        
 
         // remove default target node
         mrmlScene->RemoveNode(emMRMLManager->GetTargetInputNode());
 
         // connect target node to segmenter
-        emMRMLManager->GetSegmenterNode()->GetWorkingDataNode()->
-          SetInputTargetNodeID(targetNode->GetID());
+        emMRMLManager->GetWorkingDataNode()->SetInputTargetNodeID(targetNode->GetID());
 
         if (verbose) 
-          std::cerr << targetNode->GetID() << " DONE" << std::endl;
+          std::cout << targetNode->GetID() << " DONE" << std::endl;
 
         targetNode->Delete();
 
         if (verbose)
-          std::cerr << "Segmenter's target node is now: " 
+          std::cout << "Segmenter's target node is now: " 
                     << emMRMLManager->GetTargetInputNode()->GetID()
                     << std::endl;
         }
@@ -777,38 +744,28 @@ int main(int argc, char** argv)
         throw std::runtime_error("ERROR: failed to add target node.");
         }
 
-      if (verbose)
-        std::cerr << "Adding " << targetVolumeFileNames.size() 
-                  << " target images..." << std::endl;
-      for (unsigned int imageIndex = 0; 
-           imageIndex < targetVolumeFileNames.size(); ++imageIndex)
+      if (verbose)std::cout << "Adding " << targetVolumeFileNames.size()  << " target images..." << std::endl;
+      for (unsigned int imageIndex = 0; imageIndex < targetVolumeFileNames.size(); ++imageIndex)
         {
-        if (verbose) std::cerr << "Loading target image " << imageIndex
+        if (verbose) std::cout << "Loading target image " << imageIndex
                                << "..." << std::endl;
         try
           {
           // load image into scene
-          vtkMRMLVolumeNode* volumeNode = 
-            AddScalarArchetypeVolume(mrmlScene, 
-                                     targetVolumeFileNames[imageIndex].c_str(),
-                                     false,
-                                     false,
-                                     NULL);
+          vtkMRMLVolumeNode* volumeNode = AddScalarArchetypeVolume(mrmlScene,  targetVolumeFileNames[imageIndex].c_str(), false, false, NULL);
           
           if (!volumeNode)
             {
             throw std::runtime_error("failed to load image.");
             }
        
-          // set volume name and ID in map
-          emMRMLManager->GetTargetInputNode()->AddVolume(volumeNode->GetID(), 
-                                                         volumeNode->GetID());
+           // set volume name and ID in map
+           emMRMLManager->GetTargetInputNode()->AddVolume(volumeNode->GetID(), volumeNode->GetID());
           }
         catch(...)
           {
           vtkstd::stringstream ss;
-          ss << "ERROR: failed to load target image "
-             << targetVolumeFileNames[imageIndex];
+          ss << "ERROR: failed to load target image " << targetVolumeFileNames[imageIndex];
           throw std::runtime_error(ss.str());
           }
         }
@@ -833,7 +790,7 @@ int main(int argc, char** argv)
     else
       {
       if (verbose)
-        std::cerr << "Number of input channels (" <<
+        std::cout << "Number of input channels (" <<
           emMRMLManager->GetTargetInputNode()->GetNumberOfVolumes()
                   << ") matches expected value from parameters (" <<
           emMRMLManager->GetGlobalParametersNode()->
@@ -844,86 +801,77 @@ int main(int argc, char** argv)
     progressReporter.ReportProgress("Loading Data...", 
                                      currentStep / totalSteps,
                                      0.8f);
-    //
-    // set the atlas images
-    if (useDefaultAtlas)
-      {
+    // =======================================================================
+    // Define Atlas Images 
+    // ======================================================================= 
+    // cout << "useDefaultAtlas " << useDefaultAtlas << " " << atlasVolumeFileNames.empty() << endl;
+    if (!useDefaultAtlas)
+    {
       if (!emMRMLManager->GetAtlasInputNode())
         {
-        throw std::runtime_error("ERROR: no default atlas node available.");
+           throw std::runtime_error("ERROR: parameters must already contain an atlas node if you wish to speficy atlas volumes.");
         }
-      if (verbose) 
-        std::cerr << "Using default atlas node named: " 
-                  << emMRMLManager->GetAtlasInputNode()->GetName()
-                  << std::endl;
-      }
-    else
+      vtkMRMLEMSAtlasNode* atlasNode = emMRMLManager->GetAtlasInputNode();
+      if (int(atlasNode->GetNumberOfVolumes()) != int(atlasVolumeFileNames.size()))
+    {
+          std::stringstream ss;
+          ss << "ERROR: number of volumes defined by  atlasVolumeFileNames ("<< int(atlasVolumeFileNames.size()) 
+             << ") does not match number of atlas volumes originally defined by template " << atlasNode->GetNumberOfVolumes() ;
+          throw std::runtime_error(ss.str());
+    }
+     
+      for (unsigned int imageIndex = 0; imageIndex < atlasVolumeFileNames.size(); ++imageIndex)
       {
-      if (!emMRMLManager->GetAtlasInputNode())
+        if (verbose) std::cout << "Loading atlas image " << imageIndex << "..." << std::endl;
+        try
         {
-        throw std::runtime_error("ERROR: parameters must already "
-                                 "contain an atlas node if you wish "
-                                 "to speficy atlas volumes.");
+          // load image into scene
+          vtkMRMLVolumeNode* volumeNode = AddScalarArchetypeVolume(mrmlScene,  atlasVolumeFileNames[imageIndex].c_str(), false, false, NULL);
+          
+          if (!volumeNode)
+            {
+          throw std::runtime_error("failed to load image.");
+            }
+       
+          // set volume name
+      atlasNode->SetNthNodeID(imageIndex,volumeNode->GetID());
         }
-      vtkMRMLEMSAtlasNode* oldAtlasNode = emMRMLManager->GetAtlasInputNode();
-      
-      try 
+       catch(...)
+          {
+          vtkstd::stringstream ss;
+          ss << "ERROR: failed to load atlas image " << targetVolumeFileNames[imageIndex];
+          throw std::runtime_error(ss.str());
+          }
+      }  
+      if (verbose)  
+      {
+        cout << "Done downloading atlases - here is the assignment between class and atlas volumes " << endl;
+        for (unsigned int imageIndex = 0; imageIndex < atlasVolumeFileNames.size(); ++imageIndex)
         {
-        if (verbose) 
-          std::cerr << "Adding an atlas node..."; 
-
-        // create atlas node
-        vtkMRMLEMSAtlasNode* atlasNode = vtkMRMLEMSAtlasNode::New();
-        atlasNode->SetNumberOfTrainingSamples
-          (oldAtlasNode->GetNumberOfTrainingSamples());
-        mrmlScene->AddNode(atlasNode);        
-
-        // connect atlas node to segmenter
-        emMRMLManager->GetSegmenterNode()->GetWorkingDataNode()->
-          SetInputAtlasNodeID(atlasNode->GetID());
-
-        if (verbose) 
-          std::cerr << atlasNode->GetID() << " DONE" << std::endl;
-
-        atlasNode->Delete();
-
-        if (verbose)
-          std::cerr << "Segmenter's atlas node is now: " 
-                    << emMRMLManager->GetAtlasInputNode()->GetID()
-                    << std::endl;
-        }
-      catch (...)
+          // This assumes that the keys are defined by the EMSTree node ids - which they were so far ! 
+      // if needed can be made more fancy 
+      const char* treeNodeID =  atlasNode->GetNthKey(imageIndex);
+          vtkMRMLNode* tNode = mrmlScene->GetNodeByID(treeNodeID);
+          if (tNode)
         {
-        throw std::runtime_error("ERROR: failed to add atlas node.");
+              cout << "Class: " << tNode->GetName()  << " File name :" << atlasVolumeFileNames[imageIndex].c_str() << endl;
         }
-      //
-      // make sure the number of atlas volumes matches the expected
-      // value in the parameters
-      if (oldAtlasNode->GetNumberOfVolumes() !=
-          emMRMLManager->GetAtlasInputNode()->GetNumberOfVolumes())
+          else 
         {
-        vtkstd::stringstream ss;
-        ss << "ERROR: Number of atlas volumes (" << 
-          emMRMLManager->GetAtlasInputNode()->GetNumberOfVolumes()
-           << ") does not match expected value from parameters (" << 
-          oldAtlasNode->GetNumberOfVolumes() << ")";
-        throw std::runtime_error(ss.str());
-        }
-      else
-        {
-        if (verbose)
-          std::cerr << "Number of atlas volumes (" <<
-            emMRMLManager->GetAtlasInputNode()->GetNumberOfVolumes()
-                    << ") matches expected value from parameters (" <<
-            oldAtlasNode->GetNumberOfVolumes() << ")" << std::endl;
-        }
-
-      // remove default atlas node
-      mrmlScene->RemoveNode(oldAtlasNode);
+              // then just make the method more fancy so that you first go through all the nodes in the tree - and then look where the index of the corresponding key defined by the spatialnode ID 
+              cout << "Could not retrieve class name for "<< atlasVolumeFileNames[imageIndex].c_str() << endl;
+            }
+    }
       }
+    }
 
+
+    // =======================================================================
+    // Define Generated Segmentation Volume 
+    // ======================================================================= 
     //
     // set the result labelmap image
+    //
     if (useDefaultOutput)
       {
       if (!emMRMLManager->GetOutputVolumeNode())
@@ -932,7 +880,7 @@ int main(int argc, char** argv)
           runtime_error("ERROR: no default output volume node available.");
         }
       if (verbose) 
-        std::cerr << "Using default output volume node named: " 
+        std::cout << "Using default output volume node named: " 
                   << 
           emMRMLManager->GetOutputVolumeNode()->GetName()
                   << std::endl;
@@ -942,7 +890,7 @@ int main(int argc, char** argv)
       try 
         {
         // create volume node
-        if (verbose) std::cerr << "Creating output volume node...";
+        if (verbose) std::cout << "Creating output volume node...";
 
         vtkstd::string absolutePath = resultVolumeFileName;
 
@@ -970,11 +918,10 @@ int main(int argc, char** argv)
           }
 
         // connect output volume node to segmenter
-        emMRMLManager->GetSegmenterNode()->
-          SetOutputVolumeNodeID(outputNode->GetID());
+        emMRMLManager->SetOutputVolumeMRMLID(outputNode->GetID());
 
         if (verbose) 
-          std::cerr << "DONE" << std::endl;
+          std::cout << "DONE" << std::endl;
         }
       catch (...)
         {
@@ -982,6 +929,11 @@ int main(int argc, char** argv)
         }
       }
 
+
+  
+    // =======================================================================
+    // Update Misc. Parameters 
+    // ======================================================================= 
     progressReporter.ReportProgress("Updating Parameters...", 
                                      currentStep++ / totalSteps,
                                      0.0f);
@@ -989,13 +941,13 @@ int main(int argc, char** argv)
     // update logic parameters from command line
     emMRMLManager->SetEnableMultithreading(!disableMultithreading);
     if (verbose) 
-      std::cerr << "Multithreading is " 
+      std::cout << "Multithreading is " 
                 << (disableMultithreading ? "disabled." : "enabled.")
                 << std::endl;
 
     emMRMLManager->SetUpdateIntermediateData(!dontUpdateIntermediateData);
     if (verbose) 
-      std::cerr << "Update intermediate data: " 
+      std::cout << "Update intermediate data: " 
                 << (dontUpdateIntermediateData ? "disabled." : "enabled.")
                 << std::endl;
 
@@ -1003,7 +955,7 @@ int main(int argc, char** argv)
     int segmentationBoundaryMax[3];
     emMRMLManager->GetSegmentationBoundaryMin(segmentationBoundaryMin);
     emMRMLManager->GetSegmentationBoundaryMax(segmentationBoundaryMax);
-    if (verbose) std::cerr 
+    if (verbose) std::cout 
       << "Default ROI is [" 
       << segmentationBoundaryMin[0] << ", "
       << segmentationBoundaryMin[1] << ", "
@@ -1021,7 +973,7 @@ int main(int argc, char** argv)
         CollapseFullPath(intermediateResultsDirectory.c_str());
       emMRMLManager->
         SetSaveWorkingDirectory(absolutePath.c_str());
-      std::cerr << "Intermediate results will be written to: "
+      std::cout << "Intermediate results will be written to: "
                 << absolutePath << std::endl;
       }
     else
@@ -1029,66 +981,40 @@ int main(int argc, char** argv)
       emMRMLManager->SetSaveIntermediateResults(false);
       }
 
-    //
-    // check parameters' node structure
-    if (!emMRMLManager->CheckMRMLNodeStructure())
+    // Disable registration 
+    if (disableRegistration) 
       {
-      throw std::
-        runtime_error("ERROR: EMSegment invalid parameter node structure");
+        // Set both affine and deformable to off - and so preprocessing will jump over 
+    emMRMLManager->GetGlobalParametersNode()->SetRegistrationAffineType(0);
+    emMRMLManager->GetGlobalParametersNode()->SetRegistrationDeformableType(0);
       }
 
+    if (verbose) {
+        std::cout << "=============== Print EMSegmentMRMLManager" << std::endl;
+        emMRMLManager->PrintInfo(std::cout);
+    }
+
+    //
+    // check parameters' node structure
+    if (!emMRMLManager->CheckMRMLNodeStructureForProcessing())
+      {
+        throw std::runtime_error("ERROR: EMSegment invalid parameter node structure");
+      }
+
+
+
+    // =======================================================================
+    //
+    //  Start processing 
+    // 
+    // =======================================================================
 
     progressReporter.ReportProgress("Running Segmentation...", 
                                      currentStep++ / totalSteps);
     
-    // 
-    // Setting up everything for new semgnetation mode with sourcing tcl file 
-    //
-
-      
-       // =======================================================================
-       //
-       //  NEW VERSION
-       // 
-       // =======================================================================
-
-       cout << "===== New Version =======" << endl;
- 
-       // -----------------------------------
-       // Check Data 
-
-       vtkMRMLEMSTargetNode* inputNode =  emMRMLManager->GetTargetInputNode(); 
-       if (inputNode == NULL)
-      {
-        cout << "Input target node is null, aborting!" << endl;
-          return EXIT_FAILURE; 
-      }
-
-       for (int i=0;  i < inputNode->GetNumberOfVolumes(); i++)
-     {
-       vtkMRMLVolumeNode* cNode = inputNode->GetNthVolumeNode(i);
-       if (!cNode)
-         {
-           cout << "Input Channel Error: Please assign an volume to each input channel" << endl;
-           return EXIT_FAILURE; 
-         }
-       if (!cNode->GetImageData()) 
-         {
-           cout << "Input Channel Error: Volume of " << i + 1 << "th Input channel is empty !" << endl;
-                 return EXIT_FAILURE; 
-         }
-       if (cNode->GetImageData()->GetScalarRange()[0] < 0 )
-         {
-           cout << "WARNING: Input Channel warning: Volume " << i + 1 << " contains negative values - negative values will be set to 0 !" << endl;
-         }
-
-     }
-       // -----------------------------------
-       // Start processing
-
-       try
+    try
        {
-         if (verbose) std::cerr << "Starting preprocessing ..." << std::endl;
+         if (verbose) std::cout << "Starting preprocessing ..." << std::endl;
 
          emMRMLManager->GetWorkingDataNode()->SetAlignedTargetNodeIsValid(0);
          emMRMLManager->GetWorkingDataNode()->SetAlignedAtlasNodeIsValid(0);
@@ -1116,9 +1042,9 @@ int main(int argc, char** argv)
          emMRMLManager->GetWorkingDataNode()->SetAlignedTargetNodeIsValid(1);
          emMRMLManager->GetWorkingDataNode()->SetAlignedAtlasNodeIsValid(1);
 
-          if (verbose) std::cerr << "EMSEG: Preprocessing complete." << std::endl;
+          if (verbose) std::cout << "EMSEG: Preprocessing complete." << std::endl;
 
-          if (verbose) std::cerr << "EMSEG: Start Segmentation." << std::endl;
+          if (verbose) std::cout << "EMSEG: Start Segmentation." << std::endl;
 
           int return_value;
           return_value = emLogic->StartSegmentationWithoutPreprocessing(app,appLogic);
@@ -1128,8 +1054,8 @@ int main(int argc, char** argv)
             throw std::runtime_error("");
           }
 
-          if (verbose) std::cerr << "Segmentation complete." << std::endl;
-          std::cerr << "============ End of New Pipeline =========================" << std::endl;
+          if (verbose) std::cout << "Segmentation complete." << std::endl;
+          std::cout << "============ End of New Pipeline =========================" << std::endl;
           
        }
      catch (...)
@@ -1152,15 +1078,21 @@ int main(int argc, char** argv)
   progressReporter.ReportProgress("Updating Results...", 
                                    currentStep++ / totalSteps);
 
+   // =======================================================================
+   //
+   //  Write out results and clean up 
+   // 
+   // =======================================================================
+
   if (segmentationSucceeded && !dontWriteResults)
     {
 
     //
     // save the results
-    if (verbose) std::cerr << "Saving segmentation results..." << std::endl;
+    if (verbose) std::cout << "Saving segmentation results..." << std::endl;
     try
       {
-      vtkstd::cerr << "Writing segmentation result: " << 
+      vtkstd::cout << "Writing segmentation result: " << 
         emMRMLManager->GetOutputVolumeNode()->GetStorageNode()->GetFileName()
                    << vtkstd::endl;
       emMRMLManager->GetOutputVolumeNode()->GetStorageNode()->
@@ -1179,12 +1111,12 @@ int main(int argc, char** argv)
       std::cerr << "Unknown error detected.  Writing failed." << std::endl;
       segmentationSucceeded = false;
       }
-    if (verbose) std::cerr << "DONE" << std::endl;
+    if (verbose) std::cout << "DONE" << std::endl;
     }
   else
     {
     if (verbose)
-      std::cerr << "Skipping over saving segmentation results." << std::endl;
+      std::cout << "Skipping over saving segmentation results." << std::endl;
     }
 
   //
@@ -1192,14 +1124,14 @@ int main(int argc, char** argv)
   if (segmentationSucceeded && !resultStandardVolumeFileName.empty())
     {
     if (verbose) 
-      cerr << "Comparing results with standard..." << std::endl;
+      cout << "Comparing results with standard..." << std::endl;
 
     try
       {
       //
       // get a pointer to the results
       std::string resultMRMLID = emMRMLManager->GetOutputVolumeMRMLID();
-      std::cerr << "Extracting results from mrml node: " 
+      std::cout << "Extracting results from mrml node: " 
                 << resultMRMLID << std::endl;
       vtkImageData* resultImage = NULL;
       vtkMRMLVolumeNode* node   = vtkMRMLVolumeNode::
@@ -1219,7 +1151,7 @@ int main(int argc, char** argv)
         }
       else
         {
-        if (verbose) cerr << "Result matches standard!" << std::endl;
+        if (verbose) cout << "Result matches standard!" << std::endl;
         segmentationSucceeded = true;
         }
       }
@@ -1240,9 +1172,9 @@ int main(int argc, char** argv)
   // write the final mrml scene file
   if (segmentationSucceeded && !resultMRMLSceneFileName.empty())
     {
-    if (verbose) std::cerr << "Writing mrml scene...";
+    if (verbose) std::cout << "Writing mrml scene...";
     mrmlScene->Commit(resultMRMLSceneFileName.c_str());
-    if (verbose) std::cerr << "DONE" << std::endl;
+    if (verbose) std::cout << "DONE" << std::endl;
     }
 
   progressReporter.ReportProgress("Cleaning Up...", 
@@ -1250,7 +1182,8 @@ int main(int argc, char** argv)
 
   //
   // clean up
-  if (verbose) std::cerr << "Cleaning up...";
+  // 
+  if (verbose) std::cout << "Cleaning up...";
 
   appLogic->Delete();
   appLogic = NULL;  
@@ -1259,33 +1192,16 @@ int main(int argc, char** argv)
   app->Delete();
   app = NULL;
 
-  // ------------------------------
-  // DELETE
-
   emLogic->SetAndObserveMRMLScene(NULL);
-  emLogic->Delete();
-
-  //
-  //--- Cache and RemoteIO ManagerGUI
-  //
-
-
-/*
-#if !defined (REMOTEIO_DEBUG)
-  remoteIOGUI->SetAndObserveDataIOManager ( NULL );
-  remoteIOGUI->SetAndObserveCacheManager ( NULL );
-  remoteIOGUI->TearDownGUI();
-  remoteIOGUI->Delete();
-#endif
-*/
-  //--- Remote data handling mechanisms
   emLogic->RemoveDataIOFromScene(mrmlScene,dataIOManagerLogic);
+  emLogic->Delete();
+ 
   dataIOManagerLogic->Delete();
   dataIOManagerLogic = NULL;
 
   mrmlScene->Clear(true);
   mrmlScene->Delete();
-  if (verbose) std::cerr << "DONE" << std::endl;
+  if (verbose) std::cout << "DONE" << std::endl;
 
   return segmentationSucceeded ? EXIT_SUCCESS : EXIT_FAILURE;  
 }

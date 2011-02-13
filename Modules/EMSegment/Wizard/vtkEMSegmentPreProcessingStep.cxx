@@ -10,12 +10,13 @@
 #include "vtkKWWizardWorkflow.h"
 #include "vtkKWFrameWithLabel.h"
 #include "vtkMRMLEMSWorkingDataNode.h"
-#include "vtkMRMLEMSNode.h"
 #include "vtkKWCheckButtonWithLabel.h"
 #include "vtkKWEntryWithLabel.h"
 #include "vtkKWProgressDialog.h"
 #include "vtkSlicerSliceControllerWidget.h"
-#include "vtkMRMLEMSTargetNode.h"
+#include "vtkMRMLEMSVolumeCollectionNode.h"
+#include "vtkMRMLEMSGlobalParametersNode.h"
+
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkEMSegmentPreProcessingStep);
 vtkCxxRevisionMacro(vtkEMSegmentPreProcessingStep, "$Revision: 1.2 $");
@@ -104,6 +105,21 @@ vtkEMSegmentPreProcessingStep::Validate()
   // If they are still valid do not repeat preprocessing unless otherwise wanted 
   // Kilian - still to do - save intermediate results 
   // so do special check here 
+
+  if ( mrmlManager->GetRegistrationPackageType() == mrmlManager->GetPackageTypeFromString("CMTK") ) {
+    const char* path = this->Script("::EMSegmenterPreProcessingTcl::Get_CMTK_Installation_Path");
+    if ( *path == '\0' ) {
+      if (!vtkKWMessageDialog::PopupYesNo(this->GetApplication(), NULL, "CMTK is not installed",
+                                          "For optimal results please install the CMTK extension. \n\nDo you want to proceed with BRAINSTools instead?",
+                                          vtkKWMessageDialog::WarningIcon | vtkKWMessageDialog::InvokeAtPointer))
+        {
+          wizard_workflow->PushInput(vtkKWWizardStep::GetValidationFailedInput());
+          wizard_workflow->ProcessInputs();
+          return;
+        }
+    }
+  }
+
   if (this->askQuestionsBeforeRunningPreprocessingFlag)
     {
       if (mrmlManager->GetWorkingDataNode()->GetAlignedTargetNodeIsValid() && mrmlManager->GetWorkingDataNode()->GetAlignedAtlasNodeIsValid())
@@ -157,7 +173,7 @@ vtkEMSegmentPreProcessingStep::Validate()
     mrmlManager->GetWorkingDataNode()->SetAlignedTargetNodeIsValid(1);
     mrmlManager->GetWorkingDataNode()->SetAlignedAtlasNodeIsValid(1);
 
-    vtkMRMLEMSTargetNode* targetNode = this->GetGUI()->GetMRMLManager()->GetWorkingDataNode()->GetInputTargetNode();
+    vtkMRMLEMSVolumeCollectionNode* targetNode = this->GetGUI()->GetMRMLManager()->GetWorkingDataNode()->GetInputTargetNode();
     if (targetNode) 
       {
         vtkMRMLVolumeNode* output =  targetNode->GetNthVolumeNode(0);
@@ -181,12 +197,7 @@ void
 vtkEMSegmentPreProcessingStep::SetTaskPreprocessingSetting()
 {
   vtkEMSegmentMRMLManager *mrmlManager = this->GetGUI()->GetMRMLManager();
-  if (!mrmlManager)
-    {
-      return;
-    }
-
-  if (! mrmlManager->GetNode())
+  if (!mrmlManager || !mrmlManager->GetGlobalParametersNode())
     {
       return;
     }
@@ -233,7 +244,7 @@ vtkEMSegmentPreProcessingStep::SetTaskPreprocessingSetting()
     } 
     }
 
-  mrmlManager->GetNode()->SetTaskPreprocessingSetting(defText.str().c_str());
+  mrmlManager->GetGlobalParametersNode()->SetTaskPreProcessingSetting(defText.str().c_str());
 }
 
 
