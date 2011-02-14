@@ -74,6 +74,8 @@ if { [itcl::find class SWidget] == "" } {
     public variable description ""  ;# a status string describing the current state
     public variable sliceGUI ""  ;# the sliceGUI on which the SWidget lives
 
+    public variable enabled "true"  ;# if not enabled, subclasses should not process events
+
     variable _vtkObjects ""
     variable _pickState "outside"
     variable _actionState ""
