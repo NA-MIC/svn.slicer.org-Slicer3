@@ -26,6 +26,8 @@ if { [itcl::find class SliceSWidget] == "" } {
     destructor {}
 
     public variable sliceStep 1  ;# the size of the slice increment/decrement
+    public variable lastLabelOpacity 1.0 ;# last label opacity for this widget
+    public variable lastForegroundOpacity 1.0 ;# last foreground opacity for this widget
 
     variable _actionStartRAS "0 0 0"
     variable _actionStartXY "0 0"
@@ -50,8 +52,9 @@ if { [itcl::find class SliceSWidget] == "" } {
     method moveSlice { delta } {}
     method jumpSlice { r a s } {}
     method jumpOtherSlices { r a s } {}
-    method getLinkedSliceLogics {} {}
-    method getLinkedSliceGUIs {} {}
+    method getLinkedSliceLogics { {orientationFlag 1} } {}
+    method getSliceLogics {} {}
+    method getLinkedSliceGUIs { {orientationFlag 1} } {}
     method addSliceModelSWidgets {} {}
     method isCompareViewer {} {}
     method isCompareViewMode {} {}
@@ -322,6 +325,10 @@ itcl::body SliceSWidget::resizeSliceNode {} {
 # handle interactor events
 #
 itcl::body SliceSWidget::processEvent { {caller ""} {event ""} } {
+
+  if { $enabled != "true" } {
+    return
+  }
 
   if { [info command $sliceGUI] == "" || [$sliceGUI GetLogic] == "" } {
     # the sliceGUI was deleted behind our back, so we need to 
@@ -749,12 +756,31 @@ itcl::body SliceSWidget::processEvent { {caller ""} {event ""} } {
     "TimerEvent" { }
     "KeyPressEvent" { 
       set key [$_interactor GetKeySym]
-      if { [lsearch "v r b f space c e s S Up Down Left Right" $key] != -1 } {
+      if { [lsearch "l v r b f g t space c e s S Up Down Left Right" $key] != -1 } {
         $sliceGUI SetCurrentGUIEvent "" ;# reset event so we don't respond again
         $sliceGUI SetGUICommandAbortFlag 1
         switch [$_interactor GetKeySym] {
+          "l" {
+                # toggle linking of all slices
+                set sliceLogics [$this getSliceLogics]
+                foreach logic $sliceLogics {
+                    # puts "l: slice logic $logic"
+                    set sliceCompositeNode [$logic GetSliceCompositeNode]
+                    set link [$sliceCompositeNode GetLinkedControl]
+                    $sliceCompositeNode SetLinkedControl [expr !$link]
+                }
+            }
           "v" {
-            $_sliceNode SetSliceVisible [expr ![$_sliceNode GetSliceVisible]]
+              # get the linked logics (including self)
+              set sliceLogics [$this getLinkedSliceLogics 0]
+              # for each logic, get the slice node and toggle the slice visibility
+#             puts "v: num logics = [llength $sliceLogics]"
+              foreach logic $sliceLogics {
+                set snode [$logic GetSliceNode]
+#               puts "v: logic = $logic, snode = $snode [$snode GetName], visible = [$snode GetSliceVisible]"
+                $snode SetSliceVisible [expr ![$snode GetSliceVisible]]
+#                puts "\t node slice visible now = [$snode GetSliceVisible]"
+            }
           }
           "r" {
             # figure out the new field of view for the current slice
@@ -777,6 +803,47 @@ itcl::body SliceSWidget::processEvent { {caller ""} {event ""} } {
               foreach {fx fy fz} [$snode GetFieldOfView] {}
               # new prescribed x fov, aspect corrected y fov, orig z fov
               $snode SetFieldOfView $nfx [expr $nfx*$fy/$fx] $fz
+            }
+          }
+          "g" {
+            # toggle the label opacity via the slice composite node
+            # get the linked slice guis so can get at the swidget the last label opacity
+            set sliceGUIs [$this getLinkedSliceGUIs 0]
+            foreach gui $sliceGUIs {
+              # get at the swidget so can use and set it's last label opacity
+              set swidget [$this getSliceSWidgetForGUI $gui]
+              set logic [$gui GetLogic]
+              set sliceCompositeNode  [$logic GetSliceCompositeNode] 
+              set opacity [$sliceCompositeNode GetLabelOpacity]
+              if {$opacity != 0.0} {
+                $swidget configure -lastLabelOpacity $opacity
+              }
+              if { $opacity == 0.0 } {
+                  $sliceCompositeNode SetLabelOpacity [$swidget cget -lastLabelOpacity]
+              } else {
+                  $sliceCompositeNode SetLabelOpacity 0.0
+              }
+            }
+          }
+          "t" {
+            # toggle opacity of foreground overlay       
+            # get the linked slice guis
+            set sliceGUIs [$this getLinkedSliceGUIs 0]
+            # puts "t: numsliceguis = [llength $sliceGUIs]"
+            foreach gui $sliceGUIs {
+              # get at the swidget so can use and set it's last label opacity
+              set swidget [$this getSliceSWidgetForGUI $gui]
+              set logic [$gui GetLogic]
+              set sliceCompositeNode  [$logic GetSliceCompositeNode] 
+              set opacity [$sliceCompositeNode GetForegroundOpacity]
+              if {$opacity != 0.0} {
+                $swidget configure -lastForegroundOpacity $opacity
+              }
+              if { $opacity == 0.0 } {
+                  $sliceCompositeNode SetForegroundOpacity [$swidget cget -lastForegroundOpacity]
+              } else {
+                  $sliceCompositeNode SetForegroundOpacity 0.0
+              }
             }
           }
           "b" - "Left" - "Down" {
@@ -895,6 +962,9 @@ itcl::body SliceSWidget::updateAnnotations {r a s} {
   $this queryLayers $x $y $z
 
   set ssgui [[$::slicer3::ApplicationGUI GetApplication] GetModuleGUIByName "Slices"]
+  if { $ssgui == "" } {
+    return
+  }
   set numsgui [$ssgui GetNumberOfSliceGUI]
   for { set i 0 } { $i < $numsgui } { incr i } {
     if { $i == 0} {
@@ -1345,44 +1415,115 @@ itcl::body SliceSWidget::addSliceModelSWidgets {} {
 # linking is off) or a list of logics (one for the current slice and others 
 # for linked slices).
 #
-itcl::body SliceSWidget::getLinkedSliceLogics { } {
+# orientationFlag is set to 1 by default, check for orientation information if it's true, otherwise, don't
+itcl::body SliceSWidget::getLinkedSliceLogics { {orientationFlag 1} } {
     set logic [$sliceGUI GetLogic]
     set sliceNode [$logic GetSliceNode]
     set orientString [$sliceNode GetOrientationString]
+    set ssgui [[$::slicer3::ApplicationGUI GetApplication] GetModuleGUIByName "Slices"]
+#    set layout [$::slicer3::ApplicationGUI GetGUILayoutNode]
+#    set viewArrangement [$layout GetViewArrangement]
+    
+    set numsgui [$ssgui GetNumberOfSliceGUI]
 
     set logics ""
     set link [$_sliceCompositeNode GetLinkedControl]
-    if { $link == 1 && [$this isCompareViewMode] == 1 && ([$sliceNode GetSingletonTag] == "Red" || [$this isCompareViewer] == 1) } {
-        set ssgui [[$::slicer3::ApplicationGUI GetApplication] GetModuleGUIByName "Slices"]
-        set layout [$::slicer3::ApplicationGUI GetGUILayoutNode]
-        set viewArrangement [$layout GetViewArrangement]
-
-        set numsgui [$ssgui GetNumberOfSliceGUI]
-
-        for { set i 0 } { $i < $numsgui } { incr i } {
-            if { $i == 0} {
-                set sgui [$ssgui GetFirstSliceGUI]
-                set lname [$ssgui GetFirstSliceGUILayoutName]
-            } else {
-                set sgui [$ssgui GetNextSliceGUI $lname]
-                set lname [$ssgui GetNextSliceGUILayoutName $lname]
-            }
-
-            if { $lname != "Red" && [string first "Compare" $lname] != 0 } {
-              continue
-            } 
-
-            set currSliceNode [$sgui GetSliceNode]
-            set currOrientString [$currSliceNode GetOrientationString]
-            if { [string compare $orientString $currOrientString] == 0 || ($_actionStartOrientation != "" && [string compare $_actionStartOrientation $currOrientString] == 0) } {
-                lappend logics [$sgui GetLogic]
-            }
-        }
+ 
+    if {[$this isCompareViewMode] == 0} {
+        if {$link == 0} {
+          # just return myself, nothing's linked to me
+          lappend logics [$sliceGUI GetLogic]
+        } else {
+          # get the slice guis that are also linked
+          for { set i 0 } { $i < $numsgui } { incr i } {
+              if { $i == 0} {
+                  set sgui [$ssgui GetFirstSliceGUI]
+                  set lname [$ssgui GetFirstSliceGUILayoutName]
+              } else {
+                  set sgui [$ssgui GetNextSliceGUI $lname]
+                  set lname [$ssgui GetNextSliceGUILayoutName $lname]
+              }
+              # is it linked?
+              if {[[[$sgui GetLogic] GetSliceCompositeNode] GetLinkedControl] == 1} {
+                  lappend logics [$sgui GetLogic]
+              }
+          }
+      }
     } else {
-        lappend logics [$sliceGUI GetLogic]
+        # we're in compare view mode
+        if {$link == 1} {
+            # puts "Linked, compare view, logics = $logics"
+            for { set i 0 } { $i < $numsgui } { incr i } {
+                if { $i == 0} {
+                    set sgui [$ssgui GetFirstSliceGUI]
+                    set lname [$ssgui GetFirstSliceGUILayoutName]
+                } else {
+                    set sgui [$ssgui GetNextSliceGUI $lname]
+                    set lname [$ssgui GetNextSliceGUILayoutName $lname]
+                }
+                # if it's a not compare gui, grab the logic
+                if {[string first "Compare" $lname] != 0} {
+                    # is it linked?
+                    if {[[[$sgui GetLogic] GetSliceCompositeNode] GetLinkedControl] == 1} {
+                        lappend logics [$sgui GetLogic]
+                    }
+                }
+            }
+            
+        } else {
+            # not linked, compare view"
+            if { ([$sliceNode GetSingletonTag] == "Red" || [$this isCompareViewer] == 1) } {
+                for { set i 0 } { $i < $numsgui } { incr i } {
+                    if { $i == 0} {
+                        set sgui [$ssgui GetFirstSliceGUI]
+                        set lname [$ssgui GetFirstSliceGUILayoutName]
+                    } else {
+                        set sgui [$ssgui GetNextSliceGUI $lname]
+                        set lname [$ssgui GetNextSliceGUILayoutName $lname]
+                    }
+                    
+                    if { $lname != "Red" && [string first "Compare" $lname] != 0 } {
+                        continue
+                    } 
+                    if {$orientationFlag == 1} {
+                        set currSliceNode [$sgui GetSliceNode]
+                        set currOrientString [$currSliceNode GetOrientationString]
+                        if { [string compare $orientString $currOrientString] == 0 || ($_actionStartOrientation != "" && [string compare $_actionStartOrientation $currOrientString] == 0) } {
+                            lappend logics [$sgui GetLogic]
+                        }
+                    } else {
+                        lappend logics [$sgui GetLogic]
+                    }
+                }
+            }
+        } 
     }
-
   return $logics
+}
+
+# Return the SliceLogics  
+#
+# The list of linked logics contains a list of logics (one for the current slice and others 
+# for other slices).
+#
+itcl::body SliceSWidget::getSliceLogics { } {
+    set logics ""
+    set ssgui [[$::slicer3::ApplicationGUI GetApplication] GetModuleGUIByName "Slices"]
+    set numsgui [$ssgui GetNumberOfSliceGUI]
+    # puts "getSliceLogics: numsgui = $numsgui"
+
+    for { set i 0 } { $i < $numsgui } { incr i } {
+        if { $i == 0} {
+            set sgui [$ssgui GetFirstSliceGUI]
+            set lname [$ssgui GetFirstSliceGUILayoutName]
+        } else {
+            set sgui [$ssgui GetNextSliceGUI $lname]
+            set lname [$ssgui GetNextSliceGUILayoutName $lname]
+        }
+        lappend logics [$sgui GetLogic]
+    }
+    # the first one can end up in the list twice, so sort with unique to remove duplicates
+    return [lsort -unique $logics]
 }
 
 # Return the SliceGUIs that are linked to the current 
@@ -1392,43 +1533,113 @@ itcl::body SliceSWidget::getLinkedSliceLogics { } {
 # linking is off) or a list of GUIs (one for the current slice and others 
 # for linked slices).
 #
-itcl::body SliceSWidget::getLinkedSliceGUIs { } {
+# orientationFlag set to 1 means that we have a case where we need to only return linked compare view guis that have to have the same orientation
+itcl::body SliceSWidget::getLinkedSliceGUIs { {orientationFlag 1} } {
     set logic [$sliceGUI GetLogic]
     set sliceNode [$logic GetSliceNode]
     set orientString [$sliceNode GetOrientationString]
 
     set guis ""
     set link [$_sliceCompositeNode GetLinkedControl]
-    if { $link == 1 && [$this isCompareViewMode] == 1 && ([$sliceNode GetSingletonTag] == "Red" || [$this isCompareViewer] == 1) } {
-        set ssgui [[$::slicer3::ApplicationGUI GetApplication] GetModuleGUIByName "Slices"]
-        set layout [$::slicer3::ApplicationGUI GetGUILayoutNode]
-        set viewArrangement [$layout GetViewArrangement]
+    set ssgui [[$::slicer3::ApplicationGUI GetApplication] GetModuleGUIByName "Slices"]
+    set numsgui [$ssgui GetNumberOfSliceGUI]
 
-        set numsgui [$ssgui GetNumberOfSliceGUI]
-
-        for { set i 0 } { $i < $numsgui } { incr i } {
-            if { $i == 0} {
-                set sgui [$ssgui GetFirstSliceGUI]
-                set lname [$ssgui GetFirstSliceGUILayoutName]
-            } else {
-                set sgui [$ssgui GetNextSliceGUI $lname]
-                set lname [$ssgui GetNextSliceGUILayoutName $lname]
-            }
-
-            if { $lname != "Red" && [string first "Compare" $lname] != 0 } {
-              continue
-            } 
-
-            set currSliceNode [$sgui GetSliceNode]
-            set currOrientString [$currSliceNode GetOrientationString]
-            if { [string compare $orientString $currOrientString] == 0 || ($_actionStartOrientation != "" && [string compare $_actionStartOrientation $currOrientString] == 0)  } {
-                lappend guis $sgui
+    if {!$orientationFlag} {
+#        puts "getLinkedSlieGUIS: link = $link, compareviewmode = [$this isCompareViewMode], singleton tag = [$sliceNode GetSingletonTag], is compare viewer = [$this isCompareViewer]"
+    }
+    if {[$this isCompareViewMode] == 0} {
+        # not in compare view mode
+        if {$link == 0} {
+            # just return myself, nothing's linked to me
+            lappend guis $sliceGUI
+        } else {
+            # get the slice guis that are also linked
+            for { set i 0 } { $i < $numsgui } { incr i } {
+                if { $i == 0} {
+                    set sgui [$ssgui GetFirstSliceGUI]
+                    set lname [$ssgui GetFirstSliceGUILayoutName]
+                } else {
+                    set sgui [$ssgui GetNextSliceGUI $lname]
+                    set lname [$ssgui GetNextSliceGUILayoutName $lname]
+                }
+#                if {!$orientationFlag} { puts "no compare: lname = $lname" }
+                # is it linked?
+                if {[[[$sgui GetLogic] GetSliceCompositeNode] GetLinkedControl] == 1} {
+                    set currSliceNode [$sgui GetSliceNode]
+                    if {$orientationFlag == 1} {
+                        set currOrientString [$currSliceNode GetOrientationString]
+                        if { [string compare $orientString $currOrientString] == 0 || ($_actionStartOrientation != "" && [string compare $_actionStartOrientation $currOrientString] == 0) } {
+                            lappend guis $sgui
+                        }
+                    } else {
+                        # just take it
+#                        if {!$orientationFlag} { puts "\tlinked" }
+                        lappend guis $sgui
+                    }
+                } 
             }
         }
     } else {
-        lappend guis $sliceGUI
-    }
-
+        # in compare view
+         if {$link == 1} {
+             # get linked compare view guis
+             for { set i 0 } { $i < $numsgui } { incr i } {
+                 if { $i == 0} {
+                     set sgui [$ssgui GetFirstSliceGUI]
+                     set lname [$ssgui GetFirstSliceGUILayoutName]
+                 } else {
+                     set sgui [$ssgui GetNextSliceGUI $lname]
+                     set lname [$ssgui GetNextSliceGUILayoutName $lname]
+                 }
+#                 if {!$orientationFlag} { puts "compare: lname = $lname" }
+                 # if it's not a compare, grab it
+                 if {[string first "Compare" $lname] != 0} {
+                     # is it linked?
+                     if {[[[$sgui GetLogic] GetSliceCompositeNode] GetLinkedControl] == 1} {
+                         set currSliceNode [$sgui GetSliceNode]
+                         if {$orientationFlag == 1} {
+                             set currOrientString [$currSliceNode GetOrientationString]
+                             if { [string compare $orientString $currOrientString] == 0 || ($_actionStartOrientation != "" && [string compare $_actionStartOrientation $currOrientString] == 0) } {
+#                                 if {!$orientationFlag} { puts "\tlinked with orientation: $lname" }
+                                 lappend guis $sgui
+                             }
+                         } else {
+                             # just take it
+#                             if {!$orientationFlag} { puts "\tlinked $lname" }
+                             lappend guis $sgui
+                         }
+                     }
+                 } 
+             }
+         } else {
+             # not linked, compare view
+             for { set i 0 } { $i < $numsgui } { incr i } {
+                 if { $i == 0} {
+                     set sgui [$ssgui GetFirstSliceGUI]
+                     set lname [$ssgui GetFirstSliceGUILayoutName]
+                 } else {
+                     set sgui [$ssgui GetNextSliceGUI $lname]
+                     set lname [$ssgui GetNextSliceGUILayoutName $lname]
+                 }
+                 #if {!$orientationFlag} { puts "not linked compare: lname = $lname"}
+                 if { ($lname != "Red") && ([string first "Compare" $lname] != 0) } {
+                     continue
+                 }
+                 set currSliceNode [$sgui GetSliceNode]
+                 if {$orientationFlag == 1} {
+                     set currOrientString [$currSliceNode GetOrientationString]
+                     if { [string compare $orientString $currOrientString] == 0 || ($_actionStartOrientation != "" && [string compare $_actionStartOrientation $currOrientString] == 0) } {
+                  #       if {!$orientationFlag} { puts "\tnot linked with orientation"}
+                         lappend guis $sgui
+                     }
+                 } else {
+                     # just take it
+                   #  if {!$orientationFlag} {puts "\tnot linked"}
+                     lappend guis $sgui
+                 }
+             } 
+         }
+     }
   return $guis
 }
 
