@@ -77,6 +77,8 @@ int main(int argc, char** argv){
 
   PARSE_ARGS;
 
+  std::cout << "CTEST_FULL_OUTPUT" << std::endl;
+
   ImageType::Pointer inputImage = NULL;
 
   typedef itk::Image<unsigned char, ImageDimension> MaskImageType;

@@ -141,6 +141,8 @@ N4MRIBiasFieldCorrectionImageFilter<TInputImage, TMaskImage, TOutputImage>
     IterationReporter reporter( this, 0, 1 );
     this->m_ElapsedIterations = 0;
     this->m_CurrentConvergenceMeasurement = NumericTraits<RealType>::max();
+
+    std::cout << "Level: " << this->m_CurrentLevel << std::endl;
     while( this->m_ElapsedIterations++ <
       this->m_MaximumNumberOfIterations[this->m_CurrentLevel] &&
       this->m_CurrentConvergenceMeasurement > this->m_ConvergenceThreshold )
@@ -177,6 +179,8 @@ N4MRIBiasFieldCorrectionImageFilter<TInputImage, TMaskImage, TOutputImage>
 
       reporter.CompletedStep();
       progress.CompletedPixel();
+
+      std::cout << "Iteration " << this->m_ElapsedIterations << " completed" << std::endl;
       }
 
     typedef BSplineControlPointImageFilter<BiasFieldControlPointLatticeType,
