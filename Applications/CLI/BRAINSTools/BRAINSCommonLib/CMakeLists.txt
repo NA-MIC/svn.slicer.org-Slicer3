@@ -79,22 +79,22 @@ else (Slicer_SOURCE_DIR)
       ARCHIVE DESTINATION lib/BRAINSCommonLib
       )
 
-  IF(NOT BRAINSCommonLibProject_INSTALL_NO_DEVELOPMENT)
-    FILE(GLOB __files1 "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
-    FILE(GLOB __files2 "${CMAKE_CURRENT_SOURCE_DIR}/*.txx")
-    INSTALL(FILES ${__files1} ${__files2} ${CMAKE_CURRENT_BINARY_DIR}/BRAINSCommonLib.h
-      DESTINATION ${CMAKE_INSTALL_PREFIX}/include/BRAINSCommonLib
-      COMPONENT Development)
-  ENDIF(NOT BRAINSCommonLibProject_INSTALL_NO_DEVELOPMENT)
+    #IF(NOT BRAINSCommonLibProject_INSTALL_NO_DEVELOPMENT)
+    #FILE(GLOB __files1 "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
+    #FILE(GLOB __files2 "${CMAKE_CURRENT_SOURCE_DIR}/*.txx")
+    #INSTALL(FILES ${__files1} ${__files2} ${CMAKE_CURRENT_BINARY_DIR}/BRAINSCommonLib.h
+    #DESTINATION ${CMAKE_INSTALL_PREFIX}/include/BRAINSCommonLib
+    #COMPONENT Development)
+    #ENDIF(NOT BRAINSCommonLibProject_INSTALL_NO_DEVELOPMENT)
 
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/BRAINSCommonLibInstallConfig.cmake.in
                  ${CMAKE_CURRENT_BINARY_DIR}/BRAINSCommonLibInstallConfig.cmake
                  @ONLY)
 
-  INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/BRAINSCommonLibInstallConfig.cmake
-          DESTINATION lib/BRAINSCommonLib
-          COMPONENT Development
-          RENAME BRAINSCommonLibConfig.cmake)
+               #INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/BRAINSCommonLibInstallConfig.cmake
+               #DESTINATION lib/BRAINSCommonLib
+               #COMPONENT Development
+               #RENAME BRAINSCommonLibConfig.cmake)
 
    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/UseBRAINSCommonLib.cmake.in
      ${CMAKE_CURRENT_BINARY_DIR}/UseBRAINSCommonLib.cmake @ONLY)
@@ -103,9 +103,9 @@ else (Slicer_SOURCE_DIR)
    #         DESTINATION lib/BRAINSCommonLib
    #         COMPONENT Development
    #         RENAME UseBRAINSCommonLib.cmake)
-   INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/UseBRAINSCommonLib.cmake
-     DESTINATION lib/BRAINSCommonLib
-     COMPONENT Development)
+   #INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/UseBRAINSCommonLib.cmake
+   #DESTINATION lib/BRAINSCommonLib
+   #COMPONENT Development)
 
 endif (Slicer_SOURCE_DIR)
 
