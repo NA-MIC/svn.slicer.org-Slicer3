@@ -1098,7 +1098,9 @@ itcl::body SliceSWidget::updateAnnotations {r a s} {
     }
     
     # jvm - request a render so the annotations on other viewers update
-    $sw requestDelayedAnnotation
+    if { $sw != "" } {
+      $sw requestDelayedAnnotation
+    }
   }
 }
 
