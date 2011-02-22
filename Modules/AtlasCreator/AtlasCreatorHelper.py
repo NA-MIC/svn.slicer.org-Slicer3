@@ -24,6 +24,21 @@ class AtlasCreatorHelper(object):
         '''
 
         self.__parentClass = parentClass
+        
+        # deactivated by default
+        self.__debugMode = 0
+
+
+
+    '''=========================================================================================='''
+    def EnableDebugMode(self):
+        '''
+            Enables the debug Mode
+            
+            Returns
+                n/a
+        '''
+        self.__debugMode = 1
 
 
 
@@ -37,12 +52,9 @@ class AtlasCreatorHelper(object):
             
             Returns
                 n/a
-        '''
-                
-        # deactivated by default
-        debugMode = 1
-
-        if debugMode:
+        '''        
+        
+        if self.__debugMode:
 
             print "[AtlasCreator " + strftime("%H:%M:%S") + "] DEBUG: " + str(message)
             import sys
@@ -75,34 +87,30 @@ class AtlasCreatorHelper(object):
 
 
     '''=========================================================================================='''
-    def CheckTemporaryDirectory(self,filePathList):
+    def DeleteFilesAndDirectory(self,filePathList):
         ''' 
-            Check if the temporary directory contains any filenames which
-            may block the Atlas Creator logic
+            Delete all files of a filePathList and also the directory
             
             filePathList
-                the list of file paths to check
+                the list of file paths to delete
             
             Returns
-                TRUE if the tempDir is ok and FALSE if not
+                TRUE or FALSE depending on success
         '''         
-        # quickly check if the temp directory has old content
-        # if yes, this is dangerous and we will abort
-        # it can be dangerous because we use this to check if the registration is complete
-        for originalImage in filePathList:
-            
-            originalImageFileName = os.path.basename(originalImage)
-            originalImageName = os.path.splitext(originalImageFileName)[0]
-            potentialOutputPath = self.GetSlicerTemporaryDirectory() + originalImageName + ".nrrd" 
-            
-            if os.path.isfile(potentialOutputPath):
-                # there is old content
-                # abort immediately
-                self.info("ERROR: There are already aligned images in the temporary directory: " + str(self.GetSlicerTemporaryDirectory()))
-                self.info("ERROR: This is extremely dangerous. Please move " + str(potentialOutputPath) + "!!!")
-                self.info("ERROR: Aborting now!!!")
+        # now delete the content in the temporary directory
+        for file in filePathList:
+            if os.path.isfile(file):
+                os.remove(file)
+            else:
                 return False
-
+            
+        # now delete the whole temporary directory
+        if os.path.isdir(os.path.dirname(filePathList[0])):
+            os.rmdir(os.path.dirname(filePathList[0]))
+        else:
+            return False     
+        
+        
         return True
     
 
@@ -188,12 +196,12 @@ class AtlasCreatorHelper(object):
             imageData
                 vtkImageData
             dividend
-                the number to divide with, will be casted to float
+                the number to divide with, will be casted to double
             
             Returns
                 vtkImageData after division
         '''            
-        imageData.DeepCopy(self.ReCastImage(imageData, "Float"))
+        imageData.DeepCopy(self.ReCastImage(imageData, "Double"))
         div = slicer.vtkImageMathematics()
         div.SetInput(imageData)
         div.SetOperationToMultiplyByK()
@@ -323,7 +331,7 @@ class AtlasCreatorHelper(object):
     
 
     '''=========================================================================================='''    
-    def GetRegistrationCommand(self,templateFilePath,movingImageFilePath,outputTransformFilePath,outputImageFilePath,onlyAffineReg):
+    def GetRegistrationCommand(self,templateFilePath,movingImageFilePath,outputTransformFilePath,outputImageFilePath,onlyAffineReg,multiThreading):
         '''
             Get the command to Register an image to a template
             
@@ -337,6 +345,8 @@ class AtlasCreatorHelper(object):
                 the file path to the aligned image output
             onlyAffineReg
                 if true, just use affine registration and no BSpline
+            multiThreading
+                if true, use multi threading
                 
             Returns
                 the command to Register an image
@@ -355,6 +365,9 @@ class AtlasCreatorHelper(object):
 
         if not onlyAffineReg:
             registrationCommand += " --useBSpline"
+            
+        if not multiThreading:
+            registrationCommand += " --debugNumberOfThreads 1"
 
         registrationCommand += " --numberOfSamples 100000 --numberOfIterations 1500"
         registrationCommand += " --translationScale 1000.0 --reproportionScale 1.0 --skewScale 1.0 --splineGridSize 28,20,24 --fixedVolumeTimeIndex 0"
@@ -480,6 +493,8 @@ class AtlasCreatorHelper(object):
         # create a volumeNode using the imageData
         volumeNode = slicer.MRMLScene.CreateNodeByClass('vtkMRMLScalarVolumeNode')
         
+        slicer.MRMLScene.AddNodeNoNotify(volumeNode)
+        
         # set the imageData which was passed
         volumeNode.SetAndObserveImageData(imageData)
         s = imageData.GetSpacing()
@@ -488,6 +503,8 @@ class AtlasCreatorHelper(object):
         volumeNode.SetOrigin(o[0], o[1], o[2])
         
         success = slicer.VolumesGUI.GetLogic().SaveArchetypeVolume(filePath,volumeNode)
+        
+        slicer.MRMLScene.RemoveNodeNoNotify(volumeNode)
         
         return success
     

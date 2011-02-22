@@ -135,7 +135,7 @@ class AtlasCreatorGUI(ScriptedModuleGUI):
         
         if normalize:
             self._outputCastCombo.SetEnabled(0)
-            self._outputCastCombo.GetWidget().SetValue("Float")
+            self._outputCastCombo.GetWidget().SetValue("Double")
         else:
             self._outputCastCombo.SetEnabled(1)
                 
@@ -314,6 +314,9 @@ class AtlasCreatorGUI(ScriptedModuleGUI):
         result = self._logic.Start(configuration)
         
         if result:
+
+            # now loading the template
+            templateID = self.GetHelper().DisplayImageInSlicer(os.path.normpath(self._outDirButton.GetWidget().GetFileName()+"/template.nrrd"),'Template')
 
             for currentLabel in labels: 
                 # loading atlas for label i
