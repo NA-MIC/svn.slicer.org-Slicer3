@@ -81,6 +81,9 @@ def usage():
     info("-w, --writeTransforms")
     info("        Write transforms to output directory.")
     info("")
+    info("--keepAligned")
+    info("        Keep the aligned images and segmentations.")
+    info("")    
     info("-l, --labels STRING")
     info("        List of labels to include for the atlases, f.e. \"3 4 5 6 8 10\".")
     info("")
@@ -108,7 +111,7 @@ def usage():
     info("        The following arguments have to be specified if cluster mode is chosen:")
     info("")
     info("        --schedulerCommand EXECUTABLE")
-    info("                The executable to use as a scheduler in cluster mode, f.e. \"qsub-run\".")
+    info("                The executable to use as a scheduler in cluster mode, f.e. \"qsub\".")
     info("")
     info("--slicer FILEPATH")
     info("        Filepath to the 3D Slicer launcher including arguments, f.e. \"/usr/bin/Slicer3 --tmp_dir /var/tmp\".")
@@ -146,9 +149,9 @@ def examples():
     info('        python atlascreator.py -i TestData/originals/ -s TestData/segmentations/ -o /tmp/acout --dynamic --meanIterations 5 -w -l "3 4 5 6 7 8 9" --normalize')
     info("")
     info("-----------------------------------------------------------------------------------------------")
-    info("3. Run dynamic registration with the testdata on a cluster (scheduler command \"qsub-run\"):")
+    info("3. Run dynamic registration with the testdata on a cluster (scheduler command \"qsub\"):")
     info("")
-    info('        python atlascreator.py -i TestData/originals/ -s TestData/segmentations/ -o /tmp/acout --dynamic --meanIterations 5 -w -l "3 4 5 6 7 8 9" --normalize --cluster --schedulerCommand qsub-run')
+    info('        python atlascreator.py -i TestData/originals/ -s TestData/segmentations/ -o /tmp/acout --dynamic --meanIterations 5 -w -l "3 4 5 6 7 8 9" --normalize --cluster --schedulerCommand \"qsub -b y\"')
     info("")
     info("-----------------------------------------------------------------------------------------------")
     info("4. Use existing registrations and just re-sample")
@@ -188,6 +191,7 @@ def main(argv):
                                                         "template=",                                                        
                                                         "non-rigid",
                                                         "writeTransforms",
+                                                        "keepAligned",
                                                         "labels=",
                                                         "normalize",
                                                         "outputCast=",
@@ -223,6 +227,8 @@ def main(argv):
     nonRigid = False
     
     writeTransforms = False
+    
+    keepAligned = False
     
     labels = None
     
@@ -265,6 +271,8 @@ def main(argv):
             nonRigid = True
         elif opt in ("-w", "--writeTransforms"):
             writeTransforms = True
+        elif opt in ("--keepAligned"):
+            keepAligned = True
         elif opt in ("-l", "--labels"):
             labels = arg.strip().split(" ")
         elif opt in ("--normalize"):
@@ -541,6 +549,13 @@ def main(argv):
     else:
         evalpythonCommand += "configuration.SetSaveTransforms(0);"
 
+    if keepAligned:
+        evalpythonCommand += "configuration.SetDeleteAlignedImages(0);"
+        evalpythonCommand += "configuration.SetDeleteAlignedSegmentations(0);"
+    else:
+        evalpythonCommand += "configuration.SetDeleteAlignedImages(1);"
+        evalpythonCommand += "configuration.SetDeleteAlignedSegmentations(1);"
+        
     if normalize:
         evalpythonCommand += "configuration.SetNormalizeAtlases(1);"
     else:
