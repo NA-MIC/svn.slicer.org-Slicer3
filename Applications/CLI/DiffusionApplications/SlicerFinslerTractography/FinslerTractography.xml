@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<executable>
+  <category>Diffusion.Tractography</category>
+  <title>Finsler Tractography based on HARDI</title>
+  <description>
+This module uses the fast-sweeping algorithm to find the connectivity from a set of seeding points to each voxel in the input DWI volume (or inside the mask, if provided).\n\n This connectivity is the minimum cost of arriving at each voxel from the seeds, following the trajectory of the estimated pathways. The cost is computed as the integral along the pathway of a local directional cost computed from the ODF or some other HARDI-related measurement. A complete description of the algorithm may be found in:\n\n J. Melonakos, E. Pichon, S. Angenent, A. Tannenbaum, "Finsler Active Contours". IEEE Transactions on Pattern Analysis and MAchine Intelligence, 30(3):412-423. March 2008.\n\n A background-removal mask can be used to accelerate computations. Optionally, the algorithm provides at each voxel an estimation of the vector tangent to the optimal pathway at that point (arrival direction).\n\n Fast-sweeping is full multi-threaded, and some other accelerations (checking only those voxels in the causal direction of the solution) have been implemented to obtain a result in a reasonable time.\n\n TO DO:\n\n   1- Include testing\n   2- Allow varying the discretization of arrival directions\n   3- Allow different computations of the local costs\n   4- Fix the problem that avoids linking with vnl_rnpoly_roots, so that the SH/HOT software for maxima extraction is available
+  </description>
+  <version>0.0.1.$Revision: 1 $(alpha)</version>
+  <documentation-url>http://www.slicer.org/slicerWiki/index.php/Modules:FinslerTractography-Documentation-3.6</documentation-url>
+  <license></license>
+  <contributor>Antonio Tristan Vega, Demian Wassermann, Carl-Fredrik Westin. 
+  </contributor>
+  <acknowledgements>Supported by grant number FMECD-2010/71131616E from the Spanish Ministry of Education/Fulbright Committee
+  </acknowledgements>
+  <parameters>
+  
+    <label>Finsler Tractography</label>
+    <description>Parameters for Finsler Tractography</description>
+    
+    <integer>
+      <name>iMaxIters</name>
+      <label>Max. iterations</label>
+      <longflag>--mi</longflag>
+      <description>The maximum number of iterations of the fast-sweeping algorithm.</description>
+      <default>10</default>
+    </integer>
+
+    <integer>
+      <name>iCostFraction</name>
+      <label>Cost Fraction (log)</label>
+      <longflag>--cf</longflag>
+      <description>If the total change in the arrival times is Cost Fraction times the initial one, we consider fast-sweeping has converged. Note you must introduce the logarithm of this value, so the default -3 is in fact 10^{-3}.</description>
+      <default>-3</default>
+    </integer>
+
+    <float>
+      <name>iLambda</name>
+      <label>Lambda</label>
+      <longflag>--la</longflag>
+      <description>The Tikhonov regularization parameter when we fit Spherical Harmonics.</description>
+      <default>0.006</default>
+    </float>
+
+    <integer>
+      <name>iLSH</name>
+      <label>L-SH</label>
+      <longflag>--lsh</longflag>
+      <description>The maximum degree considered for the Spherical Harmonics decomposition (must de even).</description>
+      <default>4</default>
+    </integer>
+    
+  </parameters>
+
+  <parameters>
+    <label>IO</label>
+    <description>Input/output parameters</description>
+    
+    <image type="diffusion-weighted">
+      <name>inputDWI</name>
+      <label>Input DWI volume</label>
+      <channel>input</channel>
+      <index>0</index>
+      <description>Input DWI volume. Consider denoising it before running Finsler tractography.</description>
+    </image>
+    
+    <image type="label">
+      <name>inputMask</name>
+      <label>Input mask</label>
+      <channel>input</channel>
+      <index>1</index>
+      <description>Input mask the same size as inputDWI (this is optional but strongly recommended). The cost outside this mask is assumed to be infinite. NOTE: If the mask is not connected, infinite values of the cost will appear in the white islands without seeding points.</description>
+    </image>
+    
+    <image type="label">
+      <name>inputSeeds</name>
+      <label>Input seeds</label>
+      <channel>input</channel>
+      <index>2</index>
+      <description>Put non-zeros where you want seeding points to be placed.</description>
+    </image>
+    
+    <image type="scalar">
+      <name>outputCost</name>
+      <label>Output scalar volume</label>
+      <channel>output</channel>
+      <index>3</index>
+      <description>Output volume of scalars. The value at each voxel is the cost of reaching it from the seeding points.</description>
+    </image>
+    
+    <image type="vector">
+      <name>outputDirections</name>
+      <label>Output directions volume</label>
+      <channel>output</channel>
+      <index>4</index>
+      <description>Output volume of arrival directions (optional). Each voxel is a unitary vector representing the direction the current voxel was reached from.</description>
+    </image>
+
+  </parameters>
+
+</executable>

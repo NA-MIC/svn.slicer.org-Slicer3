@@ -5,6 +5,7 @@ SET(filters
   dwiNoiseFilter
   dwiUNLM
   #StochasticTractographyFilter
+  SlicerFinslerTractography
   ResampleDTI
   )
 FOREACH(filter ${filters})
