@@ -354,6 +354,13 @@ if { [BuildThis $::CMAKE "cmake"] == 1 } {
         runcmd $::CVS -d :pserver:anonymous:cmake@www.cmake.org:/cvsroot/CMake login
         eval "runcmd $::CVS $CVS_CO_FLAGS -d :pserver:anonymous@www.cmake.org:/cvsroot/CMake checkout -r $::CMAKE_TAG CMake"
 
+        # cmake 2.8.3
+        #runcmd wget $::CMAKE_URL 
+        #set cmakeArchive [file tail $::CMAKE_URL]
+        #set cmakeDir [file root [file root $cmakeArchive]]
+        #runcmd tar xvfz $cmakeArchive
+        #file rename $cmakeDir CMake
+
         if {$::GENLIB(buildit)} {
           cd $::CMAKE_PATH
           if { $isDarwin } {
@@ -968,6 +975,9 @@ if { [BuildThis $::VTK_TEST_FILE "vtk"] == 1 } {
             -DCMAKE_CXX_COMPILER_FULLPATH:FILEPATH=$COMPILER_PATH/$COMPILER \
             -DCMAKE_SHARED_LINKER_FLAGS:STRING="-Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib" \
             -DCMAKE_EXE_LINKER_FLAGS="-Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib" \
+            -DCMAKE_OSX_ARCHITECTURES:STRING=x86_64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.5 \
+            -DCMAKE_OSX_SYSROOT:PATH=/Developer/SDKs/MacOSX10.5.sdk \
             -DBUILD_TESTING:BOOL=OFF \
             -DVTK_USE_CARBON:BOOL=OFF \
             -DVTK_USE_COCOA:BOOL=OFF \
@@ -1107,6 +1117,9 @@ if { [BuildThis $::KWWidgets_TEST_FILE "kwwidgets"] == 1 } {
         runcmd $::CMAKE \
           -DCMAKE_SHARED_LINKER_FLAGS:STRING="-Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib" \
           -DCMAKE_EXE_LINKER_FLAGS="-Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib" \
+          -DCMAKE_OSX_ARCHITECTURES:STRING=x86_64 \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.5 \
+          -DCMAKE_OSX_SYSROOT:PATH=/Developer/SDKs/MacOSX10.5.sdk \
           ../KWWidgets
       }
 
@@ -1142,6 +1155,9 @@ if { [BuildThis $::ITK_TEST_FILE "itk"] == 1 } {
           -G$GENERATOR \
           -DCMAKE_CXX_COMPILER:STRING=$COMPILER_PATH/$COMPILER \
           -DCMAKE_CXX_COMPILER_FULLPATH:FILEPATH=$COMPILER_PATH/$COMPILER \
+          -DCMAKE_OSX_ARCHITECTURES:STRING=x86_64 \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.5 \
+          -DCMAKE_OSX_SYSROOT:PATH=/Developer/SDKs/MacOSX10.5.sdk \
           -DITK_USE_REVIEW:BOOL=ON \
           -DITK_USE_REVIEW_STATISTICS:BOOL=ON \
           -DITK_USE_OPTIMIZED_REGISTRATION_METHODS:BOOL=ON \
@@ -1269,6 +1285,9 @@ if { [BuildThis $::Teem_TEST_FILE "teem"] == 1 } {
       -DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF \
       -DCMAKE_CXX_COMPILER:STRING=$COMPILER_PATH/$COMPILER \
       -DCMAKE_CXX_COMPILER_FULLPATH:FILEPATH=$COMPILER_PATH/$COMPILER \
+      -DCMAKE_OSX_ARCHITECTURES:STRING=x86_64 \
+      -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.5 \
+      -DCMAKE_OSX_SYSROOT:PATH=/Developer/SDKs/MacOSX10.5.sdk \
       $C_FLAGS \
       -DBUILD_SHARED_LIBS:BOOL=ON \
       -DBUILD_TESTING:BOOL=ON \
@@ -1320,6 +1339,9 @@ if { [BuildThis $::OPENIGTLINK_TEST_FILE "openigtlink"] == 1 && [string tolower 
             -G$GENERATOR \
             -DCMAKE_CXX_COMPILER:STRING=$COMPILER_PATH/$COMPILER \
             -DCMAKE_CXX_COMPILER_FULLPATH:FILEPATH=$COMPILER_PATH/$COMPILER \
+            -DCMAKE_OSX_ARCHITECTURES:STRING=x86_64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.5 \
+            -DCMAKE_OSX_SYSROOT:PATH=/Developer/SDKs/MacOSX10.5.sdk \
             -DBUILD_SHARED_LIBS:BOOL=ON \
             -DCMAKE_SKIP_RPATH:BOOL=OFF \
             -DOpenIGTLink_DIR:FILEPATH=$Slicer3_LIB/OpenIGTLink-build \
@@ -1379,6 +1401,9 @@ if { ![file exists $::BatchMake_TEST_FILE] || $::GENLIB(update) } {
         -DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF \
         -DCMAKE_CXX_COMPILER:STRING=$COMPILER_PATH/$COMPILER \
         -DCMAKE_CXX_COMPILER_FULLPATH:FILEPATH=$COMPILER_PATH/$COMPILER \
+        -DCMAKE_OSX_ARCHITECTURES:STRING=x86_64 \
+        -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.5 \
+        -DCMAKE_OSX_SYSROOT:PATH=/Developer/SDKs/MacOSX10.5.sdk \
         -DBUILD_SHARED_LIBS:BOOL=OFF \
         -DBUILD_TESTING:BOOL=OFF \
         -DUSE_FLTK:BOOL=OFF \
@@ -1464,27 +1489,30 @@ if { [BuildThis $::SLICERLIBCURL_TEST_FILE "libcurl"] == 1 } {
 
       file mkdir $::Slicer3_LIB/cmcurl-build
       cd $::Slicer3_LIB/cmcurl-build
-if {$isSolaris} {
-      runcmd $::CMAKE \
-        -G$GENERATOR \
-        -DCMAKE_BUILD_TYPE:STRING=$::VTK_BUILD_TYPE \
-        -DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF \
-        -DCMAKE_CXX_COMPILER:STRING=$COMPILER_PATH/$COMPILER \
-        -DCMAKE_CXX_COMPILER_FULLPATH:FILEPATH=$COMPILER_PATH/$COMPILER \
-        -DBUILD_SHARED_LIBS:BOOL=ON \
-        -DBUILD_TESTING:BOOL=OFF \
-        ../cmcurl
-     } else {
-      runcmd $::CMAKE \
-        -G$GENERATOR \
-        -DCMAKE_BUILD_TYPE:STRING=$::VTK_BUILD_TYPE \
-        -DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF \
-        -DCMAKE_CXX_COMPILER:STRING=$COMPILER_PATH/$COMPILER \
-        -DCMAKE_CXX_COMPILER_FULLPATH:FILEPATH=$COMPILER_PATH/$COMPILER \
-        -DBUILD_SHARED_LIBS:BOOL=OFF \
-        -DBUILD_TESTING:BOOL=OFF \
-        ../cmcurl
-     }
+      if {$isSolaris} {
+        runcmd $::CMAKE \
+          -G$GENERATOR \
+          -DCMAKE_BUILD_TYPE:STRING=$::VTK_BUILD_TYPE \
+          -DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF \
+          -DCMAKE_CXX_COMPILER:STRING=$COMPILER_PATH/$COMPILER \
+          -DCMAKE_CXX_COMPILER_FULLPATH:FILEPATH=$COMPILER_PATH/$COMPILER \
+          -DBUILD_SHARED_LIBS:BOOL=ON \
+          -DBUILD_TESTING:BOOL=OFF \
+          ../cmcurl
+      } else {
+        runcmd $::CMAKE \
+          -G$GENERATOR \
+          -DCMAKE_BUILD_TYPE:STRING=$::VTK_BUILD_TYPE \
+          -DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF \
+          -DCMAKE_CXX_COMPILER:STRING=$COMPILER_PATH/$COMPILER \
+          -DCMAKE_CXX_COMPILER_FULLPATH:FILEPATH=$COMPILER_PATH/$COMPILER \
+          -DCMAKE_OSX_ARCHITECTURES:STRING=x86_64 \
+          -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.5 \
+          -DCMAKE_OSX_SYSROOT:PATH=/Developer/SDKs/MacOSX10.5.sdk \
+          -DBUILD_SHARED_LIBS:BOOL=OFF \
+          -DBUILD_TESTING:BOOL=OFF \
+          ../cmcurl
+      }
       if {$isWindows} {
         if { $MSVC6 } {
             runcmd $::MAKE SLICERLIBCURL.dsw /MAKE "ALL_BUILD - $::VTK_BUILD_TYPE"

@@ -503,6 +503,13 @@ if {0 && $isDarwin} {
    set ::GETBUILDTEST(cpack-extension) ".dmg"
 }
 
+# target 10.5 with 64 bit builds
+if {$isDarwin} {
+   set ::env(MACOSX_DEPLOYMENT_TARGET) "10.5"
+   set ::env(CFLAGS) "-arch x86_64 -mmacosx-version-min=10.5 -isysroot /Developer/SDKs/MacOSX10.5.sdk"
+   set ::env(CXXFLAGS) "-arch x86_64 -mmacosx-version-min=10.5 -isysroot /Developer/SDKs/MacOSX10.5.sdk"
+}
+
 # make verbose makefiles?
 if {$::GETBUILDTEST(verbose)} {
    set ::GETBUILDTEST(cmake-verbose) "ON"
@@ -527,6 +534,9 @@ runcmd $::CMAKE \
         -DMAKECOMMAND:STRING=$::MAKE \
         -DCMAKE_CXX_COMPILER:STRING=$COMPILER_PATH/$COMPILER \
         -DCMAKE_CXX_COMPILER_FULLPATH:FILEPATH=$COMPILER_PATH/$COMPILER \
+        -DCMAKE_OSX_ARCHITECTURES:STRING=x86_64 \
+        -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.5 \
+        -DCMAKE_OSX_SYSROOT:PATH=/Developer/SDKs/MacOSX10.5.sdk \
         -DITK_DIR:FILEPATH=$ITK_BINARY_PATH \
         -DKWWidgets_DIR:FILEPATH=$Slicer3_LIB/KWWidgets-build \
         -DOpenCV_DIR:FILEPATH=$Slicer3_LIB/OpenCV-build \
