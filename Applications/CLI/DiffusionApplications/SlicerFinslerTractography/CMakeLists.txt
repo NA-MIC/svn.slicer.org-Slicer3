@@ -25,7 +25,7 @@ include_directories( ${SlicerBaseCLI_BINARY_DIR} ${SlicerBaseCLI_SOURCE_DIR} )
 set (CLP FinslerTractography)
 
 set ( ${CLP}_SOURCE ${CLP}.cxx)
-generateclp(${CLP}_SOURCE ${CLP}.xml ${Slicer3_SOURCE_DIR}/Resources/NAMICLogo.h)
+generateclp(${CLP}_SOURCE ${CLP}.xml ${Slicer3_SOURCE_DIR}/Applications/CLI/DiffusionApplications/SlicerFinslerTractography/ModuleLogo.h)
 add_executable(${CLP} ${${CLP}_SOURCE} HARDI-ITK/sphericalHarmonics.cxx HARDI-ITK/sh2hot.cxx)
 slicer3_set_plugins_output_path(${CLP})
 target_link_libraries (${CLP}
