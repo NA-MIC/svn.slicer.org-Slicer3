@@ -728,6 +728,8 @@ SET(cli_modules
   #Java
   N4ITKBiasFieldCorrection
   RobustStatisticsSegmenter
+  UnbiasedNonLocalMeans
+  WeickertGradientNonLinearDiffusion
   )
 
 if ( ${ITK_VERSION_MAJOR} GREATER 3 )
