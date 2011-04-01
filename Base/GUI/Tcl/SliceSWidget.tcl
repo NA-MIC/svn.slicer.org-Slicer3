@@ -1417,7 +1417,12 @@ itcl::body SliceSWidget::addSliceModelSWidgets {} {
 # linking is off) or a list of logics (one for the current slice and others 
 # for linked slices).
 #
-# orientationFlag is set to 1 by default, check for orientation information if it's true, otherwise, don't
+# orientationFlag is set to 1 by default, check for orientation information 
+# - if it's true, only return logics that match the calling slice node orientation string
+# (i.e. Axial matches Axial, Coronal matches Coronal etc)  But Reformat is ignored, since
+# it can refer to any non-aligned orientation.
+# - if false, ignore orientation and return all logics that have the link flag even if
+# they don't match orientation
 itcl::body SliceSWidget::getLinkedSliceLogics { {orientationFlag 1} } {
     set logic [$sliceGUI GetLogic]
     set sliceNode [$logic GetSliceNode]
@@ -1447,7 +1452,16 @@ itcl::body SliceSWidget::getLinkedSliceLogics { {orientationFlag 1} } {
               }
               # is it linked?
               if {[[[$sgui GetLogic] GetSliceCompositeNode] GetLinkedControl] == 1} {
-                  lappend logics [$sgui GetLogic]
+                  if {$orientationFlag == 1} {
+                      set currSliceNode [$sgui GetSliceNode]
+                      set currOrientString [$currSliceNode GetOrientationString]
+                      if { [string compare $orientString $currOrientString] == 0 &&
+                           $currOrientString != "Reformat" } {
+                          lappend logics [$sgui GetLogic]
+                      }
+                  } else {
+                      lappend logics [$sgui GetLogic]
+                  }
               }
           }
       }
@@ -1505,7 +1519,7 @@ itcl::body SliceSWidget::getLinkedSliceLogics { {orientationFlag 1} } {
 
 # Return the SliceLogics  
 #
-# The list of linked logics contains a list of logics (one for the current slice and others 
+# The list of logics contains a list of logics (one for the current slice and others 
 # for other slices).
 #
 itcl::body SliceSWidget::getSliceLogics { } {
