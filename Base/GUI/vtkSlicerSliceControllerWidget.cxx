@@ -1957,83 +1957,17 @@ void vtkSlicerSliceControllerWidget::RotateSliceToBackground ( int link )
     return;
     }
 
+  // Note: this action is not affected by the LinkedControl flag on the slice composite node
+  // See: http://www.slicer.org/slicerWiki/index.php/Slicer3:UIDesign:WorkingProblems:LinkedControls#Linked_controls_table
+  // and
+  // http://www.na-mic.org/Bug/view.php?id=1115
   if ( found )
     {
-    if ( link )
+    this->MRMLScene->SaveStateForUndo ( this->SliceNode );
+    vtkMRMLVolumeNode *backgroundNode = mysgui->GetLogic()->GetLayerVolumeNode(0);
+    if ( backgroundNode )
       {
-      // If the controllers are linked, we want to call
-      // RotateToVolumePlane of the current slice node and then copy
-      // its SliceToRAS to the other slice nodes.
-
-      // First save all SliceNodes for undo:
-      vtkCollection *nodes = vtkCollection::New();
-      const char *layoutname = NULL;
-      int nSliceGUI = ssgui->GetNumberOfSliceGUI();
-      vtkSlicerSliceGUI *tsgui;
-      for (int i = 0; i < nSliceGUI; i++)
-        {
-        if (i == 0)
-          {
-          tsgui = ssgui->GetFirstSliceGUI();
-          layoutname = ssgui->GetFirstSliceGUILayoutName();
-          }
-        else
-          {
-          tsgui = ssgui->GetNextSliceGUI(layoutname);
-          layoutname = ssgui->GetNextSliceGUILayoutName(layoutname);
-          }
-            
-        if (tsgui)
-          nodes->AddItem ( tsgui->GetSliceNode ( ) );
-        }
-        
-      this->MRMLScene->SaveStateForUndo ( nodes );
-      nodes->Delete ( );
-
-      // RotateToVolumePlane this slice node
-      this->MRMLScene->SaveStateForUndo ( this->SliceNode );
-      vtkMRMLVolumeNode *backgroundNode = mysgui->GetLogic()->GetLayerVolumeNode(0);
-      if ( backgroundNode )
-        {
-        mysgui->GetSliceNode()->RotateToVolumePlane( backgroundNode );
-        }
-        
-      // Now copy the SliceToRAS to all Slices 
-      for (int i = 0; i < nSliceGUI; i++)
-        {
-        if (i == 0)
-          {
-          tsgui = ssgui->GetFirstSliceGUI();
-          layoutname = ssgui->GetFirstSliceGUILayoutName();
-          }
-        else
-          {
-          tsgui = ssgui->GetNextSliceGUI(layoutname);
-          layoutname = ssgui->GetNextSliceGUILayoutName(layoutname);
-          }
-            
-        if (tsgui)
-          {
-          vtkMRMLVolumeNode *backgroundNode = tsgui->GetLogic()->GetLayerVolumeNode(0);
-          if ( backgroundNode )
-            {
-            tsgui->GetLogic()->GetSliceCompositeNode()->SetLinkedControl(0);
-            tsgui->GetSliceNode()->SetSliceToRAS( this->SliceNode->GetSliceToRAS() );
-            tsgui->GetSliceNode()->SetOrientationToReformat();
-            tsgui->GetSliceViewer()->RequestRender();
-            tsgui->GetLogic()->GetSliceCompositeNode()->SetLinkedControl(1);
-            }
-          }
-        }
-      }
-    else
-      {
-      this->MRMLScene->SaveStateForUndo ( this->SliceNode );
-      vtkMRMLVolumeNode *backgroundNode = mysgui->GetLogic()->GetLayerVolumeNode(0);
-      if ( backgroundNode )
-        {
-        mysgui->GetSliceNode()->RotateToVolumePlane( backgroundNode );
-        }
+      mysgui->GetSliceNode()->RotateToVolumePlane( backgroundNode );
       }
     }
 }
@@ -3076,12 +3010,18 @@ void vtkSlicerSliceControllerWidget::ProcessWidgetEvents ( vtkObject *caller,
     // modify all slice logic to synch all Compare Slice viewers
     // (don't sync on ScaleValueChangingEvent for performance reasons,
     // wait until the ScaleValueChangedEvent to propagate to the other viewers)
-    if ( link && sgui0 && (event != vtkKWScale::ScaleValueChangingEvent) &&
-         ((layout->GetViewArrangement() == vtkMRMLLayoutNode::SlicerLayoutCompareView) ||
-          (layout->GetViewArrangement() == vtkMRMLLayoutNode::SlicerLayoutCompareWidescreenView) || 
-          (layout->GetViewArrangement() == vtkMRMLLayoutNode::SlicerLayoutSideBySideLightboxView)) )
+    if ( link && sgui0 && event != vtkKWScale::ScaleValueChangingEvent) 
       {
-      modified |= this->UpdateCompareView( offset );
+      if (((layout->GetViewArrangement() == vtkMRMLLayoutNode::SlicerLayoutCompareView) ||
+           (layout->GetViewArrangement() == vtkMRMLLayoutNode::SlicerLayoutCompareWidescreenView) || 
+           (layout->GetViewArrangement() == vtkMRMLLayoutNode::SlicerLayoutSideBySideLightboxView)) )
+        {
+        modified |= this->UpdateCompareView( offset );
+        }
+      else
+        {
+        modified |= this->UpdateLinkedView( offset );
+        }
       }
     else
       {
@@ -3118,12 +3058,18 @@ void vtkSlicerSliceControllerWidget::ProcessWidgetEvents ( vtkObject *caller,
       {
       // if slice viewers are linked in CompareView layout mode,
       // modify all slice logic to synch all Compare Slice viewers
-      if ( link && sgui0 &&
-         ((layout->GetViewArrangement() == vtkMRMLLayoutNode::SlicerLayoutCompareView) ||
-          (layout->GetViewArrangement() == vtkMRMLLayoutNode::SlicerLayoutCompareWidescreenView) || 
-          (layout->GetViewArrangement() == vtkMRMLLayoutNode::SlicerLayoutSideBySideLightboxView)) )
+      if ( link && sgui0 )
         {
-        modified |= this->UpdateCompareView( newValue );
+        if (((layout->GetViewArrangement() == vtkMRMLLayoutNode::SlicerLayoutCompareView) ||
+             (layout->GetViewArrangement() == vtkMRMLLayoutNode::SlicerLayoutCompareWidescreenView) || 
+             (layout->GetViewArrangement() == vtkMRMLLayoutNode::SlicerLayoutSideBySideLightboxView)) )
+          {
+          modified |= this->UpdateCompareView( newValue );
+          }
+        else
+          {
+          modified |= this->UpdateLinkedView( newValue );
+          }
         }
       else
         {
@@ -3193,6 +3139,56 @@ int vtkSlicerSliceControllerWidget::UpdateCompareView ( double newValue )
       
       if ( strncmp(layoutname, "Compare", 7) != 0
            && strcmp(layoutname, "Red") != 0 )
+        continue;
+      
+      if ( sgui->GetLogic() &&  sgui->GetSliceNode() &&
+           !strcmp(this->SliceNode->GetOrientationString(), sgui->GetSliceNode()->GetOrientationString()))
+        {
+        double oldValue = sgui->GetLogic()->GetSliceOffset();
+        if (fabs(oldValue - newValue) > 1.0e-6)
+          {
+          // turn off linking while modifying the node
+          int link 
+            = sgui->GetLogic()->GetSliceCompositeNode()->GetLinkedControl();
+          sgui->GetLogic()->GetSliceCompositeNode()->SetLinkedControl(0);
+          sgui->GetLogic()->SetSliceOffset( newValue );
+          sgui->GetLogic()->SnapSliceOffsetToIJK();
+          sgui->GetLogic()->GetSliceCompositeNode()->SetLinkedControl(link);
+          modified = 1;
+          }
+        }
+      }
+    }
+  return (modified);
+}
+
+//---------------------------------------------------------------------------
+int vtkSlicerSliceControllerWidget::UpdateLinkedView ( double newValue )
+{
+  vtkSlicerApplication *app = vtkSlicerApplication::SafeDownCast ( this->GetApplication());
+  vtkSlicerSlicesGUI *ssgui = vtkSlicerSlicesGUI::SafeDownCast ( app->GetModuleGUIByName ("Slices") );
+  vtkSlicerSliceGUI *sgui;
+  int modified = 0;
+
+  if (ssgui)
+    {
+    const char *layoutname = NULL;
+    int nSliceGUI = ssgui->GetNumberOfSliceGUI();
+    int i;
+    for (i = 0; i < nSliceGUI; i++)
+      {
+      if (i == 0)
+        {
+        sgui = ssgui->GetFirstSliceGUI();
+        layoutname = ssgui->GetFirstSliceGUILayoutName();
+        }
+      else
+        {
+        sgui = ssgui->GetNextSliceGUI(layoutname);
+        layoutname = ssgui->GetNextSliceGUILayoutName(layoutname);
+        }
+      
+      if ( strncmp(layoutname, "Compare", 7) == 0 )
         continue;
       
       if ( sgui->GetLogic() &&  sgui->GetSliceNode() &&
