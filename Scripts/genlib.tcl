@@ -788,7 +788,7 @@ if { [BuildThis $::NETLIB_TEST_FILE "netlib"] && !$::USE_SYSTEM_PYTHON && [strin
 # Get and build numpy and scipy
 #
 
-if {  [BuildThis $::NUMPY_TEST_FILE "python"] && !$::USE_SYSTEM_PYTHON && [string tolower $::USE_PYTHON] == "on" } {
+if {  [BuildThis $::NUMPY_TEST_FILE "python"] && !$::USE_SYSTEM_PYTHON && [string tolower $::USE_PYTHON] == "on" && [string tolower $::USE_NUMPY] == "on" } {
 
     set ::env(PYTHONHOME) $::Slicer3_LIB/python-build
     cd $::Slicer3_LIB/python
