@@ -283,10 +283,11 @@ void vtkScriptedModuleGUI::UpdateGUI ()
 //---------------------------------------------------------------------------
 void vtkScriptedModuleGUI::ProcessMRMLEvents(vtkObject *caller,
                                              unsigned long event,
-                                             void *vtkNotUsed(callData)) 
+                                             void *callData) 
 {
   vtkDebugMacro("ProcessMRMLEvents()");
   vtkMRMLNode *mrmlNode = vtkMRMLNode::SafeDownCast(caller);
+  vtkMRMLScene *mrmlScene = vtkMRMLScene::SafeDownCast(caller);
 
   if (this->Language == vtkScriptedModuleGUI::Tcl)
     {
@@ -300,11 +301,38 @@ void vtkScriptedModuleGUI::ProcessMRMLEvents(vtkObject *caller,
   else if (this->Language == vtkScriptedModuleGUI::Python)
     {
 #ifdef Slicer3_USE_PYTHON
-    std::stringstream pythonCommand;
-    pythonCommand << "SlicerScriptedModuleInfo.Modules['" << this->GetModuleName() << "']['gui'].ProcessMRMLEvents('" << mrmlNode->GetID() << "'," << event << ")\n";
-    if (PyRun_SimpleString( pythonCommand.str().c_str() ) != 0)
+    if (mrmlNode != NULL || mrmlScene != NULL)
       {
-      PyErr_Print();
+      std::stringstream pythonCommand;
+      
+      if (mrmlNode)
+        {
+        // event was fired by a MRML node
+        pythonCommand << "SlicerScriptedModuleInfo.Modules['" << this->GetModuleName() << "']['gui'].ProcessMRMLEvents('" << mrmlNode->GetID() << "'," << event << ")\n";
+        }
+      else if(mrmlScene)
+        {
+        // event was fired by the MRML scene
+        
+        // let's check if we have valid callData
+        vtkMRMLNode *mrmlNodeFromCallData = vtkMRMLNode::SafeDownCast((vtkMRMLNode*)callData);
+      
+        if (mrmlNodeFromCallData)
+          {
+          // we have valid callData and forward it to the python script
+          pythonCommand << "SlicerScriptedModuleInfo.Modules['" << this->GetModuleName() << "']['gui'].ProcessMRMLEvents('MRMLScene'," << event << ",'" << mrmlNodeFromCallData->GetID() << "')\n";
+          }
+        else
+          {
+          // we don't have a valid calldata, so we just forward the event to the python script
+          pythonCommand << "SlicerScriptedModuleInfo.Modules['" << this->GetModuleName() << "']['gui'].ProcessMRMLEvents('MRMLScene'," << event << ")\n";
+          }
+        }
+      
+      if (PyRun_SimpleString( pythonCommand.str().c_str() ) != 0)
+        {
+        PyErr_Print();
+        }
       }
 #endif
     }
@@ -368,7 +396,7 @@ void vtkScriptedModuleGUI::TearDownGUI ( )
 }
 
 //---------------------------------------------------------------------------
-void vtkScriptedModuleGUI::Invoke (char* method, char* args )
+void vtkScriptedModuleGUI::Invoke (const char* methodAndArgs)
 {
   if (this->Language == vtkScriptedModuleGUI::Tcl)
     {
@@ -383,14 +411,34 @@ void vtkScriptedModuleGUI::Invoke (char* method, char* args )
 #ifdef Slicer3_USE_PYTHON
     std::stringstream pythonCommand;
 
-    if (args == NULL) 
+    std::vector<std::string> strings;
+    std::istringstream f(methodAndArgs);
+    std::string s;    
+    while (std::getline(f, s, ' ')) {
+      strings.push_back(s);
+    }
+
+    if (strings.size()==1) 
       {
       // no args, just plain method call
-      pythonCommand << "SlicerScriptedModuleInfo.Modules['" << this->GetModuleName() << "']['gui']." << method << "()\n";
+      pythonCommand << "SlicerScriptedModuleInfo.Modules['" << this->GetModuleName() << "']['gui']." << strings[0] << "()\n";
       }
     else 
       {
-      pythonCommand << "SlicerScriptedModuleInfo.Modules['" << this->GetModuleName() << "']['gui']." << method << "("<< args <<")\n";
+  
+      std::string argsString;
+      for(unsigned int i=1; i<strings.size(); i++)
+        {
+        argsString += strings[i];
+        if (i+1!=strings.size())
+          {
+          // only append comma if it is not the last element
+          argsString += ",";
+          }
+        }
+      
+      pythonCommand << "SlicerScriptedModuleInfo.Modules['" << this->GetModuleName() << "']['gui']." << strings[0] << "("<< argsString <<")\n";
+      //std::cout << pythonCommand << std::endl;
       }
 
     if (PyRun_SimpleString( pythonCommand.str().c_str() ) != 0)
@@ -398,18 +446,110 @@ void vtkScriptedModuleGUI::Invoke (char* method, char* args )
       PyErr_Print();
       }
 #else
-    (void)(method); // To avoid "unused variable warning"
-    (void)(args); // To avoid "unused variable warning"
+    (void)(methodAndArgs); // To avoid "unused variable warning"
 #endif
     } 
 }
 
 //---------------------------------------------------------------------------
-void vtkScriptedModuleGUI::Invoke (char* method) 
+void vtkScriptedModuleGUI::Invoke (char* method, char* arg1)
 {
 
-  // no args
-  this->Invoke(method, NULL);
+  std::string methodAndArgs("");
+  methodAndArgs += method;
+  methodAndArgs += " ";
+  methodAndArgs += arg1;
+  this->Invoke(methodAndArgs.c_str());
+
+}
+
+//---------------------------------------------------------------------------
+void vtkScriptedModuleGUI::Invoke (char* method, char* arg1, char* arg2)
+{
+
+  std::string methodAndArgs("");
+  methodAndArgs += method;
+  methodAndArgs += " ";
+  methodAndArgs += arg1;
+  methodAndArgs += " ";
+  methodAndArgs += arg2;  
+  this->Invoke(methodAndArgs.c_str());
+
+}
+
+//---------------------------------------------------------------------------
+void vtkScriptedModuleGUI::Invoke (char* method, char* arg1, char* arg2, char* arg3)
+{
+
+  std::string methodAndArgs("");
+  methodAndArgs += method;
+  methodAndArgs += " ";
+  methodAndArgs += arg1;
+  methodAndArgs += " ";
+  methodAndArgs += arg2;  
+  methodAndArgs += " ";
+  methodAndArgs += arg3;    
+  this->Invoke(methodAndArgs.c_str());
+
+}
+
+//---------------------------------------------------------------------------
+void vtkScriptedModuleGUI::Invoke (char* method, char* arg1, char* arg2, char* arg3, char* arg4)
+{
+
+  std::string methodAndArgs("");
+  methodAndArgs += method;
+  methodAndArgs += " ";
+  methodAndArgs += arg1;
+  methodAndArgs += " ";
+  methodAndArgs += arg2;  
+  methodAndArgs += " ";
+  methodAndArgs += arg3;    
+  methodAndArgs += " ";
+  methodAndArgs += arg4;
+  this->Invoke(methodAndArgs.c_str());
+
+}
+
+//---------------------------------------------------------------------------
+void vtkScriptedModuleGUI::Invoke (char* method, char* arg1, char* arg2, char* arg3, char* arg4, char* arg5)
+{
+
+  std::string methodAndArgs("");
+  methodAndArgs += method;
+  methodAndArgs += " ";
+  methodAndArgs += arg1;
+  methodAndArgs += " ";
+  methodAndArgs += arg2;  
+  methodAndArgs += " ";
+  methodAndArgs += arg3;    
+  methodAndArgs += " ";
+  methodAndArgs += arg4;
+  methodAndArgs += " ";
+  methodAndArgs += arg5;  
+  this->Invoke(methodAndArgs.c_str());
+
+}
+
+//---------------------------------------------------------------------------
+void vtkScriptedModuleGUI::Invoke (char* method, char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* arg6)
+{
+
+  std::string methodAndArgs("");
+  methodAndArgs += method;
+  methodAndArgs += " ";
+  methodAndArgs += arg1;
+  methodAndArgs += " ";
+  methodAndArgs += arg2;  
+  methodAndArgs += " ";
+  methodAndArgs += arg3;    
+  methodAndArgs += " ";
+  methodAndArgs += arg4;
+  methodAndArgs += " ";
+  methodAndArgs += arg5;  
+  methodAndArgs += " ";
+  methodAndArgs += arg6;    
+  this->Invoke(methodAndArgs.c_str());
 
 }
 

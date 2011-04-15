@@ -82,9 +82,15 @@ public:
                                   void *callData);
   // Description:
   // Calls the passed method of the parentClass
-  virtual void Invoke (char* method, char* args );
-  virtual void Invoke (char* method);// Description:
-
+  virtual void Invoke (const char* methodAndArgs);
+  // shadow functions to support optional arguments (up to 6)
+  virtual void Invoke (char* method, char* arg1);
+  virtual void Invoke (char* method, char* arg1, char* arg2);
+  virtual void Invoke (char* method, char* arg1, char* arg2, char* arg3);
+  virtual void Invoke (char* method, char* arg1, char* arg2, char* arg3, char* arg4);
+  virtual void Invoke (char* method, char* arg1, char* arg2, char* arg3, char* arg4, char* arg5);
+  virtual void Invoke (char* method, char* arg1, char* arg2, char* arg3, char* arg4, char* arg5, char* arg6);
+  
   // Description:
   // Describe behavior at module startup and exit.
   virtual void Enter ( void );
