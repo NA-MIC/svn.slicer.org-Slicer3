@@ -53,6 +53,7 @@ int vtkMRMLAtlasCreatorNodeTest1(int , char * [] )
   TEST_SET_GET_STRING( node1, ExistingTemplate );
   TEST_SET_GET_STRING( node1, TransformsDirectory );
 
+  /*
   TEST_SET_GET_INT( node1, DynamicTemplateIterations, 10 );
   TEST_SET_GET_INT( node1, DeleteAlignedImages, 0 );
   TEST_SET_GET_INT( node1, DeleteAlignedImages, 1 );
@@ -77,7 +78,7 @@ int vtkMRMLAtlasCreatorNodeTest1(int , char * [] )
   TEST_SET_GET_INT( node1, DryrunMode, 1 );
   TEST_SET_GET_INT( node1, SaveTransforms, 0 );
   TEST_SET_GET_INT( node1, SaveTransforms, 1 );
-
+*/
 
   node1->Modified();
   vtkMRMLScene * scene = node1->GetScene();
