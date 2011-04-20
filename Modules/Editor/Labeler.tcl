@@ -112,6 +112,10 @@ itcl::body Labeler::makeMaskImage {polyData} {
   # use the slicer2-based vtkImageFillROI filter
   #
 
+  if { [$polyData GetPoints] == "" } {
+    return
+  }
+
   #
   # Need to know the mapping from RAS into polygon space
   # so the painter can use this as a mask
@@ -400,6 +404,10 @@ itcl::body Labeler::buildOptions { } {
 
   if { [$this getInputBackground] != "" } {
     set range [[$this getInputBackground] GetScalarRange]
+    foreach {lo hi} $range {}
+    set lo [expr $lo - 1]
+    set hi [expr $hi + 1]
+    set range "$lo $hi"
     eval $o(paintRange) SetWholeRange $range
   }
 
