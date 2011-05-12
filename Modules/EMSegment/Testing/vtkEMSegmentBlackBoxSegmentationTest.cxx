@@ -33,7 +33,7 @@ int main(int argc, char** argv)
   parametersNodeName          = argv[3];
   correctSegmentationFilename = argv[4];
 
-#ifdef WIN32
+#ifdef _WIN32
   //
   // strip backslashes from parameter node name (present if spaces were used)
   std::string tmpNodeName = parametersNodeName;
@@ -61,14 +61,19 @@ int main(int argc, char** argv)
   //
   // create an instance of vtkEMSegmentLogic and connect it with the
   // MRML scene
+ 
   vtkEMSegmentLogic* emLogic = vtkEMSegmentLogic::New();
   emLogic->SetAndObserveMRMLScene(mrmlScene);
   emLogic->RegisterMRMLNodesWithScene();
+  // emLogic->SetSlicerApp(vtkSlicerApplication::GetInstance());
+
   vtkIntArray *emsEvents                 = vtkIntArray::New();
   emsEvents->InsertNextValue(vtkMRMLScene::NodeAddedEvent);
   emsEvents->InsertNextValue(vtkMRMLScene::NodeRemovedEvent);
   emLogic->SetAndObserveMRMLSceneEvents(mrmlScene, emsEvents);
   emsEvents->Delete();
+
+  emLogic->GetMRMLManager()->SetMRMLScene( mrmlScene);
 
   try 
   {

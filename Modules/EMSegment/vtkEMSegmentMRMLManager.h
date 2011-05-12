@@ -1,9 +1,10 @@
 #ifndef __vtkEMSegmentMRMLManager_h
 #define __vtkEMSegmentMRMLManager_h
 
-#include "vtkSlicerModuleLogic.h"
 #include "vtkEMSegment.h"
 #include <vtkSetGet.h>
+
+#define ERROR_NODE_VTKID 0
 
 class vtkMRMLEMSGlobalParametersNode;
 class vtkMRMLEMSTemplateNode;
@@ -11,13 +12,14 @@ class vtkMRMLEMSAtlasNode;
 class vtkMRMLEMSTreeNode;
 class vtkMRMLEMSTreeParametersNode;
 class vtkMRMLEMSTreeParametersParentNode;
-//class vtkMRMLEMSTreeParametersLeafNode;
 class vtkMRMLEMSWorkingDataNode;
 class vtkMRMLScalarVolumeNode;
 class vtkMRMLVolumeNode;
 class vtkMRMLEMSVolumeCollectionNode;
+class vtkMRMLStorableNode;
+
 // need enum values
-#include "MRML/vtkMRMLEMSTreeParametersLeafNode.h"
+#include "vtkMRMLEMSTreeParametersLeafNode.h"
 
 class vtkMRMLScene;
 
@@ -35,6 +37,7 @@ public:
 
   // Prints out important info about the current template / task 
   void PrintInfo(ostream& os);
+  void PrintInfo();
 
   // Get/Set the current mrml scene
   vtkSetObjectMacro(MRMLScene, vtkMRMLScene);
@@ -62,7 +65,8 @@ public:
   // populates the nodes with default values, adds the nodes to the
   // MRML scene.
   virtual void        CreateAndObserveNewParameterSet();
-  virtual int         SetLoadedParameterSetIndex(int i);
+  int         SetLoadedParameterSetIndex(int i);
+  int         SetLoadedParameterSetIndex(vtkMRMLEMSTemplateNode* tNode);
   virtual int         CheckEMSTemplateVolumeNodes(vtkMRMLEMSTemplateNode* emsTemplateNode);
 
   //
@@ -84,11 +88,8 @@ public:
   //
 
   // Step 1
-  virtual const char* GetTreeNodeLabel(vtkIdType id);
-  virtual void        SetTreeNodeLabel(vtkIdType id, const char* label);
-
-  virtual int      GetTreeNodeIntensityLabel(vtkIdType nodeID);
-  virtual void     SetTreeNodeIntensityLabel(vtkIdType nodeID, int label);
+  int         GetTreeNodeIntensityLabel(vtkIdType nodeID);
+  virtual void        SetTreeNodeIntensityLabel(vtkIdType nodeID, int label);
 
   virtual const char* GetTreeNodeName(vtkIdType id);
   virtual void        SetTreeNodeName(vtkIdType id, const char* label);
@@ -129,7 +130,7 @@ public:
 
   virtual double   GetTreeNodeDistributionLogCovarianceWithCorrection(vtkIdType nodeID, int rowIndex, int columnIndex);
 
-  virtual bool   IsTreeNodeDistributionLogCovarianceWithCorrectionInvertableAndSemiDefinite(vtkIdType nodeID);
+  virtual bool     IsTreeNodeDistributionLogCovarianceWithCorrectionInvertableAndSemiDefinite(vtkIdType nodeID);
 
   virtual int      GetTreeNodeDistributionNumberOfSamples(vtkIdType nodeID);
 
@@ -151,9 +152,14 @@ public:
   virtual void     UpdateIntensityDistributions();
 
   // Step 5
+  virtual int       GetTreeNodeInteractionMatrices2DFlag(vtkIdType nodeID);
+  virtual void    SetTreeNodeInteractionMatrices2DFlag(vtkIdType nodeID, int value);
+
 
   virtual int      GetTreeNodePrintWeight(vtkIdType nodeID);
   virtual void     SetTreeNodePrintWeight(vtkIdType nodeID, int shouldPrint);
+
+  virtual void     PrintWeightOnForEntireTree(); 
 
   virtual int      GetTreeNodePrintQuality(vtkIdType nodeID);
   virtual void     SetTreeNodePrintQuality(vtkIdType nodeID, int shouldPrint);
@@ -273,6 +279,7 @@ public:
   virtual vtkIdType GetTreeNodeSpatialPriorVolumeID(vtkIdType nodeID);
   virtual void      SetTreeNodeSpatialPriorVolumeID(vtkIdType nodeID, vtkIdType volumeID);
   vtkMRMLVolumeNode* GetAlignedSpatialPriorFromTreeNodeID(vtkIdType nodeID);
+  virtual void SetAlignedSpatialPrior(vtkIdType nodeID, vtkIdType volumeID);
 
   virtual vtkIdType GetTreeNodeSubParcellationVolumeID(vtkIdType nodeID);
   virtual void      SetTreeNodeSubParcellationVolumeID(vtkIdType nodeID, vtkIdType volumeID);
@@ -283,6 +290,10 @@ public:
 
   virtual void      SetMinimumIslandSize(int value);
   virtual int       GetMinimumIslandSize();
+
+  virtual int       GetIsland2DFlag() ;
+  virtual void    SetIsland2DFlag(int) ;
+
 
   // target volumes
   virtual int         GetTargetNumberOfSelectedVolumes();
@@ -330,8 +341,8 @@ public:
   virtual int       GetEnableTargetToTargetRegistration();
   virtual void      SetEnableTargetToTargetRegistration(int enable);
 
-  virtual const char*  GetColormap();
-  virtual void         SetColormap(const char* colormap);
+  virtual const char*  GetColorNodeID();
+  virtual void         SetColorNodeID(const char* colormap);
 
   //BTX
   enum
@@ -344,7 +355,7 @@ public:
   //ETX
   virtual int       GetRegistrationInterpolationType();
   virtual void      SetRegistrationInterpolationType(int interpolationType);
-  int GetInterpolationTypeFromString(const char* type);
+  int               GetInterpolationTypeFromString(const char* type);
 
   //BTX
   enum
@@ -396,7 +407,6 @@ public:
 
   virtual const char*  GetOutputVolumeMRMLID();
   virtual void         SetOutputVolumeMRMLID(const char* mrmlID);
-  virtual void         SetOutputVolumeID(vtkIdType volumeID);
 
   //
   // miscellaneous
@@ -449,37 +459,44 @@ public:
   //
   // convenience functions for managing MRML nodes
   //
-  virtual vtkMRMLEMSVolumeCollectionNode*           GetTargetInputNode();
-  virtual vtkMRMLEMSAtlasNode*            GetAtlasInputNode();
-  virtual vtkMRMLEMSVolumeCollectionNode*  GetSubParcellationInputNode();
+  virtual vtkMRMLEMSVolumeCollectionNode*   GetTargetInputNode();
+  virtual vtkMRMLEMSAtlasNode*              GetAtlasInputNode();
+  virtual vtkMRMLEMSVolumeCollectionNode*   GetSubParcellationInputNode();
+  virtual vtkMRMLEMSAtlasNode*              GetAtlasAlignedNode();
 
-  virtual vtkMRMLScalarVolumeNode*        GetOutputVolumeNode();
-  virtual void                            CreateOutputVolumeNode();
+  virtual vtkMRMLScalarVolumeNode*          GetOutputVolumeNode();
 
-  virtual vtkMRMLEMSGlobalParametersNode* GetGlobalParametersNode();
-  virtual vtkMRMLEMSTreeNode*             GetTreeRootNode();
-  virtual vtkMRMLEMSTreeNode*             GetTreeNode(vtkIdType);
-  virtual vtkMRMLEMSTreeParametersNode*   GetTreeParametersNode(vtkIdType);  
-  virtual vtkMRMLEMSTreeParametersLeafNode* 
-    GetTreeParametersLeafNode(vtkIdType);  
-  virtual vtkMRMLEMSTreeParametersParentNode* 
-    GetTreeParametersParentNode(vtkIdType);  
+  virtual vtkMRMLEMSGlobalParametersNode*   GetGlobalParametersNode();
+  virtual vtkMRMLEMSTreeNode*               GetTreeRootNode();
+  virtual vtkMRMLEMSTreeNode*               GetTreeNode(vtkIdType);
+  virtual bool TreeNodeExists(vtkIdType nodeID);
+  virtual vtkMRMLEMSTreeParametersLeafNode* GetTreeParametersLeafNode(vtkIdType);  
 
-  virtual vtkMRMLVolumeNode*              GetVolumeNode(vtkIdType);
-  virtual vtkMRMLEMSWorkingDataNode*       GetWorkingDataNode();
+  virtual vtkMRMLVolumeNode*                GetVolumeNode(vtkIdType);
+  virtual vtkMRMLEMSWorkingDataNode*        GetWorkingDataNode();
 
-  virtual vtkMRMLEMSVolumeCollectionNode* CloneTargetNode(vtkMRMLEMSVolumeCollectionNode* target,
-                                                const char* name);
+  virtual vtkMRMLEMSVolumeCollectionNode*   CloneTargetNode(vtkMRMLEMSVolumeCollectionNode* target, const char* name)
+  {
+    return CloneVolumeCollectionNode(target, name);
+  }
+  virtual vtkMRMLEMSVolumeCollectionNode*   CloneSubParcellationNode(vtkMRMLEMSVolumeCollectionNode* target, const char* name)
+  {
+    return CloneVolumeCollectionNode(target, name);
+  }
 
   virtual vtkMRMLEMSAtlasNode*  CloneAtlasNode(vtkMRMLEMSAtlasNode* target, const char* name);
-  virtual vtkMRMLEMSVolumeCollectionNode*  CloneSubParcellationNode(vtkMRMLEMSVolumeCollectionNode* target, const char* name);
 
-  virtual void SynchronizeTargetNode(vtkMRMLEMSVolumeCollectionNode* templateNode,
-                                     vtkMRMLEMSVolumeCollectionNode* changingNode,
-                                     const char* name);
+  virtual void SynchronizeTargetNode(vtkMRMLEMSVolumeCollectionNode* templateNode, vtkMRMLEMSVolumeCollectionNode* changingNode, const char* name)
+  {
+       this->SynchronizeVolumeCollectionNode(templateNode, changingNode, name);
+  }
+
+  virtual void SynchronizeSubParcellationNode(vtkMRMLEMSVolumeCollectionNode* templateNode, vtkMRMLEMSVolumeCollectionNode* changingNode, const char* name)
+  {
+       this->SynchronizeVolumeCollectionNode(templateNode, changingNode, name);
+  }
+
   virtual void SynchronizeAtlasNode(vtkMRMLEMSAtlasNode* templateNode, vtkMRMLEMSAtlasNode* changingNode, const char* name);
-  virtual void SynchronizeSubParcellationNode(vtkMRMLEMSVolumeCollectionNode* templateNode, vtkMRMLEMSVolumeCollectionNode* changingNode, const char* name);
-
 
   virtual vtkIdType    MapMRMLNodeIDToVTKNodeID(const char* MRMLNodeID);
 
@@ -504,7 +521,18 @@ public:
   virtual void CopyEMRelatedNodesToMRMLScene(vtkMRMLScene* newScene);
 
   virtual  void RemoveLegacyNodes();
+ 
+  // Needed for Tcl  - if you set it as "" then it is interpreted as an id 
+  void SetStorageNodeToNULL(vtkMRMLStorableNode* sNode) ;
 
+//BTX
+  void ImportMRMLFile(const char *mrmlFile,  vtksys_stl::string errMSG);  
+//ETX
+
+  //  referenceNode is only needed to create a volume node of the same type - Returns VTKNodeID 
+  vtkMRMLScalarVolumeNode*  CreateVolumeScalarNode(vtkMRMLScalarVolumeNode*  referenceNode , const char *name); 
+  vtkIdType CreateVolumeScalarNodeVolumeID(vtkMRMLScalarVolumeNode*  referenceNode , const char *name);
+ 
 private:
   vtkEMSegmentMRMLManager();
   ~vtkEMSegmentMRMLManager();
@@ -598,8 +626,17 @@ private:
   // Reset the correction of the node as well as subtree 
   void ResetLogCovarianceCorrectionsOfAllNodes(vtkIdType rootID);
 
+  void TurnFromParentToLeafNode(vtkMRMLEMSTreeNode* treeNode) ;
+
+
+  virtual vtkMRMLEMSVolumeCollectionNode*  CloneVolumeCollectionNode(vtkMRMLEMSVolumeCollectionNode* target, const char* name);
+  virtual void SynchronizeVolumeCollectionNode(vtkMRMLEMSVolumeCollectionNode* templateNode, vtkMRMLEMSVolumeCollectionNode* changingNode, const char* name);
+
   //ETX
 
+  virtual void         SetOutputVolumeID(vtkIdType volumeID);
+
+  void PrintWeightOnForTree(vtkIdType rootID); 
 };
 
 #endif

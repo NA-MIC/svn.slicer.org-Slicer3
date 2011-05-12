@@ -72,6 +72,8 @@ vtkMRMLEMSGlobalParametersNode::vtkMRMLEMSGlobalParametersNode()
 
   this->EnableSubParcellation = 0;
   this->MinimumIslandSize = 1;
+  this->Island2DFlag = 0;
+  this->AMFSmoothing = 0;
          
   this->InputChannelNames.clear();
 
@@ -167,6 +169,8 @@ void vtkMRMLEMSGlobalParametersNode::WriteXML(ostream& of, int nIndent)
 
     of << indent << " EnableSubParcellation=\"" << this->EnableSubParcellation << "\" ";
     of << indent << " MinimumIslandSize=\"" << this->MinimumIslandSize << "\" ";
+    of << indent << " Island2DFlag=\"" << this->Island2DFlag << "\" ";
+    of << indent << " AMFSmoothing=\"" << this->AMFSmoothing << "\" ";
 
     of << indent << " Colormap=\"" << (this->Colormap ? this->Colormap : "NULL") << "\" ";
 
@@ -315,6 +319,22 @@ void vtkMRMLEMSGlobalParametersNode::ReadXMLAttributes(const char** attrs)
         ss >> n;
         this->SetMinimumIslandSize(n);
       } 
+    else if (!strcmp(key, "Island2DFlag"))
+      {
+        vtksys_stl::stringstream ss;
+        ss << val;
+        int n ;
+        ss >> n;
+        this->SetIsland2DFlag(n);
+      } 
+    else if (!strcmp(key, "AMFSmoothing"))
+      {
+        vtksys_stl::stringstream ss;
+        ss << val;
+        int n ;
+        ss >> n;
+        this->SetAMFSmoothing(n);
+      } 
     else if (!strcmp(key, "Colormap"))
       {
       this->SetColormap(val);
@@ -383,6 +403,8 @@ void vtkMRMLEMSGlobalParametersNode::Copy(vtkMRMLNode *rhs)
   this->SetColormap(node->Colormap);
   this->EnableSubParcellation = node->EnableSubParcellation;
   this->MinimumIslandSize = node->MinimumIslandSize;
+  this->Island2DFlag = node->Island2DFlag;
+  this->AMFSmoothing = node->AMFSmoothing;
 
   this->InputChannelNames= node->InputChannelNames;
 
@@ -455,6 +477,8 @@ void vtkMRMLEMSGlobalParametersNode::PrintSelf(ostream& os,
 
   os << indent << "EnableSubParcellation: " << this->EnableSubParcellation << "\n";
   os << indent << "MinimumIslandSize:     " << this->MinimumIslandSize << "\n";
+  os << indent << "Island2DFlag:     " << this->Island2DFlag << "\n";
+  os << indent << "AMFSmoothing:     " << this->AMFSmoothing << "\n";
 
   os << indent << "Colormap: " 
      << (this->Colormap ? this->Colormap : "(none)") << "\n";

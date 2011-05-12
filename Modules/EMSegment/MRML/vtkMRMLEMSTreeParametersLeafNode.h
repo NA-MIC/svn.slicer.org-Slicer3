@@ -34,10 +34,6 @@ public:
   // Get node XML tag name (like Volume, Model)
   virtual const char* GetNodeTagName() {return "EMSTreeParametersLeaf";}
 
-  // manipulate tree structure
-  virtual void AddChildNode(const char* childNodeID);
-  virtual void RemoveNthChildNode(int n);
-  virtual void MoveNthChildNode(int fromIndex, int toIndex);
 
   // manipulate target input channels
   vtkGetMacro(NumberOfTargetInputChannels, unsigned int);
@@ -52,16 +48,16 @@ public:
   vtkGetMacro(PrintQuality, int);
   vtkSetMacro(PrintQuality, int);
 
-  virtual double GetLogMean(int index) const;
+  virtual double GetLogMean(int index);
   virtual void SetLogMean(int index, double value);
 
-  virtual double GetLogCovariance(int row, int column) const;
+  virtual double GetLogCovariance(int row, int column); 
   virtual void SetLogCovariance(int row, int column, double value);
 
-  virtual double GetLogMeanCorrection(int index) const;
+  virtual double GetLogMeanCorrection(int index);
   virtual void SetLogMeanCorrection(int index, double value);
 
-  virtual double GetLogCovarianceCorrection(int row, int column) const;
+  virtual double GetLogCovarianceCorrection(int row, int column);
   virtual void SetLogCovarianceCorrection(int row, int column, double value);
 
   //BTX

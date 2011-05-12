@@ -12,19 +12,116 @@
 
 =========================================================================auto=*/
 #include "vtkImageEMGeneral.h"
-#include "vtkObjectFactory.h"
 #include "vtkImageData.h"
 #include "vtkImageWriter.h"
 #include "vtkImageClip.h"
+#include "vtkImageCast.h"
+#include "vtkImageSumOverVoxels.h"
+#include "vtkImageAccumulate.h"
+#include "vtkMath.h"
+#include "vtkImageThreshold.h"
+#include "vtkImageMathematics.h"
+#include "vtkImageReader.h"
+#include "vtkObjectFactory.h"
 
-#include <stdio.h>
-// #include <stdlib.h>
-// #include <unistd.h>
+#include <vtksys/SystemTools.hxx>
+#include <sstream>
+
 
 // Similar to above.  This one computes an
 // approximation to the Gaussian of the square
 // root of the argument, in other words, the
 // argument should already be squared.
+
+
+// Opens up a new file and writes down result in the file
+void vtkImageEMGeneral_WriteVectorMatlabFile (const char *filename, const char *name, unsigned char *vec, int xMax)  {
+  int appendFlag = 0;
+  FILE *f = (strcmp(filename,"-"))?fopen(filename,((appendFlag)?"a":"w")):stdout;
+  if ( f == NULL ) {
+    cerr << "Could not open file " << filename << "\n";
+    return;
+  }
+  if (name != NULL) fprintf(f,"%s = [", name);
+  xMax --;
+  for (int x = 0; x < xMax; x++ )
+      fprintf(f,"%d ", vec[x]);
+  fprintf(f,"%d", vec[xMax]);
+  if (name != NULL) fprintf(f,"];\n");
+  fflush(f);
+  fclose(f);
+}
+
+void vtkImageEMGeneral_WriteVectorMatlabFile (const char *filename, const char *name,float *vec, int xMax)  {
+  int appendFlag = 0;
+  FILE *f = (strcmp(filename,"-"))?fopen(filename,((appendFlag)?"a":"w")):stdout;
+  if ( f == NULL ) {
+    cerr << "Could not open file " << filename << "\n";
+    return;
+  }
+  if (name != NULL) fprintf(f,"%s = [", name);
+  xMax --;
+  for (int x = 0; x < xMax; x++ ) fprintf(f,"%10.6f ", vec[x]);
+  fprintf(f,"%10.6f", vec[xMax]);
+  if (name != NULL) fprintf(f,"];\n");
+  fflush(f);
+  fclose(f);
+}
+
+
+// Writes Vector to file in Matlab format if name is specified otherwise just 
+// writes the values in the file
+void vtkImageEMGeneral_WriteVectorMatlabFile (FILE *f, const char *name, double *vec, int xMax)  {
+  if (name != NULL) fprintf(f,"%s = [", name);
+  xMax --;
+  for (int x = 0; x < xMax; x++ )
+      fprintf(f,"%10.6f ", vec[x]);
+  fprintf(f,"%10.6f", vec[xMax]);
+  if (name != NULL) fprintf(f,"];\n");
+}
+
+// Opens up a new file and writes down result in the file
+void vtkImageEMGeneral_WriteVectorMatlabFile (const char *filename, const char *varname,double *vec, int xMax)  {
+  int appendFlag = 0;
+  FILE *f = (strcmp(filename,"-"))?fopen(filename,((appendFlag)?"a":"w")):stdout;
+  if ( f == NULL ) {
+    cerr << "Could not open file " << filename << "\n";
+    return;
+  }
+  vtkImageEMGeneral_WriteVectorMatlabFile(f,varname,vec,xMax);
+  fflush(f);
+  fclose(f);
+}
+
+// Writes Matrix to file in Matlab format if name is specified otherwise just 
+// writes the values in the file
+void vtkImageEMGeneral_WriteMatrixMatlabFile (FILE *f, const char *name, double **mat, int imgY, int imgX) 
+{
+  if (name != NULL) fprintf(f,"%s = [", name);
+  for (int y = 0; y < imgY; y++ ) {
+    vtkImageEMGeneral_WriteVectorMatlabFile(f,NULL,mat[y],imgX);
+    if (y < (imgY-1)) fprintf(f,";\n");
+  }
+  if (name != NULL) fprintf(f,"];\n");
+  fprintf(f,"\n");
+}
+
+
+
+// Opens up a new file and writes down result in the file
+void vtkImageEMGeneral_WriteMatrixMatlabFile (const char *filename, const char *varname, double **mat, int imgY, int imgX)  {
+  int appendFlag = 0;
+  FILE *f = (strcmp(filename,"-"))?fopen(filename,((appendFlag)?"a":"w")):stdout;
+  if ( f == NULL ) {
+    cerr << "Could not open file " << filename << "\n";
+    return;
+  }
+  vtkImageEMGeneral_WriteMatrixMatlabFile(f,varname,mat,imgY,imgX);
+  fflush(f);
+  fclose(f);
+}
+
+
 
 float vtkImageEMGeneral_qgauss_sqrt(float inverse_sigma, float x)
 {
@@ -542,7 +639,7 @@ void vtkImageEMGeneral::CalculateLogMeanandLogCovariance(double *mu, double *Sig
   // -> I get the Variance - what I need for the one dimesional case is the standard deviation or sigma value for the gauss curve
   for (int k=0; k< NumberOfClasses;k++) logSigma[k] = sqrt(logSigma[k]); 
 
-  delete[] LogTestSequence;
+  delete [] LogTestSequence;
 }
 
 // Specifically defined function for opening files within EM iterations to keep the naming convention  
@@ -550,13 +647,16 @@ FILE* vtkImageEMGeneral::OpenTextFile(const char* FileDir, const char FileName[]
                       const char *LevelName, int LevelNameFlag, int iter, int IterFlag, 
                       const char FileSucessMessage[], char OpenFileName[]) {
   FILE* OpenFile;
-  sprintf(OpenFileName,"%s/%s",FileDir,FileName);
-  if (LabelFlag)     sprintf(OpenFileName,"%s_C%02d",OpenFileName,Label);
-  if (LevelNameFlag) sprintf(OpenFileName,"%s_L%s",OpenFileName,LevelName);
-  if (IterFlag)      sprintf(OpenFileName,"%s_I%02d",OpenFileName,iter);
-  sprintf(OpenFileName,"%s.txt",OpenFileName);
 
-  if (vtkFileOps::makeDirectoryIfNeeded(OpenFileName) == -1) return NULL;
+  std::stringstream ss;
+  ss << FileDir << "/" << FileName;
+  if (LabelFlag)     ss << "_C" << setw(2) << Label;
+  if (LevelNameFlag) ss << "_L" << LevelName;
+  if (IterFlag)      ss << "_I" << setw(2) << iter;
+  ss << ".txt";
+  strcpy (OpenFileName,ss.str().c_str());
+
+  if (vtksys::SystemTools::MakeDirectory(OpenFileName) == false) return NULL;
   
 #ifdef _WIN32
   OpenFile= fopen(OpenFileName, "wb");
@@ -592,44 +692,6 @@ void vtkImageEMGeneral::GEImageReader(vtkImageReader *VOLUME, const char FileNam
   VOLUME->Update();
 }
 
-//----------------------------------------------------------------------------
-int vtkImageEMGeneral::GEImageWriter(vtkImageData *Volume, char *FileName,int PrintFlag) {
-  if (PrintFlag) std::cerr << "Write to file " <<  FileName << endl;
-
-#ifdef _WIN32 
-  // Double or Float is not correctly printed out in windwos 
-  if (Volume->GetScalarType() == VTK_DOUBLE || Volume->GetScalarType() == VTK_FLOAT) {
-    int *Extent =Volume->GetExtent();
-    void* VolumeDataPtr = Volume->GetScalarPointerForExtent(Extent);
-    int ImageX = Extent[1] - Extent[0] +1; 
-    int ImageY = Extent[3] - Extent[2] +1; 
-    int ImageXY = ImageX * ImageY;
-
-    vtkIdType outIncX, OutIncY, outIncZ;
-    Volume->GetContinuousIncrements(Extent, outIncX, OutIncY, outIncZ);
-
-    if (OutIncY != 0 || outIncZ != 0 ) return 0;
-    
-    char *SliceFileName = new char[int(strlen(FileName)) + 6];
-    for (int i = Extent[4]; i <= Extent[5]; i++) {
-      sprintf(SliceFileName,"%s.%03d",FileName,i);
-      switch (Volume->GetScalarType()) {
-    vtkTemplateMacro5(vtkFileOps_WriteToFlippedGEFile,SliceFileName,(VTK_TT*)  VolumeDataPtr, ImageX, ImageY, ImageXY);
-      }
-    }
-    delete []SliceFileName;
-    return 1;
-  }
-#endif
-
-  vtkImageWriter *Write=vtkImageWriter::New();
-  Write->SetInput(Volume);
-  Write->SetFilePrefix(FileName);
-  Write->SetFilePattern("%s.%03d");
-  Write->Write();
-  Write->Delete();
-  return 1;
-}
 
 // -------------------------------------------------------------------------------------------------------------------
 // CalculateGaussLookupTable
@@ -744,8 +806,8 @@ void vtkImageEMGeneral::TestMatrixFunctions(int MatrixDim,int iter) {
       for (j=1; j < MatrixDim; j++) mat[i][j] = double(int(vtkMath::Random(0,10)*100))/ 100.0; 
     }
     sprintf(name,"TestDet%d.m",k+1);
-    vtkFileOps write;
-    write.WriteMatrixMatlabFile(name,"mat",mat,MatrixDim,MatrixDim);
+
+    vtkImageEMGeneral_WriteMatrixMatlabFile(name,"mat",mat,MatrixDim,MatrixDim);
     std::cerr << "Result of " << k << endl;
     std::cerr <<" Determinant: " << vtkImageEMGeneral::determinant(mat,MatrixDim) << endl;
     std::cerr <<" Square: " << endl;
@@ -869,6 +931,216 @@ float vtkImageEMGeneral::CalcSimularityMeasure (vtkImageData *Image1, vtkImageDa
   return result;
 }  
 
+// First normalize images  between 0 and 1 and then calcuate dice   
+// normalizationType = 0 both images are normalized independently 
+//                                = 1 both images are normalized together by using the max and min scalar values across the two images 
+//                                = 2 only the first image is normalized 
+double vtkImageEMGeneral::CalcSoftSimularityMeasureNormalize (vtkImageData *Image1, vtkImageData *Image2, int normalizationType) {
+   double min1 = Image1->GetScalarRange()[0];
+   double max1 = Image1->GetScalarRange()[1];
+   double min2 = Image2->GetScalarRange()[0]; 
+   double max2 = Image2->GetScalarRange()[1];
 
-// Allocates data and spits pointer back out 
+   //cout << "sfdds1 " <<   min1 << " " << max1 << endl;
+   //cout << "sfdds2 " <<   min2 << " " << max2 << endl;
 
+   switch  (normalizationType) {
+      case 0: break;
+      case 1: if (min1 > min2)  { min1 = min2;
+                     } else { min2 = min1; }
+                     if (max1 < max2)  { max1 = max2;
+                     } else { max2 = max1; } 
+                     break;
+       case 2: min2 = 0; max2 = 1.0; break;
+       default :   
+                   vtkErrorMacro("Type " <<   normalizationType << " is currently not installed");
+               return -1;
+     }
+
+   double norm1 = max1 - min1;
+   if (norm1== 0 ) { 
+      norm1 = 1; 
+    } else {
+    norm1 = 1.0/norm1;
+   }
+
+   // cout << "sfdds " <<   min1 << " " << max1 << " " << norm1 << endl;
+
+
+  vtkImageCast* CAST1 = vtkImageCast::New();
+  CAST1->SetInput(Image1);  
+  CAST1->SetOutputScalarTypeToFloat(); 
+  CAST1->Update();
+
+   vtkImageMathematics *SHIFT1 = vtkImageMathematics::New();
+   SHIFT1->SetOperationToAddConstant(); 
+   SHIFT1->SetInput1(CAST1->GetOutput());
+   SHIFT1->SetConstantC(- min1 ); 
+   SHIFT1->Update();
+
+   vtkImageMathematics *NORM1 = vtkImageMathematics::New();
+   NORM1->SetOperationToMultiplyByK(); 
+   NORM1->SetInput1(SHIFT1->GetOutput());
+   NORM1->SetConstantK(norm1);
+   NORM1->Update();
+
+   double norm2 = max2 - min2;
+   if (norm2 == 0) { 
+      norm2 = 1; 
+    } else {
+    norm2 = 1.0/norm2;
+   }
+
+  vtkImageCast* CAST2 = vtkImageCast::New();
+  CAST2->SetInput(Image2);  
+  CAST2->SetOutputScalarTypeToFloat(); 
+  CAST2->Update();
+
+   vtkImageMathematics *SHIFT2 = vtkImageMathematics::New();
+   SHIFT2->SetOperationToAddConstant(); 
+   SHIFT2->SetInput1(CAST2->GetOutput());
+   SHIFT2->SetConstantC(- min2 ); 
+   SHIFT2->Update();
+
+   vtkImageMathematics *NORM2 = vtkImageMathematics::New();
+   NORM2->SetOperationToMultiplyByK(); 
+   NORM2->SetInput1(SHIFT2->GetOutput());
+   NORM2->SetConstantK(norm2);
+   NORM2->Update();
+
+   double value = this->CalcSoftSimularityMeasure (NORM1->GetOutput(), NORM2->GetOutput());
+   NORM1->Delete();
+   SHIFT1->Delete();
+   CAST1->Delete();
+   NORM2->Delete();
+   SHIFT2->Delete();
+   CAST2->Delete();
+
+   return value;
+ }
+
+// images are not thresholded - have to be of the same chast and between 0 and 1
+double vtkImageEMGeneral::CalcSoftSimularityMeasure (vtkImageData *Image1, vtkImageData *Image2)  {
+   if ((Image1->GetScalarRange()[0] < 0) || (Image1->GetScalarRange()[1] > 1.0001) )  {
+     vtkErrorMacro("Scalars of first image are out of range [0,1] - Actual Range [" <<Image1->GetScalarRange()[0] <<"," << Image1->GetScalarRange()[1]  << "]" )
+     return -1; 
+   } 
+
+   if ((Image2->GetScalarRange()[0] < 0) || (Image2->GetScalarRange()[1] > 1.0001) )  {
+     vtkErrorMacro("Scalars of second image are out of range [0,1] -Actual Range [" <<Image2->GetScalarRange()[0] <<"," << Image2->GetScalarRange()[1]  << "]" )
+     return -1; 
+   } 
+
+   if (Image1->GetScalarType()  != Image1->GetScalarType() ) {
+     vtkErrorMacro("Scalars types of input are not coherrent")
+     return -1; 
+   } 
+
+   vtkImageMathematics *UNION = vtkImageMathematics::New();
+   UNION->SetOperationToMultiply();
+   UNION->SetInput1(Image1);
+   UNION->SetInput2(Image2);
+   UNION->Update();
+
+   vtkImageSumOverVoxels* VOXELSUM  = vtkImageSumOverVoxels::New();
+   VOXELSUM ->SetInput(UNION->GetOutput());
+   VOXELSUM ->Update();
+   double nominator = 2*VOXELSUM->GetVoxelSum();
+
+   VOXELSUM ->SetInput(Image1);
+   VOXELSUM ->Update();
+   double denominator = VOXELSUM->GetVoxelSum();
+
+   VOXELSUM ->SetInput(Image2);
+   VOXELSUM ->Update();
+   denominator += VOXELSUM->GetVoxelSum();
+
+   UNION->Delete();
+   VOXELSUM->Delete();
+
+   if (denominator == 0) { 
+       return 1;
+   }
+   
+   return    nominator/denominator;
+}  
+
+double vtkImageEMGeneral::CalculateMean(vtkImageData *image)  {
+  vtkImageSumOverVoxels* sum =  vtkImageSumOverVoxels::New();
+  sum->SetInput(image);
+  sum->Update();
+  int *dim = image->GetDimensions();
+  double n = double(dim[0]*dim[1]*dim[2]);
+  double mean = sum->GetVoxelSum()/n;
+  sum->Delete();
+  return mean;
+}  
+
+double vtkImageEMGeneral::CalculateCovariance(vtkImageData *image, double mean)  {
+  vtkImageMathematics* shift = vtkImageMathematics::New();
+  shift->SetInput(image);
+  shift->SetOperationToAddConstant();
+  shift->SetConstantC(-mean);
+  shift->Update();
+
+  vtkImageMathematics* sqr = vtkImageMathematics::New();
+  sqr->SetInput(shift->GetOutput());
+  sqr->SetOperationToSquare();
+  sqr->Update();
+
+  vtkImageSumOverVoxels* sum =  vtkImageSumOverVoxels::New();
+  sum->SetInput(sqr->GetOutput());
+  sum->Update();
+  int *dim = image->GetDimensions();
+  double n = double(dim[0]*dim[1]*dim[2]);
+  double cov = sum->GetVoxelSum()/(n -1);
+
+  sum->Delete();
+  sqr->Delete();
+  shift->Delete();
+
+  return cov;
+}  
+
+// Assumes that images have the same dimension
+double vtkImageEMGeneral::CalculateNCC(vtkImageData *image1, vtkImageData *image2)
+{
+  int *dim = image1->GetDimensions();
+  double n = double(dim[0]*dim[1]*dim[2]);
+
+  double mean1 =  this->CalculateMean(image1);
+  double cov1 =  this->CalculateCovariance(image1,mean1)*(n-1);
+  double mean2 =  this->CalculateMean(image2);
+  double cov2 =  this->CalculateCovariance(image2,mean2)*(n-1);
+ 
+ vtkImageMathematics* shift1 = vtkImageMathematics::New();
+  shift1->SetInput(image1);
+  shift1->SetOperationToAddConstant();
+  shift1->SetConstantC(-mean1);
+  shift1->Update();
+
+ vtkImageMathematics* shift2 = vtkImageMathematics::New();
+  shift2->SetInput(image2);
+  shift2->SetOperationToAddConstant();
+  shift2->SetConstantC(-mean2);
+  shift2->Update();
+
+  vtkImageMathematics* mul = vtkImageMathematics::New();
+  mul->SetInput1(shift1->GetOutput());
+  mul->SetInput2(shift2->GetOutput());
+  mul->SetOperationToMultiply();
+  mul->Update();
+
+  vtkImageSumOverVoxels* numerator =  vtkImageSumOverVoxels::New();
+  numerator->SetInput(mul->GetOutput());
+  numerator->Update();
+
+  double NCC =  numerator->GetVoxelSum() / (sqrt(cov1) *sqrt(cov2));
+ 
+  numerator->Delete();
+  mul->Delete();
+  shift2->Delete();
+  shift1->Delete();
+  return NCC;
+  
+}

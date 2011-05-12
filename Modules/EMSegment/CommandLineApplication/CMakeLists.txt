@@ -16,10 +16,14 @@ if(NOT Slicer3_SOURCE_DIR)
   slicer3_set_default_install_prefix_for_external_projects()
 endif(NOT Slicer3_SOURCE_DIR)
 
+
+
 # --------------------------------------------------------------------------
 # Include dirs
 
 include_directories(
+  ${EMSegment_BINARY_DIR}
+  ${EMSegment_SOURCE_DIR}/KWWidgets
   ${EMSegment_SOURCE_DIR}
   ${EMSegment_SOURCE_DIR}/MRML
   ${EMSegment_SOURCE_DIR}/Algorithm
@@ -27,6 +31,7 @@ include_directories(
   ${Slicer3_Libs_INCLUDE_DIRS}
   ${Slicer3_Base_INCLUDE_DIRS}
   )
+
 
 # --------------------------------------------------------------------------
 # Sources
@@ -48,6 +53,7 @@ target_link_libraries(
   ${CLP_MODULE}
   EMSegment
   vtkCommon
+  AtlasCreatorCxxModule   
   )
 
 slicer3_install_plugins(${CLP_MODULE})
@@ -66,6 +72,7 @@ target_link_libraries(
   ${CLP_MODULE}
   EMSegment
   vtkCommon
+  AtlasCreatorCxxModule 
   )
 
 set(CLP_MODULE EMSegmentTransformToNewFormat)
@@ -77,6 +84,7 @@ target_link_libraries(
   ${CLP_MODULE}
   EMSegment
   vtkCommon
+  AtlasCreatorCxxModule   
   )
 
 # --------------------------------------------------------------------------

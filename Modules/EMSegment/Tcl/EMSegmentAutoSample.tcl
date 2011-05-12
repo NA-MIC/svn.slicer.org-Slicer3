@@ -57,9 +57,10 @@ namespace eval EMSegmenterAutoSampleTcl {
     # string VolDataType is the type of the volumes in MRIVolumeList
     # .END
     #-------------------------------------------------------------------------------
-    proc EMSegmentGaussCurveCalculationFromID {LOGIC mrmlManager CutOffProbability LogGaussFlag MRIVolumeIDList ProbVolumeID ClassName} {
+    proc EMSegmentGaussCurveCalculationFromID {LOGIC CutOffProbability LogGaussFlag MRIVolumeIDList ProbVolumeID ClassName} {
         global EMSegment
 
+        set mrmlManager [$LOGIC GetMRMLManager ] 
         set SCENE [$mrmlManager GetMRMLScene ]
 
         set ProbNode  [$SCENE GetNodeByID $ProbVolumeID]
@@ -118,8 +119,11 @@ namespace eval EMSegmenterAutoSampleTcl {
     }
 
     #-------------------------------------------------------------------------------
+   # For debugging
+   # variable SAVEINDEX 0 
     proc EMSegmentGaussCurveCalculation {LOGIC CutOffProbability LogGaussFlag MRIVolumeList ProbVolume VolDataType} {
         global EMSegment
+        # variable SAVEINDEX 
         # Initialize values
         set NumInputChannel [llength $MRIVolumeList]
         for {set y 0} {$y < $NumInputChannel} {incr y} {
@@ -141,49 +145,50 @@ namespace eval EMSegmenterAutoSampleTcl {
         set EMSegment(GaussCurveCalc,MaxProb) 0
 
 
-        if { [info command Histgoram] != ""} {
-            Histgoram Delete
+        if { [info command Histogram] != ""} {
+            Histogram Delete
         }
-        vtkImageAccumulate Histgoram
-        Histgoram SetInput $ProbVolume
-        Histgoram Update
-        set Min [expr int([lindex [Histgoram GetMin] 0])]
-        set EMSegment(GaussCurveCalc,MaxProb) [expr int([lindex [Histgoram GetMax] 0])]
+        vtkImageAccumulate Histogram
+        Histogram SetInput $ProbVolume
+        Histogram Update
+        puts "Minimum: [Histogram GetMin]"
+        set Min [expr int([lindex [Histogram GetMin] 0])]
+        set EMSegment(GaussCurveCalc,MaxProb) [expr int([lindex [Histogram GetMax] 0])]
         # Ignore voxels with probability 0
         if {$Min == 0} {incr Min}
         if {($Min <0) && $EMSegment(GaussCurveCalc,LogGaussFlag)} {
             EMSegmentPrint $LOGIC "Probability Volume $ProbVolume has negative values (ValueRange $Min $EMSegment(GaussCurveCalc,MaxProb)), which is not possible for log gaussian ! Probably little endian set incorrectly" 1
-            Histgoram Delete
+            Histogram Delete
             return 1
         }
-        set index  [expr $EMSegment(GaussCurveCalc,MaxProb) - $Min]
-        Histgoram SetComponentExtent 0 $index 0 0 0 0
-        Histgoram SetComponentOrigin $Min 0.0 0.0
-        Histgoram Update
+        set maxIndex  [expr $EMSegment(GaussCurveCalc,MaxProb) - $Min]
+        Histogram SetComponentExtent 0 $maxIndex 0 0 0 0
+        Histogram SetComponentOrigin $Min 0.0 0.0
+        Histogram Update
 
-        set data   [Histgoram GetOutput]
+        set data   [Histogram GetOutput]
         set ROIVoxel 0
-        for {set i 0} {$i <= $index} {incr i} { incr ROIVoxel [expr int([$data GetScalarComponentAsFloat $i 0 0 0])] }
+        for {set i 0} {$i <= $maxIndex} {incr i} { incr ROIVoxel [expr int([$data GetScalarComponentAsFloat $i 0 0 0])] }
         if  {$ROIVoxel == 0} {
             EMSegmentPrint $LOGIC "ROIVoxel == 0" 1
-            Histgoram   Delete
+            Histogram   Delete
             return 1
         }
         set CutOffVoxel [expr $ROIVoxel*(1.0 - $CutOffProbability)]
-        # Add instructions so if border is to high you can set a flag so that the the highest probability will be stilll sampled
-        for {set i  $index} {$i > -1} {incr i -1} {
-            incr EMSegment(GaussCurveCalc,Sum) [expr int ([$data GetScalarComponentAsFloat $i 0 0 0])]
-            # puts "$i [expr int ([$data $::getScalarComponentAs $i 0 0 0])]"
-            if {$EMSegment(GaussCurveCalc,Sum) > $CutOffVoxel} {
-                if {$i == $index } {
-                    # even just using maximum value  is above threshold - so change it
-                    set EMSegment(GaussCurveCalc,CutOffAbsolut) $EMSegment(GaussCurveCalc,MaxProb)
-                } else {
-                    set EMSegment(GaussCurveCalc,CutOffAbsolut) [expr $i+$Min +1]
-                    set EMSegment(GaussCurveCalc,Sum) [expr $EMSegment(GaussCurveCalc,Sum) - int([$data GetScalarComponentAsFloat $i 0 0 0])]
-                }
+        
+    set EMSegment(GaussCurveCalc,CutOffAbsolut) [expr $EMSegment(GaussCurveCalc,MaxProb) +1] 
+        set minNumVoxels 10
+        for {set i  $maxIndex} {$i > -1} {incr i -1} {
+            set numVoxels [expr int ([$data GetScalarComponentAsFloat $i 0 0 0])]
+            set newCount [expr $EMSegment(GaussCurveCalc,Sum) + $numVoxels]
+
+            # Kilian - May 2011: At least take  minNumVoxels  samples otherwise defining  Gaussian distribution does not make a lot of sense
+            # Add instructions so if border is to high you can set a flag so that the the highest probability will be stilll sampled        
+            if {$EMSegment(GaussCurveCalc,Sum) > $minNumVoxels &&  ($newCount > $CutOffVoxel)} {
                 break
             }
+            set EMSegment(GaussCurveCalc,Sum)  $newCount
+            incr EMSegment(GaussCurveCalc,CutOffAbsolut)  -1 
         }
         # If it went through all of it you have to set it to $min !
         if  { $EMSegment(GaussCurveCalc,CutOffAbsolut) == 0 } {
@@ -192,14 +197,14 @@ namespace eval EMSegmenterAutoSampleTcl {
         set EMSegment(GaussCurveCalc,CutOffPercent) [expr 100 - int(double($EMSegment(GaussCurveCalc,Sum))/double($ROIVoxel)*1000)/10.0]
         if { [expr 100*$CutOffProbability] > $EMSegment(GaussCurveCalc,CutOffPercent) } {
             EMSegmentPrint $LOGIC "========== EMSegmentGaussCurveCalculation ===============" 0
-            EMSegmentPrint $LOGIC "Warning: CutOffProbability was specified to be above [expr $CutOffProbability * 100]% of the voxels in the ROI ! However even just refining computation to voxels with probability 1 results in lower CutOffProbability ! Set CutOffProbability to [format %.2f $EMSegment(GaussCurveCalc,CutOffPercent)] %" 0
+            EMSegmentPrint $LOGIC "Warning: CutOffProbability was specified to be above [expr $CutOffProbability * 100]% of the voxels in the ROI ! However even just refining computation to voxels with probability 1 results in lower CutOffProbability or not enough samples were taken (min:  $minNumVoxels count: $EMSegment(GaussCurveCalc,Sum)) ! Set CutOffProbability to [format %.2f $EMSegment(GaussCurveCalc,CutOffPercent)] %" 0
             EMSegmentPrint $LOGIC "=========================================================" 0
         }
 
 
         if {$EMSegment(GaussCurveCalc,Sum) == 0} {
             EMSegmentPrint $LOGIC "EMSegment(GaussCurveCalc,Sum) == 0" 1
-            Histgoram   Delete
+            Histogram   Delete
             return 1
         }
         if { [info command gaussCurveCalcThreshold] != ""} {
@@ -214,7 +219,6 @@ namespace eval EMSegmenterAutoSampleTcl {
         for { set channelID 0 } {$channelID < $NumInputChannel} { incr channelID } {
             EMSegmentCutOutRegion gaussCurveCalcThreshold MathMulti [lindex $MRIVolumeList $channelID] $ProbVolume $EMSegment(GaussCurveCalc,CutOffAbsolut) $VolDataType 1
 
-            # puts "Multiplying"
             # Now value To it so we can differnetiate between real 0 and not
             if { [info command MathAdd($channelID)] != ""} {
                 MathAdd($channelID) Delete
@@ -232,11 +236,15 @@ namespace eval EMSegmenterAutoSampleTcl {
             MathAdd($channelID) SetInput 0 [gaussCurveCalcThreshold GetOutput]
             MathAdd($channelID) Update
 
+            # $LOGIC  WriteImage  [lindex $MRIVolumeList $channelID]  "/tmp/blub_${SAVEINDEX}_Input" 
+            # puts "===> New: $SAVEINDEX  $channelID $EMSegment(GaussCurveCalc,CutOffAbsolut)"
+            # incr SAVEINDEX
+
             # 3. Generate Histogram in 1D
-            Histgoram SetInput [MathAdd($channelID) GetOutput]
-            Histgoram Update
-            set min($channelID)    [expr int([lindex [Histgoram GetMin] 0])]
-            set max($channelID)    [expr int([lindex [Histgoram GetMax] 0])]
+            Histogram SetInput [MathAdd($channelID) GetOutput]
+            Histogram Update
+            set min($channelID)    [expr int([lindex [Histogram GetMin] 0])]
+            set max($channelID)    [expr int([lindex [Histogram GetMax] 0])]
 
             # Add 1 bc 0 represents background
             if {$min($channelID) == 0} {
@@ -254,16 +262,16 @@ namespace eval EMSegmenterAutoSampleTcl {
             }
 
             set Index($channelID)  [expr $max($channelID) - $min($channelID)]
-
-            Histgoram SetComponentExtent 0 $Index($channelID) 0 0 0 0
-            Histgoram SetComponentOrigin $min($channelID) 0.0 0.0
-            Histgoram Update
+            Histogram SetComponentExtent 0 $Index($channelID) 0 0 0 0
+            Histogram SetComponentOrigin $min($channelID) 0.0 0.0
+            Histogram Update
 
             # Calculate the mean for image $channelID
-            set data   [Histgoram GetOutput]
+            set data   [Histogram GetOutput]
             set MinBorder($channelID) $max($channelID)
             set MaxBorder($channelID) $min($channelID)
             set Xindex  $Index($channelID)
+            
             for {set x $max($channelID)} {$x >= $min($channelID)} {incr x -1} {
                 set temp [$data GetScalarComponentAsFloat $Xindex 0 0 0]
                 incr Xindex -1
@@ -320,7 +328,6 @@ namespace eval EMSegmenterAutoSampleTcl {
         # ---------------------------------------
         # Calculate Covariance Accross images
         # ---------------------------------------
-
         if {($EMSegment(GaussCurveCalc,Sum) > 1) && ($NumInputChannel > 1)} {
 
             # Covariance = (Sum(Sample(x,i) - mean(x))*(Sample(y,i) - mean(y)))/(n-1)
@@ -334,11 +341,11 @@ namespace eval EMSegmenterAutoSampleTcl {
                     twoDImage Update
 
                     # Define 2D Histogram for covariance matrix !
-                    Histgoram SetInput [twoDImage GetOutput]
-                    Histgoram SetComponentExtent 0 $Index($i) 0 $Index($j) 0 0
-                    Histgoram SetComponentOrigin $MinBorder($i) $MinBorder($j) 0.0
-                    Histgoram Update
-                    set data   [Histgoram GetOutput]
+                    Histogram SetInput [twoDImage GetOutput]
+                    Histogram SetComponentExtent 0 $Index($i) 0 $Index($j) 0 0
+                    Histogram SetComponentOrigin $MinBorder($i) $MinBorder($j) 0.0
+                    Histogram Update
+                    set data   [Histogram GetOutput]
 
                     set Yindex 0
                     for {set y $MinBorder($i)} {$y <= $MaxBorder($i)} {incr y} {
@@ -401,7 +408,6 @@ namespace eval EMSegmenterAutoSampleTcl {
             }
         }
 
-
         # Clean Up
         for {set i 0} {$i < $NumInputChannel} {incr i} {
             MathAdd($i) Delete
@@ -409,7 +415,8 @@ namespace eval EMSegmenterAutoSampleTcl {
 
         gaussCurveCalcThreshold Delete
         MathMulti Delete
-        Histgoram Delete
+        Histogram Delete
+
         return 0
     }
 

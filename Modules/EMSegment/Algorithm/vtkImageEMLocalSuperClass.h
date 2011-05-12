@@ -18,7 +18,6 @@
 #include "vtkEMSegment.h"
 
 #include "vtkImageEMLocalClass.h"
-#include "EMLocalInterface.h" 
 
 class VTK_EMSEGMENT_EXPORT vtkImageEMLocalSuperClass : public vtkImageEMLocalGenericClass
 {
@@ -238,6 +237,11 @@ class VTK_EMSEGMENT_EXPORT vtkImageEMLocalSuperClass : public vtkImageEMLocalGen
   vtkSetMacro(Alpha, double);
   vtkGetMacro(Alpha, double);
 
+  void SetInhomogeneityInitialData(vtkImageData *img , int index);
+//BTX
+ float* GetInhomogeneityInitialDataPtr(int index);
+//ETX
+
 protected:
   vtkImageEMLocalSuperClass() {this->CreateVariables();}
   ~vtkImageEMLocalSuperClass() {this->DeleteSuperClassVariables();}
@@ -295,6 +299,7 @@ protected:
 
   // If all structures are defined by different PCA models that this flag has to be set. 
   int PCAShapeModelType; 
+vtkImageData **InhomogeneityInitialData; 
 private:
   vtkImageEMLocalSuperClass(const vtkImageEMLocalSuperClass&);
   void operator=(const vtkImageEMLocalSuperClass&);

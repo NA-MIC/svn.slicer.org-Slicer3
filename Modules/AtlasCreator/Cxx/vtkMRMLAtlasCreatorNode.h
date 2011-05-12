@@ -140,16 +140,16 @@ class VTK_ATLASCREATORCXXMODULE_EXPORT vtkMRMLAtlasCreatorNode : public vtkMRMLN
 
 
   // Description: The Output Cast
-  //   "Char"
-  //   "Unsigned Char"
-  //   "Double"
-  //   "Float"
-  //   "Int"
-  //   "Unsigned Int"
-  //   "Long"
-  //   "Unsigned Long"
-  //   "Short"
-  //   "Unsigned Short"
+  //   "char"
+  //   "unsigned char"
+  //   "double"
+  //   "float"
+  //   "int"
+  //   "unsigned int"
+  //   "long"
+  //   "unsigned long"
+  //   "short"
+  //   "unsigned short"
   vtkGetStringMacro (OutputCast);
   vtkSetStringMacro (OutputCast);
 
@@ -174,6 +174,11 @@ class VTK_ATLASCREATORCXXMODULE_EXPORT vtkMRMLAtlasCreatorNode : public vtkMRMLN
   // Description: The Scheduler Command
   vtkGetStringMacro (SchedulerCommand);
   vtkSetStringMacro (SchedulerCommand);
+
+
+  // Description: The number of threads to use for Registration and Resampling, -1: Use Maximum Number of Threads
+  vtkGetMacro(NumberOfThreads,int);
+  vtkSetMacro(NumberOfThreads,int);
 
 
   // Description: 1: Skip Registration 0: Don't skip registration
@@ -232,6 +237,8 @@ protected:
 
   int UseCluster;
   char *SchedulerCommand;
+
+  int NumberOfThreads;
 
   int SkipRegistration;
   char *ExistingTemplate;

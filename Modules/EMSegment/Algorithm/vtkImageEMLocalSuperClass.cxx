@@ -14,6 +14,8 @@
 #include "vtkImageEMLocalSuperClass.h"
 #include "vtkObjectFactory.h"
 #include "vtkImageData.h"
+#include "assert.h"
+
 
 //------------------------------------------------------------------------
 vtkImageEMLocalSuperClass* vtkImageEMLocalSuperClass::New()
@@ -64,6 +66,7 @@ void vtkImageEMLocalSuperClass::CreateVariables() {
   this->PCAShapeModelType = EMSEGMENT_PCASHAPE_INDEPENDENT;
   
   this->RegistrationIndependentSubClassFlag =0;
+  this->InhomogeneityInitialData =NULL;
 }
 
 //------------------------------------------------------------------------------
@@ -106,6 +109,11 @@ void vtkImageEMLocalSuperClass::DeleteSuperClassVariables() {
   this->ClassListType       = NULL;
   this->ParentClass         = NULL;
   this->NumClasses    = 0;
+ 
+ if (this->InhomogeneityInitialData) {
+    delete[] this->InhomogeneityInitialData;
+    this->InhomogeneityInitialData = NULL;
+  }
 }
 //------------------------------------------------------------------------------
 void vtkImageEMLocalSuperClass::AddSubClass(void* ClassData, classType initType, int index)
@@ -209,6 +217,7 @@ void vtkImageEMLocalSuperClass::AddSubClass(void* ClassData, classType initType,
 
   dataAsVTKObject->Register(this);
   this->ClassList[index] = ClassData;
+  this->ClassListType[index] = initType;
 }
 
 //------------------------------------------------------------------------------
@@ -681,10 +690,10 @@ void vtkImageEMLocalSuperClass::ExecuteData(vtkDataObject *)
      if ((ProbDataPtrIndex > -1) || (PCAPtrIndex > -1)) {
        int index = (ProbDataPtrIndex > -1 ? ProbDataPtrIndex : PCAPtrIndex);
        if (this->ClassListType[index] == CLASS) {
-     memcpy(this->SegmentationBoundaryMax,((vtkImageEMLocalClass*) this->ClassList[index])->GetSegmentationBoundaryMax(),sizeof(int)*3);
-     memcpy(this->SegmentationBoundaryMin,((vtkImageEMLocalClass*) this->ClassList[index])->GetSegmentationBoundaryMin(),sizeof(int)*3);
-     memcpy(this->DataDim,((vtkImageEMLocalClass*) this->ClassList[index])->GetDataDim(),sizeof(int)*3);
-     memcpy(this->DataSpacing,((vtkImageEMLocalClass*) this->ClassList[index])->GetDataSpacing(),sizeof(float)*3);
+        memcpy(this->SegmentationBoundaryMax,((vtkImageEMLocalClass*) this->ClassList[index])->GetSegmentationBoundaryMax(),sizeof(int)*3);
+        memcpy(this->SegmentationBoundaryMin,((vtkImageEMLocalClass*) this->ClassList[index])->GetSegmentationBoundaryMin(),sizeof(int)*3);
+        memcpy(this->DataDim,((vtkImageEMLocalClass*) this->ClassList[index])->GetDataDim(),sizeof(int)*3);
+        memcpy(this->DataSpacing,((vtkImageEMLocalClass*) this->ClassList[index])->GetDataSpacing(),sizeof(float)*3);
        }
        else {
      memcpy(this->SegmentationBoundaryMax,((vtkImageEMLocalSuperClass*) this->ClassList[index])->GetSegmentationBoundaryMax(),sizeof(int)*3);
@@ -696,18 +705,18 @@ void vtkImageEMLocalSuperClass::ExecuteData(vtkDataObject *)
      // Look for the first ProbData entry and then define scalar type accordingly
      for (int i = 0; i <this->NumClasses; i++) {
        if (this->ClassListType[i] == CLASS) {
-     this->ProbDataScalarType = ((vtkImageEMLocalClass*) this->ClassList[i])->GetProbDataScalarType(); 
-     if (this->ProbDataScalarType > -1) i = this->NumClasses;
+         this->ProbDataScalarType = ((vtkImageEMLocalClass*) this->ClassList[i])->GetProbDataScalarType(); 
+         if (this->ProbDataScalarType > -1) i = this->NumClasses;
        } else {
      this->ProbDataScalarType = ((vtkImageEMLocalSuperClass*) this->ClassList[i])->GetProbDataScalarType(); 
      if (this->ProbDataScalarType > -1) i = this->NumClasses;
        }
      }
    } else {
-     std::cerr << "Warning:: Probability Data of SuperClass activated - Class specific probability maps are overwritten!" << endl; 
+     vtkEMAddWarningMessage(" Probability Data of SuperClass activated - Class specific probability maps are overwritten!"); 
      // Kilian: Currently we also disreagard the the SHAPE model - change this later  
      if (this->GetTotalNumberOfEigenModes()) {
-       std::cerr << "Error::vtkImageEMLocalSuperClass:: SuperClass has Probability Data but sub classes have PCAShape model activated - Conflict of interest !" << endl;
+       vtkErrorMacro( "Error::vtkImageEMLocalSuperClass:: SuperClass has Probability Data but sub classes have PCAShape model activated - Conflict of interest !"); 
        exit(1);
      }
      
@@ -816,3 +825,26 @@ void vtkImageEMLocalSuperClass::ExecuteData(vtkDataObject *)
    }
    // std::cerr << "End vtkImageEMLocalSuperClass::ExecuteData" << endl; 
 }
+
+void vtkImageEMLocalSuperClass::SetInhomogeneityInitialData(vtkImageData *img , int index) { 
+    assert(index < this->NumInputImages && index >= 0);
+    if (!this->InhomogeneityInitialData) {
+      this->InhomogeneityInitialData = new vtkImageData*[this->NumInputImages];
+      for (int i = 0 ; i < this->NumInputImages; i++) this->InhomogeneityInitialData[i] = NULL;
+    } 
+    this->InhomogeneityInitialData[index] = img; 
+    
+  }
+
+float* vtkImageEMLocalSuperClass::GetInhomogeneityInitialDataPtr(int index) {
+     assert(index < this->NumInputImages && index >= 0);
+     if ((this->InhomogeneityInitialData == NULL) || (this->InhomogeneityInitialData[index] == NULL)) return NULL;
+     assert(this->InhomogeneityInitialData[index]->GetScalarType() == VTK_FLOAT);
+     int DataExtent[6];
+     this->InhomogeneityInitialData[index]->GetWholeExtent(DataExtent);
+     for (int i = 0; i < 3; i ++ ) assert((DataExtent[2*i+1] - DataExtent[2*i] +1)  == this->DataDim[i]);
+     vtkIdType Inc[3];
+     this->InhomogeneityInitialData[index]->GetContinuousIncrements(DataExtent, Inc[0], Inc[1], Inc[2]);
+     assert((Inc[1] == 0) && (Inc[2] == 0));
+     return (float*)this->InhomogeneityInitialData[index]->GetScalarPointerForExtent(DataExtent);
+  }

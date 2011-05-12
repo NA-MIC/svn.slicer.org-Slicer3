@@ -26,7 +26,8 @@ MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 #ifndef _EMLOCALALGORITHM_H_INCLUDED
 #define _EMLOCALALGORITHM_H_INCLUDED 1
 
-#include "EMLocalShapeCostFunction.h"
+class EMLocalShapeCostFunction;
+class vtkMultiThreader;
 #include "EMLocalRegistrationCostFunction.h"
 
 // -----------------------------------------------------------
@@ -424,6 +425,9 @@ private:
   EMLocalAlgorithm_E_Step_MultiThreaded_Parameters *E_Step_Threader_Parameters;
   EMLocalAlgorithm_E_Step_MultiThreaded_SelfPointer E_Step_Threader_SelfPointer;
   int E_Step_Threader_Number;
+ 
+  float **InhomogeneityInitialDataPtr;
+
 };
 
 #include "EMLocalAlgorithm.txx"

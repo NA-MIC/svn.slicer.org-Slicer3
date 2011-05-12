@@ -112,6 +112,12 @@ public:
   vtkSetMacro(MinimumIslandSize, int);
   vtkGetMacro(MinimumIslandSize, int);
 
+  vtkSetMacro(Island2DFlag, int);
+  vtkGetMacro(Island2DFlag, int);
+
+  vtkSetMacro(AMFSmoothing, int);
+  vtkGetMacro(AMFSmoothing, int);
+
   vtkSetStringMacro(Colormap);
   vtkGetStringMacro(Colormap);
 
@@ -184,12 +190,14 @@ protected:
   // Postprocessing
   //
   int                                 MinimumIslandSize;
+  int                                 Island2DFlag;
 
   int                                 TemplateSaveAfterSegmentation;
-  char*                               TemplateFileName;
+  char*                            TemplateFileName;
 
   int                                 EnableSubParcellation;
 
+  int                                AMFSmoothing;
 
 };
 

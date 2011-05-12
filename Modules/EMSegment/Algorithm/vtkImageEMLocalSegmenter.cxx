@@ -16,6 +16,9 @@
 #include "vtkImageEMLocalSegmenter.h"
 #include "vtkObjectFactory.h"
 #include "EMLocalAlgorithm.h"
+#include "vtkImageEMLocalSuperClass.h"
+#include "vtkDataDef.h"
+
 #include "assert.h"
 //------------------------------------------------------------------------------
 // General vtkImageEMLocalSegmenter functions
@@ -475,6 +478,7 @@ int vtkImageEMLocalSegmenter::HierarchicalSegmentation(vtkImageEMLocalSuperClass
   case EMSEGMENT_REGISTRATION_SEQUENTIAL   : std::cerr << "Sequential " << endl; break;
   default : 
     vtkEMAddErrorMessage("Unknown Registration Type " << RegistrationType) ;
+    delete [] NewLevelName;
     return 0;
   } 
   std::cerr << "GenerateBackgroundProbability: " << (head->GetGenerateBackgroundProbability() ? "On" : "Off" ) << endl;

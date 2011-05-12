@@ -22,6 +22,10 @@ MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
 =========================================================================auto=*/
 
+#include "vtkImageEMLocalSuperClass.h"
+#include <vtksys/SystemTools.hxx>
+#include "EMLocalShapeCostFunction.h"
+
 template  <class T> int EMLocalAlgorithm<T>::Initialize(vtkImageEMLocalSegmenter *vtk_filter, T **initProbDataPtrStart, float** initInputVector, short *initROI, 
                               float **initw_mPtr, char *initLevelName, float initGlobalRegInvRotation[9], float initGlobalRegInvTranslation[3], 
                               int initRegistrationType, int DataType)
@@ -445,10 +449,10 @@ template  <class T> void EMLocalAlgorithm<T>::InitializeBias() {
     BiasLengthFileName +=  20 + NumInputImages/10 + int(strlen(this->LevelName));
 
     char *BiasDirectory = new char[BiasLengthFileName];
-    if (this->PrintDir != NULL) sprintf(BiasDirectory,"%s/Bias/blub",this->PrintDir);
+    if (this->PrintDir != NULL) sprintf(BiasDirectory,"%s/Bias",this->PrintDir);
     else sprintf(BiasDirectory,"Bias");
 
-    if (vtkFileOps::makeDirectoryIfNeeded(BiasDirectory) == -1) 
+    if (vtksys::SystemTools::MakeDirectory(BiasDirectory) == false) 
       {
       vtkEMAddErrorMessage( "Could not create the directory :" 
                             << this->PrintDir << "/Bias");
@@ -460,6 +464,18 @@ template  <class T> void EMLocalAlgorithm<T>::InitializeBias() {
                 << this->PrintDir << "/Bias" << std::endl;
       }
     delete[] BiasDirectory;
+  }
+
+  // MICCAI 07
+  if (this->actSupCl->GetInhomogeneityInitialDataPtr(0) ) {
+    this->InhomogeneityInitialDataPtr = new float*[this->NumInputImages];
+    for (int i =0; i < this->NumInputImages; i++ ) {
+      // Set all of them or non
+      this->InhomogeneityInitialDataPtr[i] = this->actSupCl->GetInhomogeneityInitialDataPtr(i);
+      assert(this->InhomogeneityInitialDataPtr[i]);
+    }
+  } else {
+    this->InhomogeneityInitialDataPtr  = NULL;
   }
 }
 
@@ -693,8 +709,8 @@ template <class T> int EMLocalAlgorithm<T>::InitializeShape() {
     
     if (PCAFlag) {
       char FileName[1000];
-      sprintf(FileName,"%s/Shape/blub", this->PrintDir);
-      if (vtkFileOps::makeDirectoryIfNeeded(FileName) == -1) {
+      sprintf(FileName,"%s/Shape", this->PrintDir);
+      if (vtksys::SystemTools::MakeDirectory(FileName) == false) {
     vtkEMAddErrorMessage( "Could not create the follwoing directory :" << this->PrintDir << "/shape");
     SuccessFlag = 0;
       } 
@@ -879,9 +895,9 @@ template <class T> int EMLocalAlgorithm<T>::InitializeRegistration(float initGlo
 
      // Make Directory if necessary
      char makedirectory[1000];
-     sprintf(makedirectory,"%s/Registration/Blub",this->PrintDir);
+     sprintf(makedirectory,"%s/Registration",this->PrintDir);
      
-     if (vtkFileOps::makeDirectoryIfNeeded(makedirectory) == -1) {
+     if (vtksys::SystemTools::MakeDirectory(makedirectory) == false) {
        vtkEMAddErrorMessage("Could not create the follwoing directory :" << makedirectory);
        SuccessFlag = 0 ;
      } else if (actSupCl->GetPrintRegistrationParameters()) {

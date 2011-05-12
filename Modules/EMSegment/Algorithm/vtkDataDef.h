@@ -16,11 +16,9 @@
 
 
 #include "vtkEMSegment.h"
-#include "vtkObject.h"
-#include "assert.h"
-// #include "ostream.h"
-// #include <stdio.h>
-// #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include <iostream>
 
 /// ----------------------------------------------------
@@ -332,11 +330,6 @@ void EraseDataFile(char *FileName) {
 };
 
 
-
-//
-//ETX - end tcl exclude
-//
-
 /// ----------------------------------------------------------------------------------------------
 /// Dummy class 
 /// ----------------------------------------------------------------------------------------------/ 
@@ -346,5 +339,9 @@ public:
 protected:
 
 };
+
+//
+//ETX - end tcl exclude
+//
 
 #endif
