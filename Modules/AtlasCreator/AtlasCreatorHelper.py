@@ -32,8 +32,8 @@ class AtlasCreatorHelper(object):
         self.__debugMode = 0
         self.__guidebugMode = 0
         
-        # create one instance of the EMSegment logic
-        self.__emlogic = slicer.vtkEMSegmentLogic()
+        # create one instance of the AtlasCreatorCxx logic
+        self.__cxxlogic = slicer.vtkAtlasCreatorCxxModuleLogic()
 
         self.__pcaDistanceSourced = 0
         
@@ -50,7 +50,7 @@ class AtlasCreatorHelper(object):
                 n/a
         '''
         
-        self.__emlogic = None
+        self.__cxxlogic = None
         self.__parentClass = None
         self.__debugMode = None
         self.__guidebugMode = None
@@ -441,12 +441,14 @@ class AtlasCreatorHelper(object):
 
 
     '''=========================================================================================='''    
-    def GetLabels(self, labelMap):
+    def GetLabels(self, labelMap, includeZero=False):
         '''
             Get the list of labels in a labelMap
             
             labelMap
                 vtkImageData of a labelMap volume
+            includeZero
+                determines if to include 0 in the list of labels
             
             Returns
                 the list of labels
@@ -458,6 +460,8 @@ class AtlasCreatorHelper(object):
         data = accum.GetOutput()
         numBins = accum.GetComponentExtent()[1]
         nonZeroLabels = []
+        if includeZero:
+            nonZeroLabels.append(0)
         for i in range(1, numBins + 1):
             numVoxels = data.GetScalarComponentAsDouble(i, 0, 0, 0)
             if (numVoxels > 0):
@@ -472,27 +476,43 @@ class AtlasCreatorHelper(object):
     
 
     '''=========================================================================================='''
-    def ReadLabelsFromImage(self, path):
+    def ReadLabelsFromImage(self, pathsList):
         '''
         Read labels from an image.
         
-        path - the filePath to an existing Image
+        pathsList - a list of filePaths to existing Images
         
         Returns a list of labels
         '''
-        if not path:
+        if not pathsList:
             return None
         
-        node = self.LoadVolume(os.path.normpath(path))
-        labels = self.GetLabels(node.GetImageData())
-        slicer.MRMLScene.RemoveNode(node)
+        labels = []
+        
+        for f in pathsList:
+            
+            node = self.LoadVolume(os.path.normpath(f))
+            
+            # by default, do not include 0 in the list of labels
+            bg = self.GuessBackgroundValue(os.path.normpath(f))
+            includeZero = False
+            
+            # if the background of the labelmap is 0, include it in the labelList
+            if bg == 0:
+                includeZero = True
+            
+            newLabels = self.GetLabels(node.GetImageData(),includeZero)
+            slicer.MRMLScene.RemoveNode(node)
+            
+            # now sync newLabels with labels
+            labels = list(set(sorted(newLabels+labels)))
         
         return labels
     
     
     
     '''=========================================================================================='''    
-    def GetBRAINSFitRegistrationCommand(self, templateFilePath, movingImageFilePath, outputTransformFilePath, outputImageFilePath, onlyAffineReg, numberOfThreads, backgroundValue):
+    def GetBRAINSFitRegistrationCommand(self, templateFilePath, movingImageFilePath, outputTransformFilePath, outputImageFilePath, numberOfThreads, backgroundValue, affine, affine12, nonrigid):
         '''
             Get the command to Register an image to a template using BRAINSFit
             
@@ -504,12 +524,16 @@ class AtlasCreatorHelper(object):
                 the file path to the transformation output
             outputImageFilePath
                 the file path to the aligned image output
-            onlyAffineReg
-                if true, just use affine registration and no BSpline
             numberOfThreads
                 the number of threads to use or -1 for the maximal number of threads
             backgroundValue
-                the backgroundValue of the moving image                
+                the backgroundValue of the moving image
+            affine
+                TRUE if affine registration should be used
+            affine12
+                TRUE if affine registration with 12 DOF should be used
+            nonrigid
+                TRUE if nonrigid registration should be used
                 
             Returns
                 the command to Register an image
@@ -523,12 +547,22 @@ class AtlasCreatorHelper(object):
         registrationCommand += " --maxBSplineDisplacement 10.0 --outputVolumePixelType short --interpolationMode Linear"
         #registrationCommand += " --maskProcessingMode  ROIAUTO --ROIAutoDilateSize 3.0 --maskInferiorCutOffFromCenter 65.0"
         #registrationCommand += " --useRigid --useScaleVersor3D --useScaleSkewVersor3D"
-        registrationCommand += " --initializeTransformMode useCenterOfHeadAlign --useRigid --useScaleVersor3D --useScaleSkewVersor3D"
-        registrationCommand += " --useAffine"
-
-        if not onlyAffineReg:
-            registrationCommand += " --useBSpline"
+        registrationCommand += " --initializeTransformMode useCenterOfHeadAlign" 
+        registrationCommand += " --useRigid"
+        
+        # activate different deformationTypes
+        if affine:
+            registrationCommand += " --useScaleVersor3D"
+                        
+        if affine12:
+            registrationCommand += " --useScaleSkewVersor3D"
             
+        if nonrigid:
+            registrationCommand += " --useBSpline"
+        
+        # affine with 16 DOF is not supported right now    
+        #registrationCommand += " --useAffine"
+
         registrationCommand += " --debugNumberOfThreads " + str(numberOfThreads)
         registrationCommand += " --backgroundFillValue " + str(backgroundValue)
         
@@ -580,7 +614,7 @@ class AtlasCreatorHelper(object):
 
 
     '''=========================================================================================='''    
-    def GetCMTKAffineRegistrationCommand(self, templateFilePath, movingImageFilePath, outputTransformDirectory, outputImageFilePath, backgroundValue, backgroundValueTemplate):
+    def GetCMTKAffineRegistrationCommand(self, templateFilePath, movingImageFilePath, outputTransformDirectory, outputImageFilePath, backgroundValue, backgroundValueTemplate, affine, affine12):
         '''
             Get the command to Register an image to a template using CMTK
             
@@ -595,7 +629,11 @@ class AtlasCreatorHelper(object):
             backgroundValue
                 the backgroundValue of the moving image
             backgroundValueTemplae
-                the backgroundValue of the template                
+                the backgroundValue of the template
+            affine
+                TRUE if affine registration should be used
+            affine12
+                TRUE if affine registration with 12 DOF should be used
                 
             Returns
                 the command to Register an image using CMTK in Affine mode
@@ -603,7 +641,15 @@ class AtlasCreatorHelper(object):
     
         
         registrationCommand = "registration"
-        registrationCommand += " --initxlate --exploration 8.0 --dofs 6 --dofs 9 --accuracy 0.5"
+        registrationCommand += " --initxlate --exploration 8.0 --accuracy 0.5"
+        registrationCommand += " --dofs 6"
+        
+        if affine:
+            registrationCommand += " --dofs 9"
+        
+        if affine12:
+            registrationCommand += " --dofs 12"
+        
         registrationCommand += " -o " + os.path.normpath(outputTransformDirectory)
         registrationCommand += " --pad-ref " + str(backgroundValueTemplate)
         registrationCommand += " --pad-flt " + str(backgroundValue)
@@ -730,7 +776,7 @@ class AtlasCreatorHelper(object):
             volumeNode = slicer.VolumesGUI.GetLogic().AddArchetypeScalarVolume(filePath, "tmpAtlasCreatorNode")
         except Exception:        
             # special case, if the AC is called from the EMSegment commandline tool
-            volumeNode = self.__emlogic.AddArchetypeScalarVolume(filePath, "tmpAtlasCreatorNode", slicer.ApplicationLogic, slicer.MRMLScene)
+            volumeNode = self.__cxxlogic.AddArchetypeScalarVolume(filePath, "tmpAtlasCreatorNode", slicer.ApplicationLogic, slicer.MRMLScene)
         
         
         return volumeNode
@@ -943,7 +989,7 @@ class AtlasCreatorHelper(object):
         node = self.LoadVolume(filePath)
         
         # guess the bg value
-        guess = self.__emlogic.GuessRegistrationBackgroundLevel(node)
+        guess = self.__cxxlogic.GuessRegistrationBackgroundLevel(node)
         
         # remove the node from the scene
         slicer.MRMLScene.RemoveNode(node)
