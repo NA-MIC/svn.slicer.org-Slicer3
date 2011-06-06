@@ -6,35 +6,36 @@
   or http://www.slicer.org/copyright/copyright.txt for details.
 
   Program:   3D Slicer
-  Module:    $HeadURL$
-  Date:      $Date$
-  Version:   $Revision$
+  Module:    $HeadURL: http://svn.slicer.org/Slicer3/trunk/Modules/OpenIGTLinkIF/vtkIGTLToMRMLPoint.h $
+  Date:      $Date: 2009-08-12 21:30:38 -0400 (Wed, 12 Aug 2009) $
+  Version:   $Revision: 10236 $
 
 ==========================================================================*/
 
-#ifndef __vtkIGTLToMRMLImage_h
-#define __vtkIGTLToMRMLImage_h
+#ifndef __vtkIGTLToMRMLPoint_h
+#define __vtkIGTLToMRMLPoint_h
 
 #include "vtkObject.h"
 #include "vtkOpenIGTLinkIFWin32Header.h" 
 #include "vtkMRMLNode.h"
 #include "vtkIGTLToMRMLBase.h"
 
-#include "igtlImageMessage.h"
+#include "igtlPointMessage.h"
 
 class vtkMRMLVolumeNode;
 
-class VTK_OPENIGTLINKIF_EXPORT vtkIGTLToMRMLImage : public vtkIGTLToMRMLBase
+class VTK_OPENIGTLINKIF_EXPORT vtkIGTLToMRMLPoint : public vtkIGTLToMRMLBase
 {
  public:
 
-  static vtkIGTLToMRMLImage *New();
-  vtkTypeRevisionMacro(vtkIGTLToMRMLImage,vtkObject);
+  static vtkIGTLToMRMLPoint *New();
+  vtkTypeRevisionMacro(vtkIGTLToMRMLPoint,vtkObject);
 
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  virtual const char*  GetIGTLName() { return "IMAGE"; };
-  virtual const char*  GetMRMLName() { return "Volume"; };
+  virtual const char*  GetIGTLName() { return "TDATA"; };
+  virtual const char*  GetMRMLName() { return "IGTLPointSplitter"; };
+
   virtual vtkIntArray* GetNodeEvents();
   virtual vtkMRMLNode* CreateNewNode(vtkMRMLScene* scene, const char* name);
 
@@ -45,21 +46,18 @@ class VTK_OPENIGTLINKIF_EXPORT vtkIGTLToMRMLImage : public vtkIGTLToMRMLBase
 
 
  protected:
-  vtkIGTLToMRMLImage();
-  ~vtkIGTLToMRMLImage();
+  vtkIGTLToMRMLPoint();
+  ~vtkIGTLToMRMLPoint();
 
   void CenterImage(vtkMRMLVolumeNode *volumeNode);
 
  protected:
   //BTX
-  igtl::ImageMessage::Pointer OutImageMessage;
-
-#ifdef OpenIGTLinkIF_USE_VERSION_2
-  igtl::GetImageMessage::Pointer GetImageMessage;
-#endif // OpenIGTLinkIF_USE_VERSION_2
+  //igtl::TransformMessage::Pointer OutTransformMsg;
+  igtl::PointMessage::Pointer      OutPointMsg;
   //ETX
   
 };
 
 
-#endif //__vtkIGTLToMRMLImage_h
+#endif //__vtkIGTLToMRMLPoint_h

@@ -31,6 +31,10 @@
 #include "igtlServerSocket.h"
 #include "igtlClientSocket.h"
 
+#ifdef OpenIGTLinkIF_USE_VERSION_2
+  #include "vtkMRMLIGTLQueryNode.h"
+#endif //OpenIGTLinkIF_USE_VERSION_2
+
 class vtkMultiThreader;
 class vtkMutexLock;
 class vtkIGTLCircularBuffer;
@@ -82,11 +86,19 @@ class VTK_OPENIGTLINKIF_EXPORT vtkMRMLIGTLConnectorNode : public vtkMRMLNode
     //vtkMRMLNode*  node;
   } DeviceInfoType;
 
+  typedef struct {
+    vtkMRMLNode*  node;
+    int           lock;
+    int           second;
+    int           nanosecond;
+  } NodeInfoType;
+
   typedef std::map<int, DeviceInfoType>   DeviceInfoMapType;   // Device list:  index is referred as
                                                                // a device id in the connector.
   typedef std::set<int>                   DeviceIDSetType;
   typedef std::list<vtkIGTLToMRMLBase*>   MessageConverterListType;
   typedef std::vector<vtkMRMLNode*>       MRMLNodeListType;
+  typedef std::vector<NodeInfoType>       NodeInfoListType;
   typedef std::map<std::string, vtkIGTLToMRMLBase*> MessageConverterMapType;
   //ETX
 
@@ -226,15 +238,12 @@ class VTK_OPENIGTLINKIF_EXPORT vtkMRMLIGTLConnectorNode : public vtkMRMLNode
 
   // Description:
   // Register MRML node for incoming data.
-  int RegisterIncomingMRMLNode(vtkMRMLNode* node);
+  // Returns a pointer to the node information in IncomingMRMLNodeInfoList
+  NodeInfoType* RegisterIncomingMRMLNode(vtkMRMLNode* node);
 
   // Description:
   // Unregister MRML node for incoming data.
   void UnregisterIncomingMRMLNode(vtkMRMLNode* node);
-
-  // Description:
-  // Get MRML to IGTL converter assigned to the specified MRML node ID
-  vtkIGTLToMRMLBase* GetConverterByNodeID(const char* id);
 
   // Description:
   // Get number of registered outgoing MRML nodes:
@@ -243,6 +252,10 @@ class VTK_OPENIGTLINKIF_EXPORT vtkMRMLIGTLConnectorNode : public vtkMRMLNode
   // Description:
   // Get Nth outgoing MRML nodes:
   vtkMRMLNode* GetOutgoingMRMLNode(unsigned int i);
+
+  // Description:
+  // Get MRML to IGTL converter assigned to the specified MRML node ID
+  vtkIGTLToMRMLBase* GetConverterByNodeID(const char* id);
 
   // Description:
   // Get number of registered outgoing MRML nodes:
@@ -256,6 +269,33 @@ class VTK_OPENIGTLINKIF_EXPORT vtkMRMLIGTLConnectorNode : public vtkMRMLNode
   // A function to explicitly push node to OpenIGTLink
   // (Usually, data stored in MRML scene are exported, when the registered events are invoked.)
   void PushNode(vtkMRMLNode* node);
+
+#ifdef OpenIGTLinkIF_USE_VERSION_2
+  // Description:
+  // Push query int the query list.
+  //BTX
+  void PushQuery(vtkMRMLIGTLQueryNode* query);
+  //ETX
+#endif //OpenIGTLinkIF_USE_VERSION_2
+
+  //----------------------------------------------------------------
+  // For OpenIGTLink time stamp access
+  //----------------------------------------------------------------
+
+  // Description:
+  // Turn lock flag on to stop updating MRML node. Call this function before
+  // reading the content of the MRML node and the corresponding time stamp.
+  void LockIncomingMRMLNode(vtkMRMLNode* node);
+
+  // Description:
+  // Turn lock flag off to start updating MRML node. Make sure to call this function
+  // after reading the content / time stamp.
+  void UnlockIncomingMRMLNode(vtkMRMLNode* node);
+
+  // Description:
+  // Get OpenIGTLink's time stamp information. Returns 0, if it fails to obtain time stamp.
+  int GetIGTLTimeStamp(vtkMRMLNode* node, int& second, int& nanosecond);
+
 
  private:
 
@@ -308,12 +348,23 @@ class VTK_OPENIGTLINKIF_EXPORT vtkMRMLIGTLConnectorNode : public vtkMRMLNode
   int           RestrictDeviceName;  // Flag to restrict incoming and outgoing data by device names
 
   //BTX
-  // Event queueing mechanism is needed to send all event notifications from the main thread
-  // Events can be pushed to the back of the EventQueue by calling RequestInvoke from any thread,
+  // Event queueing mechanism is needed to send all event notifications from the main thread.
+  // Events can be pushed to the end of the EventQueue by calling RequestInvoke from any thread,
   // and they will be Invoked in the main thread.
   std::list<unsigned long> EventQueue;
   vtkMutexLock* EventQueueMutex;
   //ETX
+
+#ifdef OpenIGTLinkIF_USE_VERSION_2
+  // Query queueing mechanism is needed to send all queries from the connector thread.
+  // Queries can be pushed to the end of the QueryQueue by calling RequestInvoke from any thread,
+  // and they will be Invoked in the main thread.
+  //BTX
+  std::list<vtkMRMLIGTLQueryNode*> QueryWaitingQueue;
+  vtkMutexLock* QueryQueueMutex;
+  //ETX
+#endif //OpenIGTLinkIF_USE_VERSION_2
+
 
   // -- Device Name (same as MRML node) and data type (data type string defined in OpenIGTLink)
   DeviceIDSetType   IncomingDeviceIDSet;
@@ -321,13 +372,13 @@ class VTK_OPENIGTLINKIF_EXPORT vtkMRMLIGTLConnectorNode : public vtkMRMLNode
   DeviceIDSetType   UnspecifiedDeviceIDSet;
   
   // Message converter (IGTLToMRML)
-  MessageConverterListType   MessageConverterList;
-  MessageConverterMapType    IGTLNameToConverterMap;
-  MessageConverterMapType    MRMLIDToConverterMap;
+  MessageConverterListType MessageConverterList;
+  MessageConverterMapType  IGTLNameToConverterMap;
+  MessageConverterMapType  MRMLIDToConverterMap;
 
   // List of nodes that this connector node is observing.
-  MRMLNodeListType          OutgoingMRMLNodeList;
-  MRMLNodeListType          IncomingMRMLNodeList;
+  MRMLNodeListType         OutgoingMRMLNodeList;
+  NodeInfoListType         IncomingMRMLNodeInfoList;
   
   int CheckCRC;
   

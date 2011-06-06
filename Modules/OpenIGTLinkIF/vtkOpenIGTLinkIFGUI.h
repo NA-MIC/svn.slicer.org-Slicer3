@@ -23,8 +23,16 @@
 #include "vtkOpenIGTLinkIFLogic.h"
 #include "vtkMRMLIGTLConnectorNode.h"
 
+#ifdef OpenIGTLinkIF_USE_VERSION_2
+  #include "vtkIGTLRemoteDataListWindow.h"
+  #include "vtkIGTLTrackingDataControllerWindow.h"
+#endif //OpenIGTLinkIF_USE_VERSION_2
+
+#include "vtkIGTLTestWindow.h"
+
 #include "vtkIGTDataManager.h"
 #include "vtkIGTPat2ImgRegistration.h"
+
 #include "vtkCallbackCommand.h"
 #include "vtkSlicerInteractorStyle.h"
 
@@ -141,6 +149,7 @@ class VTK_OPENIGTLINKIF_EXPORT vtkOpenIGTLinkIFGUI : public vtkSlicerModuleGUI
   void BuildGUIForIOConfig();
   void BuildGUIForDeviceFrame();
   void BuildGUIForVisualizationControlFrame();
+  void BuildGUIForTest();
   
   //----------------------------------------------------------------
   // Event handlers
@@ -152,6 +161,10 @@ class VTK_OPENIGTLINKIF_EXPORT vtkOpenIGTLinkIFGUI : public vtkSlicerModuleGUI
   virtual void RemoveGUIObservers ( );
   void         AddLogicObservers ( );
   void         RemoveLogicObservers ( );
+
+  void OpenRemoteDataListWindow(const char* conID);
+  void OpenTrackingDataControllerWindow(const char* conID);
+
   //virtual void AddNodeCallback(const char* conID, int io, const char* name, const char* type);
   virtual void AddNodeCallback(const char* conID, int io, const char* nodeID, const char* devType);
   virtual void ExportDataToIGTLCallback(const char* conID, const char* nodeID);
@@ -272,6 +285,18 @@ class VTK_OPENIGTLINKIF_EXPORT vtkOpenIGTLinkIFGUI : public vtkSlicerModuleGUI
   bool              IsSliceOrientationAdded;
   // Module logic and mrml pointers
 
+#ifdef OpenIGTLinkIF_USE_VERSION_2
+  //----------------------------------------------------------------
+  // Remote Data List Window
+  vtkIGTLRemoteDataListWindow* RemoteDataWindow;
+  vtkIGTLTrackingDataControllerWindow* TrackingDataControllerWindow;
+#endif //OpenIGTLinkIF_USE_VERSION_2
+
+  //----------------------------------------------------------------
+  // Connection Test Frame + Window
+
+  vtkKWPushButton*   ConnectionTestButton;
+  vtkIGTLTestWindow* TestWindow;
 
   //----------------------------------------------------------------
   // Logic Values

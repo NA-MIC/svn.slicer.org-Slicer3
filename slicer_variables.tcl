@@ -96,7 +96,7 @@ set ::SCIPY_TAG "http://svn.scipy.org/svn/scipy/branches/0.7.x"
 #set ::BatchMake_TAG "BatchMake-1-2"
 set ::BatchMake_TAG "HEAD"
 set ::SLICERLIBCURL_TAG "HEAD"
-set ::OpenIGTLink_TAG "http://svn.na-mic.org/NAMICSandBox/branches/OpenIGTLink-1-0"
+set ::OpenIGTLink_TAG "http://svn.na-mic.org/NAMICSandBox/branches/OpenIGTLink-1-9-3"
 #set ::OpenCV_TAG "http://sourceforge.net/projects/opencvlibrary/files/opencv-linux/1.0/opencv-1.0.0.tar.gz/download" 
 set ::OpenCV_TAG "http://sourceforge.net/projects/opencvlibrary/files/opencv-unix/1.0/opencv-1.0.0.tar.gz/download"
 
