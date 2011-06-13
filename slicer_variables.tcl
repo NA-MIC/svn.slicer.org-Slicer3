@@ -100,6 +100,14 @@ set ::OpenIGTLink_TAG "http://svn.na-mic.org/NAMICSandBox/branches/OpenIGTLink-1
 #set ::OpenCV_TAG "http://sourceforge.net/projects/opencvlibrary/files/opencv-linux/1.0/opencv-1.0.0.tar.gz/download" 
 set ::OpenCV_TAG "http://sourceforge.net/projects/opencvlibrary/files/opencv-unix/1.0/opencv-1.0.0.tar.gz/download"
 
+# for experimental use
+set ::ITK_GIT_REPO git://itk.org/ITK.git 
+set ::ITK_GIT_BRANCH release          
+set ::ITK_GIT_TAG v3.20.0   
+set ::VTK_GIT_REPO git://vtk.org/VTK.git   
+set ::VTK_GIT_BRANCH release            
+set ::VTK_GIT_TAG v5.6.1     
+
 # set TCL_VERSION to "tcl" to get 8.4, otherwise use tcl85 to get 8.5
 # set 8.5 for Solaris explicitly, because 8.4 complains 
 # when built 64 bit with gcc. Suncc/CC is fine, however.
