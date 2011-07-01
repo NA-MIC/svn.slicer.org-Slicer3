@@ -595,7 +595,8 @@ std::string vtkSlicerMRMLSaveDataWidget::GetRowFullFileName(int row)
     return empStr;
     }
 
-  std::string fileExt = vtksys::SystemTools::GetFilenameLastExtension(fileName);
+  //std::string fileExt = vtksys::SystemTools::GetFilenameLastExtension(fileName);
+  std::string fileExt = vtksys::SystemTools::GetFilenameExtension(fileName);
   std::string currExt = this->GetRowCurrentFileExtension(row); 
   if(strcmp(currExt.c_str(), ".*") &&
     (fileExt.empty() || strcmp(currExt.c_str(), fileExt.c_str())))
