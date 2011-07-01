@@ -101,6 +101,7 @@ vtkMRMLScene::vtkMRMLScene()
   this->ClassNameList = NULL;
   this->RegisteredNodeClasses.clear();
   this->UniqueIDByClass.clear();
+  this->UniqueIDs.clear();
 
   this->CurrentScene =  vtkCollection::New();
   this->UndoStackSize = 100;
@@ -495,7 +496,7 @@ void vtkMRMLScene::Clear(int removeSingletons)
   this->ClearUndoStack ( );
   this->ClearRedoStack ( );
   this->UniqueIDByClass.clear();
-
+  this->UniqueIDs.clear();
 
   this->Modified();
   this->SetUndoOn();
@@ -702,6 +703,7 @@ int vtkMRMLScene::Connect()
   this->ClearUndoStack ( );
   this->ClearRedoStack ( );
   this->UniqueIDByClass.clear();
+  this->UniqueIDs.clear();
 
   // see vtkMRMLScene::Clear on why it was moved
   this->InvokeEvent(this->SceneCloseEvent, NULL);
