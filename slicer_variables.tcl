@@ -91,7 +91,8 @@ set ::PYTHON_TAG "http://svn.python.org/projects/python/branches/release26-maint
 set ::PYTHON_REVISION 76651 ;# avoid windows manifest "fix"
 set ::BLAS_TAG http://svn.slicer.org/Slicer3-lib-mirrors/trunk/netlib/BLAS
 set ::LAPACK_TAG http://svn.slicer.org/Slicer3-lib-mirrors/trunk/netlib/lapack-3.1.1
-set ::NUMPY_TAG "http://svn.scipy.org/svn/numpy/branches/1.3.x"
+#set ::NUMPY_TAG "http://svn.scipy.org/svn/numpy/branches/1.3.x"
+set ::NUMPY_TAG http://svn.slicer.org/Slicer3-lib-mirrors/trunk/numpy-1.4.1
 set ::SCIPY_TAG "http://svn.scipy.org/svn/scipy/branches/0.7.x"
 #set ::BatchMake_TAG "BatchMake-1-2"
 set ::BatchMake_TAG "HEAD"
