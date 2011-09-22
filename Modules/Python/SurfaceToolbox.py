@@ -17,6 +17,18 @@ This work is part of the National Alliance for Medical Image Computing (NAMIC), 
 </acknowledgements>
 
   <parameters>
+    <label>Strips to Triangles</label>
+    <description>Convert Triangle Strips to Triangles (needed for decimation)</description>
+    <boolean>
+      <name>stripsToTrianglesEnabled</name>
+      <longflag>stripsToTrianglesEnabled</longflag>
+      <description>Toggle de-stripping</description>
+      <label>Enabled</label>
+      <default>false</default>
+    </boolean>
+  </parameters>
+
+  <parameters>
     <label>Surface Decimation</label>
     <description>Parameters for surface decimation</description>
     <boolean>
@@ -154,6 +166,19 @@ This work is part of the National Alliance for Medical Image Computing (NAMIC), 
   </parameters>
 
   <parameters>
+    <label>Triangles to Strips</label>
+    <description>Convert Triangles to Triangle Strips</description>
+    <boolean>
+      <name>trianglesToStripsEnabled</name>
+      <longflag>trianglesToStripsEnabled</longflag>
+      <description>Toggle re-stripping</description>
+      <label>Enabled</label>
+      <default>false</default>
+    </boolean>
+  </parameters>
+
+
+  <parameters>
     <label>IO</label>
     <description>Input/output parameters</description>
 
@@ -179,10 +204,10 @@ This work is part of the National Alliance for Medical Image Computing (NAMIC), 
 
 
 def Execute (inputSurface, outputSurface, \
-    decimationEnabled=False, targetReduction=0.8, boundaryDeletion=True, \
+    stripsToTrianglesEnabled=False, decimationEnabled=False, targetReduction=0.8, boundaryDeletion=True, \
     smoothingEnabled=False, smoothingMethod="Taubin", boundarySmoothing=True, laplaceIterations=10, laplaceRelaxation=0.1, taubinIterations=10, taubinPassband=0.1, \
     normalsEnabled=False, flipNormals=False, splitting=False, featureAngle=30.0, \
-    cleanerEnabled=False):
+    cleanerEnabled=False, trianglesToStripsEnabled=False):
 
     Slicer = __import__("Slicer")
     slicer = Slicer.slicer
@@ -191,6 +216,12 @@ def Execute (inputSurface, outputSurface, \
     outputSurface = scene.GetNodeByID(outputSurface)
 
     surface = inputSurface.GetPolyData()
+
+    if stripsToTrianglesEnabled:
+        triangles = slicer.vtkTriangleFilter()
+        triangles.SetInput(surface)
+        triangles.Update()
+        surface = triangles.GetOutput()
 
     if decimationEnabled:
         decimation = slicer.vtkDecimatePro()
@@ -250,6 +281,12 @@ def Execute (inputSurface, outputSurface, \
         cleaner.SetInput(surface)
         cleaner.Update()
         surface = cleaner.GetOutput()
+
+    if trianglesToStripsEnabled:
+        stripper = slicer.vtkStripper()
+        stripper.SetInput(surface)
+        stripper.Update()
+        surface = stripper.GetOutput()
 
     outputSurface.SetAndObservePolyData(surface)
 
