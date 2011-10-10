@@ -148,6 +148,14 @@ if { [itcl::find class SWidget] == "" } {
     method processDelayedAnnotation {} {}
     method cancelDelayedAnnotation {} {}
     method getInAnySliceSWidget {} {}
+    method cross {a b} {}
+    method dot {a b} {}
+    method length {v} {}
+    method normalize {v} {}
+    method minus {a b} {}
+    method plus {a b} {}
+    method negative {a} {}
+    method multiply {s a} {}
 
     # make a new instance of a class and add it to the list for cleanup
     method vtkNew {class} {
@@ -472,6 +480,72 @@ itcl::body SWidget::getInAnySliceSWidget { } {
       }
     }
     return 0
+}
+
+itcl::body SWidget::cross { a b } {
+  foreach {a0 a1 a2} $a {}
+  foreach {b0 b1 b2} $b {}
+  set c0 [expr $a1*$b2 - $a2*$b1]
+  set c1 [expr $a2*$b0 - $a0*$b2]
+  set c2 [expr $a0*$b1 - $a1*$b0]
+  return [list $c0 $c1 $c2]
+}
+
+itcl::body SWidget::dot { a b } {
+  set sum 0.0
+  foreach aa $a bb $b {
+    set sum [expr $sum + $aa*$bb]
+  }
+  return $sum
+}
+
+itcl::body SWidget::length { v } {
+  return [expr sqrt([$this dot $v $v])]
+}
+
+itcl::body SWidget::normalize { v } {
+  set nv ""
+  set length [$this length $v]
+  foreach vv $v {
+    lappend nv [expr $vv / $length]
+  }
+  return $nv
+}
+
+itcl::body SWidget::minus { a b } {
+  # return a minus b
+  set diff ""
+  foreach aa $a bb $b {
+    lappend diff [expr $aa - $bb]
+  }
+  return $diff
+}
+
+itcl::body SWidget::plus { a b } {
+  # return a plus b
+  set sum ""
+  foreach aa $a bb $b {
+    lappend sum [expr $aa + $bb]
+  }
+  return $sum
+}
+
+itcl::body SWidget::negative { a } {
+  # return -a
+  set neg ""
+  foreach aa $a {
+    lappend neg [expr -1. * $aa]
+  }
+  return $neg
+}
+
+itcl::body SWidget::multiply { s a } {
+  # return s * a
+  set b ""
+  foreach aa $a {
+    lappend b [expr $s * $aa]
+  }
+  return $b
 }
 
 #

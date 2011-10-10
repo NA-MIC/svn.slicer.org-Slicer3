@@ -12,10 +12,10 @@ proc EditorTearDownGUI {this} {
 
   # nodeSelector  ;# disabled for now
   set widgets {
-      optionsSpacer optionsFrame
-      toolsActiveTool toolsEditFrame toolsColorFrame
       enableCheckPoint
       enableAutosave
+      optionsSpacer optionsFrame
+      toolsActiveTool toolsEditFrame toolsColorFrame
       toolsFrame volumesFrame 
   }
 
@@ -228,7 +228,9 @@ proc EditorProcessGUIEvents {this caller event} {
     switch $event {
       "10000" {
         set onoff [$::Editor($this,enableAutosave) GetSelectedState]
-        EditorSetAutosaveEnabled $onoff
+        if { [EditorSetAutosaveEnabled $onoff] == "" } {
+          $::Editor($this,enableAutosave) SetSelectedState 0
+        }
       }
     }
   } 
@@ -269,6 +271,10 @@ proc EditorGetParameterNode {} {
   set nNodes [$::slicer3::MRMLScene GetNumberOfNodesByClass "vtkMRMLScriptedModuleNode"]
   for {set i 0} {$i < $nNodes} {incr i} {
     set n [$::slicer3::MRMLScene GetNthNodeByClass $i "vtkMRMLScriptedModuleNode"]
+    if { $n == "" } {
+      # TODO: how can this be?  It happens during scene load
+      continue
+    }
     if { [$n GetModuleName] == "Editor" } {
       if { $n == $::Editor(parameterNode) } {
         set node $n
@@ -751,12 +757,15 @@ proc EditorSetAutosaveEnabled {onoff} {
     }
     if { $dir != "" } {
       $::slicer3::Application SetRegistry EditorAutosavePath $dir
+      EditorAutosave $dir
+    } else {
+      EditorAutosave cancel
     }
-    #$::dialog Delete
-
-    EditorAutosave $dir
+    $::dialog Delete
+    return $dir
   } else {
     EditorAutosave cancel
+    return ""
   }
 }
 
@@ -803,7 +812,7 @@ proc EditorAutosave { {directory ""} } {
   [$::slicer3::ApplicationGUI GetMainSlicerWindow] SetStatusText "Saved to $autoDir..."
 
   # save again in 5 minutes
-  set ::Editor(autosaveAfterID) [after [expr 5 * 60 * 1000] EditorAutosave $directory]
+  set ::Editor(autosaveAfterID) [after [expr 5 * 60 * 1000] EditorAutosave \"$directory\"]
 }
 
 
