@@ -174,7 +174,6 @@ void vtkSlicerPopUpHelpWidget::DisplayHelpWindow ( )
     }
   this->HelpWindow->DeIconify();
   this->HelpWindow->Raise();
-  this->Script ( "puts \"raising toplevel\""); 
 }
 
 
