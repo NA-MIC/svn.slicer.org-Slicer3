@@ -612,12 +612,6 @@ IF (Slicer3_USE_KWWIDGETS)
     endif(Slicer3_BUILD_CLI)
   endif(Slicer3_BUILD_MODULES)
 ENDIF (Slicer3_USE_KWWIDGETS)
-#-----------------------------------------------------------------------------
-# Qt Loadable Modules
-#
-IF(Slicer3_USE_QT AND Slicer3_BUILD_QTLOADABLEMODULES)
-  add_subdirectory(QTModules)
-ENDIF(Slicer3_USE_QT AND Slicer3_BUILD_QTLOADABLEMODULES)
 
 #-----------------------------------------------------------------------------
 # Applications need to be built after Modules to capture the TractTracing in
