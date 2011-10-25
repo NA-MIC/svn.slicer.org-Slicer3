@@ -1,16 +1,16 @@
 /*=auto=========================================================================
 
-Portions (c) Copyright 2005 Brigham and Women\"s Hospital (BWH) All Rights Reserved.
+  Portions (c) Copyright 2005 Brigham and Women\"s Hospital (BWH) All Rights Reserved.
 
-See Doc/copyright/copyright.txt
-or http://www.slicer.org/copyright/copyright.txt for details.
+  See Doc/copyright/copyright.txt
+  or http://www.slicer.org/copyright/copyright.txt for details.
 
-Program:   3D Slicer
-Module:    $RCSfile: vtkMRMLNode.cxx,v $
-Date:      $Date: 2006/03/17 15:10:09 $
-Version:   $Revision: 1.11 $
+  Program:   3D Slicer
+  Module:    $RCSfile: vtkMRMLNode.cxx,v $
+  Date:      $Date: 2006/03/17 15:10:09 $
+  Version:   $Revision: 1.11 $
 
-=========================================================================auto=*/
+  =========================================================================auto=*/
 #include "vtkMRMLNode.h"
 #include "vtkMRMLScene.h"
 
@@ -39,10 +39,10 @@ vtkMRMLNode* vtkMRMLNode::New()
 vtkMRMLNode::vtkMRMLNode()
 {
   this->ID = NULL;
-  
+
   // By default nodes have no effect on indentation
   this->Indent = 0;
-  
+
   // Strings
   this->Description = NULL;
 
@@ -59,7 +59,7 @@ vtkMRMLNode::vtkMRMLNode()
   this->HideFromEditors = 1;
   this->Selectable = 1;
   this->Selected = 0;
- 
+
   this->AddToScene = 1;
 
   this->DisableModifiedEvent = 0;
@@ -135,10 +135,10 @@ void vtkMRMLNode::CopyWithScene(vtkMRMLNode *node)
     {
     this->SetScene(node->GetScene());
     }
-  if (node->GetID()) 
+  if (node->GetID())
     {
     this->SetID( node->GetID() );
-    } 
+    }
   this->Copy(node);
 }
 
@@ -146,10 +146,10 @@ void vtkMRMLNode::CopyWithScene(vtkMRMLNode *node)
 void vtkMRMLNode::CopyID(vtkMRMLNode *node)
 {
 
-  if (node->GetID()) 
+  if (node->GetID())
     {
     this->SetID( node->GetID() );
-    } 
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -178,9 +178,9 @@ void vtkMRMLNode::Copy(vtkMRMLNode *node)
 
 //----------------------------------------------------------------------------
 void vtkMRMLNode::Reset()
-{    
+{
   vtkMRMLNode *newNode = this->CreateNodeInstance();
-    
+
   int save = this->GetSaveWithScene();
   int hide = this->GetHideFromEditors();
   int select = this->GetSelectable();
@@ -188,13 +188,13 @@ void vtkMRMLNode::Reset()
 
   this->DisableModifiedEventOn();
   this->CopyWithSceneWithoutModifiedEvent(newNode);
-  
+
   this->SetSaveWithScene(save);
   this->SetHideFromEditors(hide);
   this->SetSelectable(select);
   this->SetSingletonTag(tag);
   this->DisableModifiedEventOff(); // does not invoke Modified()
-  
+
   newNode->Delete();
 }
 //----------------------------------------------------------------------------
@@ -204,12 +204,12 @@ void vtkMRMLNode::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "ID: " <<
     (this->ID ? this->ID : "(none)") << "\n";
-  
+
   os << indent << "Indent:      " << this->Indent << "\n";
-  
+
   os << indent << "Name: " <<
     (this->Name ? this->Name : "(none)") << "\n";
-  
+
   os << indent << "Description: " <<
     (this->Description ? this->Description : "(none)") << "\n";
 
@@ -225,15 +225,15 @@ void vtkMRMLNode::PrintSelf(ostream& os, vtkIndent indent)
 void vtkMRMLNode::WriteXML(ostream& of, int nIndent)
 {
   vtkIndent indent(nIndent);
-  if (this->ID != NULL) 
+  if (this->ID != NULL)
     {
     of << indent << " id=\"" << this->ID << "\"";
     }
-  if (this->Name != NULL) 
+  if (this->Name != NULL)
     {
     of << indent << " name=\"" << this->Name << "\"";
     }
-  if (this->Description != NULL) 
+  if (this->Description != NULL)
     {
     of << indent << " description=\"" << this->Description << "\"";
     }
@@ -241,6 +241,23 @@ void vtkMRMLNode::WriteXML(ostream& of, int nIndent)
 
   of << indent << " selectable=\"" << (this->Selectable ? "true" : "false") << "\"";
   of << indent << " selected=\"" << (this->Selected ? "true" : "false") << "\"";
+
+  if (this->Attributes.size())
+    {
+    of << indent << " attributes=\"";
+    AttributesType::const_iterator it;
+    AttributesType::const_iterator begin = this->Attributes.begin();
+    AttributesType::const_iterator end = this->Attributes.end();
+    for (it = begin; it != end; ++it)
+      {
+      if (it != begin)
+        {
+        of << ';';
+        }
+      of << it->first << ':' << it->second;
+      }
+    of << "\"";
+    }
 
 }
 
@@ -269,25 +286,25 @@ void vtkMRMLNode::ReadXMLAttributes(const char** atts)
 
   const char* attName;
   const char* attValue;
-  while (*atts != NULL) 
+  while (*atts != NULL)
     {
     attName = *(atts++);
     attValue = *(atts++);
-    if (!strcmp(attName, "id")) 
+    if (!strcmp(attName, "id"))
       {
       this->SetID(attValue);
       }
-    else if (!strcmp(attName, "name")) 
+    else if (!strcmp(attName, "name"))
       {
       this->SetName(attValue);
       }
-    else if (!strcmp(attName, "description")) 
+    else if (!strcmp(attName, "description"))
       {
       this->SetDescription(attValue);
       }
-    else if (!strcmp(attName, "hideFromEditors")) 
+    else if (!strcmp(attName, "hideFromEditors"))
       {
-      if (!strcmp(attValue,"true")) 
+      if (!strcmp(attValue,"true"))
         {
         this->HideFromEditors = 1;
         }
@@ -296,9 +313,9 @@ void vtkMRMLNode::ReadXMLAttributes(const char** atts)
         this->HideFromEditors = 0;
         }
       }
-    else if (!strcmp(attName, "selectable")) 
+    else if (!strcmp(attName, "selectable"))
       {
-      if (!strcmp(attValue,"true")) 
+      if (!strcmp(attValue,"true"))
         {
         this->Selectable = 1;
         }
@@ -307,9 +324,9 @@ void vtkMRMLNode::ReadXMLAttributes(const char** atts)
         this->Selectable = 0;
         }
       }
-     else if (!strcmp(attName, "selected")) 
+    else if (!strcmp(attName, "selected"))
       {
-      if (!strcmp(attValue,"true")) 
+      if (!strcmp(attValue,"true"))
         {
         this->Selected = 1;
         }
@@ -318,7 +335,19 @@ void vtkMRMLNode::ReadXMLAttributes(const char** atts)
         this->Selected = 0;
         }
       }
-    } 
+    else if (!strcmp(attName, "attributes"))
+      {
+      std::stringstream attributes(attValue);
+      std::string attribute;
+      while (std::getline(attributes, attribute, ';'))
+        {
+        int colonIndex = attribute.find(':');
+        std::string name = attribute.substr(0, colonIndex);
+        std::string value = attribute.substr(colonIndex + 1);
+        this->SetAttribute(name.c_str(), value.c_str());
+        }
+      }
+    }
   this->EndModify(disabledModify);
 
   return;
@@ -328,6 +357,8 @@ void vtkMRMLNode::ReadXMLAttributes(const char** atts)
 void vtkMRMLNode::SetAttribute(const char* name, const char* value)
 {
   Attributes[std::string(name)] = std::string(value);
+  this->SetModifiedSinceRead(1);
+  this->Modified();
 }
 
 //----------------------------------------------------------------------------
@@ -357,7 +388,7 @@ const char* vtkMRMLNode::GetAttribute(const char* name)
     return NULL;
     }
   std::map< std::string, std::string >::iterator iter = Attributes.find(std::string(name));
-  if (iter == Attributes.end()) 
+  if (iter == Attributes.end())
     {
     return NULL;
     }
@@ -370,7 +401,7 @@ const char* vtkMRMLNode::GetAttribute(const char* name)
 //----------------------------------------------------------------------------
 int vtkMRMLNode::GetNumberOfAttributes()
 {
-  return Attributes.size(); 
+  return Attributes.size();
 }
 
 //----------------------------------------------------------------------------
@@ -394,12 +425,12 @@ const char* vtkMRMLNode::GetNthAttributeName(int i)
 
 //----------------------------------------------------------------------------
 // Description:
-// the MRMLCallback is a static function to relay modified events from the 
+// the MRMLCallback is a static function to relay modified events from the
 // observed mrml node back into the gui layer for further processing
 //
-void vtkMRMLNode::MRMLCallback(vtkObject *caller, 
-                               unsigned long eid, 
-                               void *clientData, 
+void vtkMRMLNode::MRMLCallback(vtkObject *caller,
+                               unsigned long eid,
+                               void *clientData,
                                void *callData)
 {
   vtkMRMLNode *self = reinterpret_cast<vtkMRMLNode *>(clientData);
@@ -427,23 +458,23 @@ void vtkMRMLNode::MRMLCallback(vtkObject *caller,
 //----------------------------------------------------------------------------
 void vtkMRMLNode::SetAddToSceneNoModify(int value)
 {
-   this->AddToScene = value;
+  this->AddToScene = value;
 }
 
 //----------------------------------------------------------------------------
 const char*  vtkMRMLNode::ConstructID(const char * str, int index)
 {
-    std::stringstream ss;
-    ss << str;
-    ss << index;
-    ss >> this->TempID;
-    return this->TempID.c_str();
+  std::stringstream ss;
+  ss << str;
+  ss << index;
+  ss >> this->TempID;
+  return this->TempID.c_str();
 }
 
 //----------------------------------------------------------------------------
 void  vtkMRMLNode::ConstructAndSetID(const char * str, int index)
 {
-    this->SetID(this->ConstructID(str, index));
+  this->SetID(this->ConstructID(str, index));
 }
 
 
@@ -458,7 +489,7 @@ const char * vtkMRMLNode::URLEncodeString(const char *inString)
     {
     return "";
     }
-  
+
   vtksys_stl::string kwInString = vtksys_stl::string(inString);
   // encode %
   itksys::SystemTools::ReplaceString(kwInString,
@@ -499,7 +530,7 @@ const char * vtkMRMLNode::URLDecodeString(const char *inString)
   vtksys_stl::string kwInString = vtksys_stl::string(inString);
 
   // decode in the opposite order they were encoded in
-  
+
   // decode double quote
   itksys::SystemTools::ReplaceString(kwInString,
                                      "%22", "\"");
