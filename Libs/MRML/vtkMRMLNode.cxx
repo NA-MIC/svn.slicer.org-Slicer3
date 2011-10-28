@@ -356,7 +356,13 @@ void vtkMRMLNode::ReadXMLAttributes(const char** atts)
 //----------------------------------------------------------------------------
 void vtkMRMLNode::SetAttribute(const char* name, const char* value)
 {
-  Attributes[std::string(name)] = std::string(value);
+  const char* oldValue = this->GetAttribute(name);
+  if (oldValue && value && !strcmp(oldValue, value))
+    {
+    return;
+    }
+
+  this->Attributes[std::string(name)] = std::string(value);
   this->SetModifiedSinceRead(1);
   this->Modified();
 }
@@ -387,7 +393,8 @@ const char* vtkMRMLNode::GetAttribute(const char* name)
     {
     return NULL;
     }
-  std::map< std::string, std::string >::iterator iter = Attributes.find(std::string(name));
+//  std::map< std::string, std::string >::iterator iter = Attributes.find(std::string(name));
+  AttributesType::const_iterator iter = this->Attributes.find(std::string(name));
   if (iter == Attributes.end())
     {
     return NULL;
