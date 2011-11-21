@@ -461,7 +461,7 @@ switch $::tcl_platform(os) {
             set ::PYTHON_CONFIG "$::PYTHON_BUILD_TYPE|Win32"
         }
 
-        set ::ITCL_TEST_FILE $::TCL_LIB_DIR/itclConfig.sh
+        set ::ITCL_TEST_FILE $::TCL_LIB_DIR/teapot/package/win32-ix86/lib/Itcl3.4/itcl.tcl
         set ::INCR_TCL_LIB $::TCL_LIB_DIR/lib/itcl3.4/itcl32.lib
         set ::INCR_TK_LIB $::TCL_LIB_DIR/lib/itk3.4/itk32.lib
         set ::IWIDGETS_TEST_FILE $::TCL_LIB_DIR/iwidgets4.0.2/iwidgets.tcl
