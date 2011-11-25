@@ -67,7 +67,12 @@ int main( int argc , char * argv[] )
   typedef itk::ImageFileReader< ReferenceImageType >  ReferenceImageReaderType;
   ReferenceImageReaderType::Pointer imagereader =  ReferenceImageReaderType::New();
   imagereader->SetFileName(referenceImageName.c_str());
-  imagereader->Update();
+  try{
+    imagereader->Update();
+  } catch (itk::ExceptionObject &e){
+    std::cerr << "Failed to read reference image!" << std::endl;
+    return EXIT_FAIULURE;
+  }
 
   /////allocate space for deformation field
   typedef itk::Vector< float, Dimension >  VectorType;
@@ -104,7 +109,12 @@ int main( int argc , char * argv[] )
   deformationFieldWriter->SetFileName(deformationFieldName.c_str());
   deformationFieldWriter->SetInput(deformationField);
   deformationFieldWriter->SetUseCompression(1);
-  deformationFieldWriter->Update();
+  try{
+    deformationFieldWriter->Update();
+  } catch(itk::ExceptionObject &e){
+    std::cerr << "Failed to write output image!" << std::endl;
+    return EXIT_FAILURE;
+  }
 
   return EXIT_SUCCESS;
 }
