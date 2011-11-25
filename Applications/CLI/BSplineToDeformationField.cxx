@@ -71,7 +71,7 @@ int main( int argc , char * argv[] )
     imagereader->Update();
   } catch (itk::ExceptionObject &e){
     std::cerr << "Failed to read reference image!" << std::endl;
-    return EXIT_FAIULURE;
+    return EXIT_FAILURE;
   }
 
   /////allocate space for deformation field
