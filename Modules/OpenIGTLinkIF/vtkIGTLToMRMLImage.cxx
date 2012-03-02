@@ -116,7 +116,8 @@ vtkMRMLNode* vtkIGTLToMRMLImage::CreateNewNode(vtkMRMLScene* scene, const char* 
     //displayNode->SetDefaultColorMap();
     vtkSlicerColorLogic *colorLogic = vtkSlicerColorLogic::New();
     displayNode->SetAndObserveColorNodeID(colorLogic->GetDefaultVolumeColorNodeID());
-    //colorLogic->Delete();
+    //    colorLogic->Delete();
+    colorLogic->Delete();
     
     scalarNode->SetAndObserveDisplayNodeID(displayNode->GetID());
     
