@@ -216,7 +216,7 @@ cd [file dirname [info script]]
 cd ..
 set ::Slicer3_HOME [pwd]
 cd $cwd
-if { $::isWindows } {
+if { $tcl_platform(platform) == "windows" } {
   set ::Slicer3_HOME [file attributes $::Slicer3_HOME -shortname]
 }
 
@@ -240,7 +240,7 @@ if { [file exists $localvarsfile] } {
   exit 1
 }
 
-if { $::isWindows } {
+if { $tcl_platform(platform) == "windows" } {
   set ::MAKE [file attributes $::MAKE -shortname]
 }
 vputs "making with $::MAKE"

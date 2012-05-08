@@ -117,7 +117,9 @@ switch $::tcl_platform(os) {
     }
     default { 
         set ::env(BUILD) $::WINDOWS 
-        set ::Slicer3_HOME [file attributes $::Slicer3_HOME -shortname]
+        if { $tcl_platform(platform) == "windows" } {
+          set ::Slicer3_HOME [file attributes $::Slicer3_HOME -shortname]
+        }
         set ::env(Slicer3_HOME) $::Slicer3_HOME
     }
 }

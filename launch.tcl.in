@@ -98,7 +98,7 @@ proc launch_SetEnvironment {} {
     cd $wd
     set ::env(Slicer3_HOME) $::Slicer3_HOME
     
-    if { [string match -nocase "windows*" $::tcl_platform(os)] } {
+    if { $tcl_platform(platform) == "windows" } {
       set ::Slicer3_HOME [file attributes $::Slicer3_HOME -shortname]
       set ::env(Slicer3_HOME) $::Slicer3_HOME
     }

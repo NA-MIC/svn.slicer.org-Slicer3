@@ -316,7 +316,7 @@ cd [file dirname [info script]]
 cd ..
 set ::Slicer3_HOME [pwd]
 cd $cwd
-if { $isWindows } {
+if { $tcl_platform(platform) == "windows" } {
   set ::Slicer3_HOME [file attributes $::Slicer3_HOME -shortname]
 }
 if { $::GETBUILDTEST(build-dir) == ""} {
