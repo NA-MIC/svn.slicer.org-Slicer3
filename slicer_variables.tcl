@@ -434,8 +434,8 @@ switch $::tcl_platform(os) {
         set ::BatchMake_TEST_FILE $::BatchMake_BUILD_DIR/bin/BatchMake
         set ::SLICERLIBCURL_TEST_FILE $::SLICERLIBCURL_BUILD_DIR/bin/libslicerlibcurl.a
     }
-    "Windows NT" {
-    # Windows NT currently covers WinNT, Win2000, XP Home, XP Pro
+    default {
+        # Windows NT currently covers WinNT, Win2000, XP Home, XP Pro
 
         set ::VTK_BUILD_SUBDIR $::VTK_BUILD_TYPE
         set ::Teem_BIN_DIR  $::Teem_BUILD_DIR/bin/$::VTK_BUILD_TYPE
@@ -486,10 +486,6 @@ switch $::tcl_platform(os) {
         set ::OPENIGTLINK_TEST_FILE $::OpenIGTLink_DIR/bin/$::VTK_BUILD_TYPE/OpenIGTLink.lib
         set ::BatchMake_TEST_FILE $::BatchMake_BUILD_DIR/bin/$::VTK_BUILD_TYPE/BatchMake.lib
         set ::SLICERLIBCURL_TEST_FILE $::SLICERLIBCURL_BUILD_DIR/bin/$::VTK_BUILD_TYPE/slicerlibcurl.lib
-    }
-    default {
-        puts stderr "Could not match platform \"$::tcl_platform(os)\"."
-        exit
     }
 }
 
