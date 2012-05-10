@@ -101,7 +101,7 @@ set GENLIB(update) "false"
 set GENLIB(buildit) "true"
 set GENLIB(test-type) ""
 set ::GENLIB(buildList) ""
-if {$tcl_platform(os) == "SunOS"} {
+if {$::tcl_platform(os) == "SunOS"} {
   set isainfo [exec isainfo -b]
   set ::GENLIB(bitness) "-$isainfo"
 } else {
@@ -234,13 +234,19 @@ proc replaceStringInFile {fileName oldString newString} {
 # - determine the build
 # 
 
-# hack to work around lack of normalize option in older tcl
-# set Slicer3_HOME [file dirname [file dirname [file normalize [info script]]]]
 set cwd [pwd]
 cd [file dirname [info script]]
 cd ..
-set Slicer3_HOME [pwd]
+set ::Slicer3_HOME [pwd]
 cd $cwd
+if { [info exists ::env(OSTYPE)] && $::env(OSTYPE) == "cygwin" } {
+  set ::Slicer3_HOME [exec cygpath --absolute --short-name --mixed $::Slicer3_HOME]
+}
+if { $::tcl_platform(platform) == "windows" } {
+  set ::Slicer3_HOME [file attributes $::Slicer3_HOME -shortname]
+}
+puts "::Slicer3_HOME is $::Slicer3_HOME"
+set ::env(Slicer3_HOME) $::Slicer3_HOME
 
 if { $::Slicer3_LIB == "" } {
   set ::Slicer3_LIB [file dirname $::Slicer3_HOME]/Slicer3-lib
@@ -254,7 +260,6 @@ if { $::Slicer3_LIB == "" } {
 #   be overwritten when this file is updated
 #
 set localvarsfile $Slicer3_HOME/slicer_variables.tcl
-catch {set localvarsfile [file normalize $localvarsfile]}
 if { [file exists $localvarsfile] } {
     puts "Sourcing $localvarsfile"
     source $localvarsfile
@@ -264,7 +269,7 @@ if { [file exists $localvarsfile] } {
 }
 
 #initialize platform variables
-switch $tcl_platform(os) {
+switch $::tcl_platform(os) {
     "SunOS" {
         set isSolaris 1
         set isWindows 0
@@ -428,7 +433,7 @@ if { [BuildThis $::TCL_TEST_FILE "tcl"] == 1 } {
       } else {
         cd $Slicer3_LIB/tcl/tcl/unix
 
-        if {$tcl_platform(os) == "SunOS" && $tcl_platform(osVersion) == "5.10"} {
+        if {$::tcl_platform(os) == "SunOS" && $::tcl_platform(osVersion) == "5.10"} {
           replaceStringInFile tcl.m4 "SunOS-5.1\[\[1-9\]\]*|SunOS-5.\[\[2-9\]\]\[\[0-9\]\]" "SunOS-5.1\[\[0-9\]\]*|SunOS-5.\[\[2-9\]\]\[\[0-9\]\]"
           replaceStringInFile configure "SunOS-5.1\[1-9\]*|SunOS-5.\[2-9\]\[0-9\]" "SunOS-5.1\[0-9\]*|SunOS-5.\[2-9\]\[0-9\]"
 
@@ -457,7 +462,7 @@ if { [BuildThis $::TK_TEST_FILE "tk"] == 1 } {
          
         cd $Slicer3_LIB/tcl/tk/unix
 
-        if {$tcl_platform(os) == "SunOS" && $tcl_platform(osVersion) == "5.10"} {
+        if {$::tcl_platform(os) == "SunOS" && $::tcl_platform(osVersion) == "5.10"} {
           replaceStringInFile tcl.m4 "SunOS-5.1\[\[1-9\]\]*|SunOS-5.\[\[2-9\]\]\[\[0-9\]\]" "SunOS-5.1\[\[0-9\]\]*|SunOS-5.\[\[2-9\]\]\[\[0-9\]\]"
           replaceStringInFile configure "SunOS-5.1\[1-9\]*|SunOS-5.\[2-9\]\[0-9\]" "SunOS-5.1\[0-9\]*|SunOS-5.\[2-9\]\[0-9\]"
 
@@ -597,7 +602,7 @@ if { 0 && [BuildThis $::BLT_TEST_FILE "blt"] == 1 } {
           set ::env(CC) "$::GENLIB(compiler) -m64"
           set ::env(LDFLAGS) "-m64 -L/usr/sfw/lib/64 -R/usr/sfw/lib/64"
           puts "genlib blt 64 bit branch: $::env(CC)"
-          if {$tcl_platform(osVersion) == "5.10"} {
+          if {$::tcl_platform(osVersion) == "5.10"} {
             replaceStringInFile src/Makefile.in "@XFT_LIB_SPEC@" "@EXPAT_LIB_SPEC@ @XFT_LIB_SPEC@"
             set EXTRAS10LIBS "--with-freetype2libdir=/usr/sfw/lib/64 --with-expatlibdir=/usr/sfw/lib/64"
             set MYSQLDIR "--without-mysqlincdir --without-mysqllibdir"
@@ -608,7 +613,7 @@ if { 0 && [BuildThis $::BLT_TEST_FILE "blt"] == 1 } {
         } else {
           set ::env(CC) "$::GENLIB(compiler)"
           puts "genlib blt 32 bit branch: $::env(CC)"
-          if {$tcl_platform(osVersion) == "5.10"} {
+          if {$::tcl_platform(osVersion) == "5.10"} {
             replaceStringInFile src/Makefile.in "@XFT_LIB_SPEC@" "@EXPAT_LIB_SPEC@ @XFT_LIB_SPEC@"
             set EXTRAS10LIBS "--with-freetype2libdir=/usr/sfw/lib --with-expatlibdir=/usr/sfw/lib"
             set MYSQLDIR "--without-mysqlincdir --without-mysqllibdir"
@@ -932,7 +937,7 @@ if {  [BuildThis $::NUMPY_TEST_FILE "python"] && !$::USE_SYSTEM_PYTHON && [strin
       }
       set ::env(INCLUDE) [file dirname $::COMPILER_PATH]/include
       set ::env(INCLUDE) $::MSSDK_PATH/Include\;$::env(INCLUDE)
-      set ::env(INCLUDE) [file normalize $::Slicer3_LIB/python-build/Include]\;$::env(INCLUDE)
+      set ::env(INCLUDE) $::Slicer3_LIB/python-build/Include\;$::env(INCLUDE)
       set ::env(LIB) $::MSSDK_PATH/Lib\;[file dirname $::COMPILER_PATH]/lib
       set ::env(LIBPATH) $devenvdir
 
@@ -1346,7 +1351,8 @@ if { [BuildThis $::Teem_TEST_FILE "teem"] == 1 } {
           set zlib "libvtkzlib.dylib"
           set png "libvtkpng.dylib"
       }
-      "Windows NT" {
+      "Windows NT" -
+      default {
           set zlib "vtkzlib.lib"
           set png "vtkpng.lib"
       }

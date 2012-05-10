@@ -34,10 +34,8 @@ if {[info exists ::env(SVN)]} {
 
 set ::come_from_versioner "1"
 
-set cwd [pwd]
-cd [file dirname [info script]]
-cd ..
-set ::Slicer3_HOME [pwd]
+set ::Slicer3_HOME [file dirname [file dirname [info script]]]
+cd $::Slicer3_HOME
 
 source $::Slicer3_HOME/slicer_variables.tcl
 
@@ -58,7 +56,6 @@ foreach line $svninfo {
     }
   }
 }
-cd $cwd
 
 set versionText ""
 set versionText "${versionText}build $::env(BUILD)\n"

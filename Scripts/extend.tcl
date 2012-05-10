@@ -197,7 +197,7 @@ proc loadArray {fileName arrayName} {
 
 #initialize platform variables
 foreach v { ::isSolaris ::isWindows ::isDarwin ::isLinux } { set $v 0 }
-switch $tcl_platform(os) {
+switch $::tcl_platform(os) {
     "SunOS" { set ::isSolaris 1 }
     "GNU/kFreeBSD" { set isLinux 1 }
     "Linux" { set ::isLinux 1 }
@@ -216,7 +216,10 @@ cd [file dirname [info script]]
 cd ..
 set ::Slicer3_HOME [pwd]
 cd $cwd
-if { $tcl_platform(platform) == "windows" } {
+if { [info exists ::env(OSTYPE)] && $::env(OSTYPE) == "cygwin" } {
+  set ::Slicer3_HOME [exec cygpath --absolute --short-name --mixed $::Slicer3_HOME]
+}
+if { $::tcl_platform(platform) == "windows" } {
   set ::Slicer3_HOME [file attributes $::Slicer3_HOME -shortname]
 }
 
@@ -231,7 +234,6 @@ set ::Slicer3_EXT $::Slicer3_HOME/../Slicer3-ext
 #   be overwritten when this file is updated
 #
 set localvarsfile $::Slicer3_HOME/slicer_variables.tcl
-catch {set localvarsfile [file normalize $localvarsfile]}
 if { [file exists $localvarsfile] } {
   vputs "Sourcing $localvarsfile"
   source $localvarsfile
@@ -240,7 +242,7 @@ if { [file exists $localvarsfile] } {
   exit 1
 }
 
-if { $tcl_platform(platform) == "windows" } {
+if { $::tcl_platform(platform) == "windows" } {
   set ::MAKE [file attributes $::MAKE -shortname]
 }
 vputs "making with $::MAKE"
@@ -319,8 +321,15 @@ foreach c $candidates {
       lappend ::EXTEND(s3extFiles) $c
     }
     foreach buildFile $::EXTEND(buildList) {
-      if { [file normalize $buildFile] == [file normalize $c] } {
-        lappend ::EXTEND(s3extFiles) $c
+      if { [info exists ::env(OSTYPE)] && $::env(OSTYPE) == "cygwin" } {
+        set nBuildFile $buildFile
+        set nC $c
+      } else {
+        set nBuildFile [file normalize $buildFile]
+        set nC [file normalize $c]
+      }
+      if { $nBuildFile == $nC } {
+        lappend ::EXTEND(s3extFiles) $nC
       }
     }
   }

@@ -297,7 +297,7 @@ proc runcmd {args} {
 
 #initialize platform variables
 foreach v { isSolaris isWindows isDarwin isLinux } { set $v 0 }
-switch $tcl_platform(os) {
+switch $::tcl_platform(os) {
     "SunOS" { set isSolaris 1 }
     "GNU/kFreeBSD" { set isLinux 1 }
     "Linux" { set isLinux 1 }
@@ -316,9 +316,15 @@ cd [file dirname [info script]]
 cd ..
 set ::Slicer3_HOME [pwd]
 cd $cwd
-if { $tcl_platform(platform) == "windows" } {
+if { [info exists ::env(OSTYPE)] && $::env(OSTYPE) == "cygwin" } {
+  set ::Slicer3_HOME [exec cygpath --absolute --short-name --mixed $::Slicer3_HOME]
+}
+if { $::tcl_platform(platform) == "windows" } {
   set ::Slicer3_HOME [file attributes $::Slicer3_HOME -shortname]
 }
+puts "::Slicer3_HOME is $::Slicer3_HOME"
+set ::env(Slicer3_HOME) $::Slicer3_HOME
+
 if { $::GETBUILDTEST(build-dir) == ""} {
         # use an enviornment variables so slicer-variables.tcl can see them
         set ::env(Slicer3_LIB) $::Slicer3_HOME/../Slicer3-lib
@@ -351,8 +357,7 @@ set Slicer3_BUILD $::env(Slicer3_BUILD)
 # - use it to set your local environment and then your change won't 
 #   be overwritten when this file is updated
 #
-set localvarsfile $Slicer3_HOME/slicer_variables.tcl
-catch {set localvarsfile [file normalize $localvarsfile]}
+set localvarsfile $::Slicer3_HOME/slicer_variables.tcl
 if { [file exists $localvarsfile] } {
     puts "Sourcing $localvarsfile"
     source $localvarsfile
@@ -442,7 +447,7 @@ if { $::GETBUILDTEST(doxy) } {
 
 # build the lib with options
 cd $::Slicer3_HOME
-if {$isWindows} {
+if {$::tcl_platform(platform) == "windows"} {
   set cmd "./Utilities/Launcher/tclkits/tclkit-win32.exe ./Scripts/genlib.tcl $Slicer3_LIB"
 } else {
   set cmd "sh ./Scripts/genlib.tcl $Slicer3_LIB"

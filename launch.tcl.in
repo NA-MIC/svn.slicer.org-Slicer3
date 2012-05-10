@@ -96,9 +96,12 @@ proc launch_SetEnvironment {} {
     cd [file dirname [file dirname [file dirname [info script]]]]
     set ::Slicer3_HOME [pwd]
     cd $wd
+    if { [info exists ::env(OSTYPE)] && $::env(OSTYPE) == "cygwin" } {
+      set ::Slicer3_HOME [exec cygpath --absolute --short-name --mixed $::Slicer3_HOME]
+    }
     set ::env(Slicer3_HOME) $::Slicer3_HOME
     
-    if { $tcl_platform(platform) == "windows" } {
+    if { $::tcl_platform(platform) == "windows" } {
       set ::Slicer3_HOME [file attributes $::Slicer3_HOME -shortname]
       set ::env(Slicer3_HOME) $::Slicer3_HOME
     }
