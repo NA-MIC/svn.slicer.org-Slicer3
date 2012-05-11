@@ -743,6 +743,21 @@ switch $::tcl_platform(os) {
           }
         }
 
+        # set your custom variables here - uncomment the next four lines and put in the right values
+        # (note that if you installed visual studio on a different drive, you may need to copy some
+        # lines from one of the cases above and change 'c:' to 'd:' as in these examples).
+        #set ::GENERATOR "Visual Studio 9 2008"
+        #set ::MAKE "d:/Program Files (x86)/Microsoft Visual Studio 9.0/Common7/IDE/devenv.exe"
+        #set ::COMPILER_PATH "d:/Program Files (x86)/Microsoft Visual Studio 9.0/VC/bin"
+        #set ::MSSDK_PATH "c:/Program Files/Microsoft SDKs/Windows/v6.0A"
+
+        set requirements "::MAKE ::COMPILER_PATH ::MSSDK_PATH"
+        foreach requirement $requirements {
+          if { ![file exists [set $requirement]] } {
+            error "Cannot build because $requirement does not exist (value is [set $requirement])"
+          }
+        }
+
 
 ########################## EXPERIMENTAL START
 # cmake 2.8.4 required
