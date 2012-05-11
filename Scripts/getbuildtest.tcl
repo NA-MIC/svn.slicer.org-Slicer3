@@ -316,7 +316,8 @@ cd [file dirname [info script]]
 cd ..
 set ::Slicer3_HOME [pwd]
 cd $cwd
-if { [info exists ::env(OSTYPE)] && $::env(OSTYPE) == "cygwin" } {
+set ret [catch "exec uname" res]
+if { $ret == 0 && [string match -nocase "cygwin*" $res] } {
   set ::Slicer3_HOME [exec cygpath --absolute --short-name --mixed $::Slicer3_HOME]
 }
 if { $::tcl_platform(platform) == "windows" } {
