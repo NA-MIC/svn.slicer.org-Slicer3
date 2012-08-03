@@ -84,15 +84,9 @@ SET(modules
 #  UDPServer
 #  CaptureBetaProbe
 #  OsteoPlan
+  AtlasCreator
   EMSegment
   )
-
-if(NOT WIN32)
-  SET(modules
-    ${modules}
-    AtlasCreator
-   )
-endif(NOT WIN32)
 
 if(Slicer3_USE_OPENIGTLINK)
   SET(modules
