@@ -162,9 +162,10 @@ set ::OpenIGTLink_TAG "http://svn.na-mic.org/NAMICSandBox/trunk/OpenIGTLink"
 set ::OpenCV_TAG https://code.ros.org/svn/opencv/tags/2.1/opencv
 
 # for experimental use
-#set ::ITK_GIT_REPO git://itk.org/ITK.git
+# set ::ITK_GIT_REPO git://itk.org/ITK.git
+set ::ITK_GIT_REPO https://github.com/Kitware/ITK
 set ::ITK_GIT_BRANCH release
-set ::ITK_GIT_TAG v3.20.0
+set ::ITK_GIT_TAG v3.20.1
 #set ::VTK_GIT_REPO git://vtk.org/VTK.git
 set ::VTK_GIT_BRANCH release
 set ::VTK_GIT_TAG v5.6.1
