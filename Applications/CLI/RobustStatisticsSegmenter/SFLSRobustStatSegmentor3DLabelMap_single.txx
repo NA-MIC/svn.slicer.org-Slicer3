@@ -716,8 +716,8 @@ CSFLSRobustStatSegmentor3DLabelMap< TPixel >
 //             {
 //               for (long iix = ix - 1; iix <= ix + 1; ++iix)
 //                 {
-//                   if (0 <= iix && iix < this->m_nx    \
-//                       && 0 <= iiy && iiy < this->m_ny    \
+//                   if (0 <= iix && iix < this->m_nx
+//                       && 0 <= iiy && iiy < this->m_ny
 //                       && 0 <= iiz && iiz < this->m_nz)
 //                     {
 //                       /* Some locations may be added multiple times,
@@ -1036,7 +1036,7 @@ CSFLSRobustStatSegmentor3DLabelMap< TPixel >
 
 //   typedef itk::ImageRegionConstIterator<UshortImage_t> itkImageRegionConstIterator_t;
 
-//   itkImageRegionConstIterator_t it((this->m_input_image_in_ushort), \
+//   itkImageRegionConstIterator_t it((this->m_input_image_in_ushort),
 //                                    (this->m_input_image_in_ushort)->GetLargestPossibleRegion() );
 //   it.GoToBegin();
 
