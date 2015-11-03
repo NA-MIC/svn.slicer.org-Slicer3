@@ -65,7 +65,7 @@ mark_as_advanced(EMSEG_RUN_COMPARE_TESTS)
 set(EMSEG_RUN_LOCAL_TESTS OFF CACHE BOOL "Enable local EMSegment tests." FORCE)
 mark_as_advanced(EMSEG_RUN_LOCAL_TESTS)
 
-set(EMSEG_RUN_CMTK_TESTS OFF CACHE BOOL "Use CMTK instead of BRAINS for testing." FORCE)
+set(EMSEG_RUN_CMTK_TESTS ON CACHE BOOL "Use CMTK instead of BRAINS for testing." FORCE)
 mark_as_advanced(EMSEG_RUN_CMTK_TESTS)
 
 set(EMSEG_RUN_VALGRIND_TESTS OFF CACHE BOOL "Enable EMSegment Valgrind test." FORCE)

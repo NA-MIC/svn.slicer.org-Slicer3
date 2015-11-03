@@ -413,13 +413,13 @@ itcl::body EMSegmenterGraph::GetListOfClassNodeIDs { rootNodeID } {
 #-------------------------------------------------------------------------------
 itcl::body EMSegmenterGraph::GetListOfSuperClassNodeIDs { rootNodeID } { 
     if { [ $_mrmlManager GetTreeNodeIsLeaf $rootNodeID ] } {
-    return ""
+      return ""
     } 
     set result ""
     set childNum [ $_mrmlManager GetTreeNodeNumberOfChildren $rootNodeID ]
     for { set i 0 } { $i < $childNum } { incr i } {
-    set childNode [ $_mrmlManager GetTreeNodeChildNodeID $rootNodeID  $i ]
-    set result "${result}[GetListOfClassNodeIDs $childNode]" 
+      set childNode [ $_mrmlManager GetTreeNodeChildNodeID $rootNodeID  $i ]
+      set result "${result}[GetListOfClassNodeIDs $childNode] " 
     }
     return "${rootNodeID} $result" 
 }
@@ -645,14 +645,14 @@ proc CalculateClassMeanCovariance { } {
 itcl::body EMSegmenterGraph::CalcProb { } { 
     global EMSegment
     foreach nodeID $EMSegment(GlobalSuperClassList) { 
-    set NormProb [$_mrmlManager  GetTreeNodeChildrenSumClassProbability $nodeID]
-    # Round it up or down otherwise it recalculates everything every time this function is called  
-    if {($NormProb != 0.0) && ($NormProb != 1.0)} {
+      set NormProb [$_mrmlManager  GetTreeNodeChildrenSumClassProbability $nodeID]
+      # Round it up or down otherwise it recalculates everything every time this function is called  
+      if {($NormProb != 0.0) && ($NormProb != 1.0)} {
         set numChildren [ $_mrmlManager GetTreeNodeNumberOfChildren $nodeID ] 
         for {set i 0 } { $i < $numChildren } { incr i }  {
-        set childID [ $_mrmlManager GetTreeNodeChildNodeID $nodeID $i ] 
-        set prob    [ $_mrmlManager GetTreeNodeClassProbability $childID ]
-        set EMSegment(Cattrib,$childID,Prob) [expr round($prob  / $NormProb * 100) / 100.0]
+          set childID [ $_mrmlManager GetTreeNodeChildNodeID $nodeID $i ] 
+          set prob    [ $_mrmlManager GetTreeNodeClassProbability $childID ]
+          set EMSegment(Cattrib,$childID,Prob) [expr round($prob  / $NormProb * 100) / 100.0]
         }
     }
     }
