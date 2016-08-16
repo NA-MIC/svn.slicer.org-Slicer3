@@ -1,21 +1,13 @@
-PROJECT(qSlicer${qt_module_name}ModuleWidgets)
+project(qSlicer${MODULE_NAME}ModuleWidgets)
 
-#
-# See CMake/SlicerMacroBuildModuleWidgets.cmake for details
-#
+set(KIT ${PROJECT_NAME})
 
-SET(module_widgets_name "${PROJECT_NAME}")
+set(${KIT}_EXPORT_DIRECTIVE "Q_SLICER_MODULE_EMSEGMENT_WIDGET_EXPORT")
 
-# The header '${module_widgets_name}Export.h' will be automatically configured.
-SET(module_widgets_export_directive "Q_SLICER_MODULE_EMSEGMENT_WIDGET_EXPORT")
-
-
-# Additional directories to include
-SET(module_widgets_include_directories
+set(${KIT}_INCLUDE_DIRECTORIES
   )
 
-# Source files
-SET(module_widgets_SRCS
+set(${KIT}_SRCS
 
   qSlicerEMSegmentWidget.cxx
   qSlicerEMSegmentWidget.h
@@ -34,8 +26,7 @@ SET(module_widgets_SRCS
   vtkPlotGaussian.cxx
   )
 
-# Headers that should run through moc
-SET(module_widgets_MOC_SRCS
+set(${KIT}_MOC_SRCS
   qSlicerEMSegmentAnatomicalTreeWidget.h
   qSlicerEMSegmentAnatomicalTreeWidget_p.h
   qSlicerEMSegmentGraphWidget.h
@@ -43,33 +34,29 @@ SET(module_widgets_MOC_SRCS
   qSlicerEMSegmentWidget.h
   )
   
-# UI files
-SET(module_widgets_UI_SRCS
+set(${KIT}_UI_SRCS
   Resources/UI/qSlicerEMSegmentAnatomicalTreeWidget.ui
   Resources/UI/qSlicerEMSegmentGraphWidget.ui  
   )
 
-# Resources
-SET(module_widgets_resources
+set(${KIT}_RESOURCES
   )
 
-# Additional Target libraries
-SET(module_widgets_target_libraries
+set(${KIT}_TARGET_LIBRARIES
   vtkSlicerEMSegmentModuleLogic
   )
 
 SlicerMacroBuildModuleWidgets(
-  NAME ${module_widgets_name}
-  EXPORT_DIRECTIVE ${module_widgets_export_directive}
-  INCLUDE_DIRECTORIES ${module_widgets_include_directories}
-  SRCS ${module_widgets_SRCS}
-  MOC_SRCS ${module_widgets_MOC_SRCS}
-  UI_SRCS ${module_widgets_UI_SRCS}
-  TARGET_LIBRARIES ${module_widgets_target_libraries}
-  RESOURCES ${module_widgets_resources}
+  NAME ${KIT}
+  EXPORT_DIRECTIVE ${${KIT}_EXPORT_DIRECTIVE}
+  INCLUDE_DIRECTORIES ${${KIT}_INCLUDE_DIRECTORIES}
+  SRCS ${${KIT}_SRCS}
+  MOC_SRCS ${${KIT}_MOC_SRCS}
+  UI_SRCS ${${KIT}_UI_SRCS}
+  TARGET_LIBRARIES ${${KIT}_TARGET_LIBRARIES}
+  RESOURCES ${${KIT}_RESOURCES}
   WRAP_PYTHONQT
   )
 
 # Plugin
 add_subdirectory(Plugins)
-

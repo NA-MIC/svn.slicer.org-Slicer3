@@ -108,7 +108,8 @@ void vtkMRMLEMSVolumeCollectionNode::CloneVolumes(const vtkMRMLNode *rhs, const 
     cloneName +=  std::string(addPostFix);
       }
     // If you change name later than it is not correctly shown in the volume list of the viewers  
-    vtkMRMLScalarVolumeNode* clonedVolume = volumeLogic->CloneVolume(this->GetScene(),vnode, cloneName.c_str());
+    vtkMRMLScalarVolumeNode* clonedVolume =
+        vtkMRMLScalarVolumeNode::SafeDownCast(volumeLogic->CloneVolume(this->GetScene(),vnode, cloneName.c_str()));
     this->SetNthNodeID(i, clonedVolume->GetID());
   }
   volumeLogic->Delete();

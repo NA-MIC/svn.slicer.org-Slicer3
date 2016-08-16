@@ -17,6 +17,7 @@ SET(LIBRARY_NAME ${lib_name})
 
 ADD_EXECUTABLE(${KIT}CxxTests ${Tests})
 TARGET_LINK_LIBRARIES(${KIT}CxxTests ${LIBRARY_NAME})
+set_target_properties(${KIT}CxxTests PROPERTIES FOLDER "Module-${MODULE_NAME}")
 
 #
 # Convenient macros
