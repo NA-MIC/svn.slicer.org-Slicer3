@@ -120,8 +120,11 @@ void qSlicerEMSegmentAnatomicalTreeWidgetPrivate::setupUi(qSlicerEMSegmentWidget
 
   // Initialize treeView
   this->TreeView->setModel(this->TreeModel);
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
   this->TreeView->header()->setResizeMode(QHeaderView::ResizeToContents);
-
+#else
+  this->TreeView->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
+#endif
   // Register custom editors
   QItemEditorFactory *editorFactory = new QItemEditorFactory;
   editorFactory->registerEditor(

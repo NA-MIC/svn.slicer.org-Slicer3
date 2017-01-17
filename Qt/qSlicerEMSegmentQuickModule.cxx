@@ -22,7 +22,6 @@
 #include <QDebug>
 #include <QFileInfo>
 #include <QScopedPointer>
-#include <QtPlugin>
 
 // SlicerQt includes
 #include <qSlicerCoreApplication.h>
@@ -38,7 +37,11 @@
 #include "qSlicerEMSegmentQuickModule.h"
 
 //-----------------------------------------------------------------------------
+#include <QtGlobal>
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+#include <QtPlugin>
 Q_EXPORT_PLUGIN2(qSlicerEMSegmentQuickModule, qSlicerEMSegmentQuickModule);
+#endif
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_EMSegmentQuick

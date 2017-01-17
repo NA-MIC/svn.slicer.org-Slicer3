@@ -21,7 +21,6 @@
 // Qt includes
 #include <QFileInfo>
 #include <QScopedPointer>
-#include <QtPlugin>
 
 // SlicerQt includes
 #include <qSlicerCoreApplication.h>
@@ -41,7 +40,11 @@
 #include <vtkMRMLColorLogic.h>
 
 //-----------------------------------------------------------------------------
+#include <QtGlobal>
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+#include <QtPlugin>
 Q_EXPORT_PLUGIN2(qSlicerEMSegmentModule, qSlicerEMSegmentModule);
+#endif
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_EMSegment
