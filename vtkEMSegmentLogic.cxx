@@ -60,6 +60,7 @@
 
 // STD includes
 #include <algorithm>
+#include <cmath>
 #include <sstream>
 
 #ifdef Slicer3_USE_KWWIDGETS
@@ -1135,7 +1136,7 @@ void vtkEMSegmentLogic::CopyTreeDataToSegmenter(vtkImageEMLocalSuperClass* node,
     }
 
   // check if totalProbability != 1.0
-  if (abs(totalProbability - 1.0) > 0.000001)
+  if (std::abs(totalProbability - 1.0) > 0.000001)
     {
     vtkWarningMacro("Warning: child probabilities don't sum to unity for node "
         << this->MRMLManager->GetTreeNodeName(nodeID)
