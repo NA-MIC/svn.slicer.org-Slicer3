@@ -60,10 +60,6 @@ public:
   {
     return this->GetNodeIDByKey(key);
   }
-  virtual const char*        GetKeyByVolumeNodeID(const char* nodeID) const
-  {
-    return this->GetKeyByVolumeNodeID(nodeID);
-  }
 
   virtual int                GetIndexByVolumeNodeID(const char* nodeID) const
   {
