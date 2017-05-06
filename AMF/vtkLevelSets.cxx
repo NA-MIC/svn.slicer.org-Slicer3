@@ -1276,19 +1276,19 @@ unsigned char vtkLevelSets::CheckConvergence( )
    // loop over the band instead ...
    for (p = 0; p < imsize; p++) {
 
-     if (this->u[p] <= 0) total++;
+     if (*(this->u[p]) <= 0) total++;
 
      // 0.5, 0  is a hack.  maybe want zero, or at least try various
      // values between 0 and 1 to see what convergence estimates agreed
      // with observed convergence.
-     if ((this->stored_seg[p] == ON_STORED)    && (this->u[p] > 0))
+     if ((this->stored_seg[p] == ON_STORED)    && (*(this->u[p]) > 0))
        cnt1++;
      else
-       if ((this->stored_seg[p] == OFF_STORED) && (this->u[p] <= 0))
+       if ((this->stored_seg[p] == OFF_STORED) && (*(this->u[p]) <= 0))
          cnt2++;
 
      // now rewrite stored_seg for the next time:
-     if (this->u[p] <= 0)   
+     if (*(this->u[p]) <= 0)   
        this->stored_seg[p] = ON_STORED;
      else             
        this->stored_seg[p] = OFF_STORED;
