@@ -1259,7 +1259,7 @@ unsigned char vtkLevelSets::CheckConvergence( )
      int   p;;
      int   cnt1,cnt2,total;
      float converged_check1;
-     float converged_check2;
+     // float converged_check2;
      float converged_check;
 
    if (GB_debug) fprintf(stderr, "vtkLevelSets::CheckConvergence( ) begin \n");
@@ -1295,10 +1295,10 @@ unsigned char vtkLevelSets::CheckConvergence( )
    }
  
    converged_check1 = ((float)cnt2)/((float)total);
-   converged_check2 = ((float)cnt1)/((float)total);
+   //converged_check2 = ((float)cnt1)/((float)total);
     
    vtkDebugMacro( << cnt1 << "," << cnt2 << "," << 
-         total << "," << converged_check1 << "," << converged_check2);
+         total << "," << converged_check1 );
        
    // in simulation experiments, care about shrinking also, so use
    //   a different convergence check   
