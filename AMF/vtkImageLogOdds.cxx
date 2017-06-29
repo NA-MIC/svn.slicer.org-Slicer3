@@ -36,8 +36,11 @@ vtkImageLogOdds* vtkImageLogOdds::New()
     return (vtkImageLogOdds*)ret;
   }
   // If the factory was unable to create the object, then create it here.
-  return new vtkImageLogOdds;
-
+  vtkImageLogOdds* result = new vtkImageLogOdds;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 

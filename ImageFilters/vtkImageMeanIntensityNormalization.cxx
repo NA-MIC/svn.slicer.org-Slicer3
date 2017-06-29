@@ -35,7 +35,11 @@ vtkImageMeanIntensityNormalization* vtkImageMeanIntensityNormalization::New()
   vtkObject* ret = vtkObjectFactory::CreateInstance("vtkImageMeanIntensityNormalization");
   if(ret) return (vtkImageMeanIntensityNormalization*)ret;
   // If the factory was unable to create the object, then create it here.
-  return new vtkImageMeanIntensityNormalization;
+  vtkImageMeanIntensityNormalization* result = new vtkImageMeanIntensityNormalization;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 //----------------------------------------------------------------------------

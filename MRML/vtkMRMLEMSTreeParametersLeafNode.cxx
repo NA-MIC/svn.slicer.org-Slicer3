@@ -17,7 +17,11 @@ New()
     return (vtkMRMLEMSTreeParametersLeafNode*)ret;
     }
   // If the factory was unable to create the object, then create it here.
-  return new vtkMRMLEMSTreeParametersLeafNode;
+  vtkMRMLEMSTreeParametersLeafNode* result = new vtkMRMLEMSTreeParametersLeafNode;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 //-----------------------------------------------------------------------------
@@ -33,7 +37,11 @@ CreateNodeInstance()
     return (vtkMRMLEMSTreeParametersLeafNode*)ret;
     }
   // If the factory was unable to create the object, then create it here.
-  return new vtkMRMLEMSTreeParametersLeafNode;
+  vtkMRMLEMSTreeParametersLeafNode* result = new vtkMRMLEMSTreeParametersLeafNode;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 //-----------------------------------------------------------------------------

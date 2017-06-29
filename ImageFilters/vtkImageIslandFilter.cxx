@@ -405,7 +405,11 @@ vtkImageIslandFilter* vtkImageIslandFilter::New()
   vtkObject* ret = vtkObjectFactory::CreateInstance("vtkImageIslandFilter");
   if(ret) return (vtkImageIslandFilter*)ret;
   // If the factory was unable to create the object, then create it here.
-  return new vtkImageIslandFilter;
+  vtkImageIslandFilter* result = new vtkImageIslandFilter;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 //----------------------------------------------------------------------------

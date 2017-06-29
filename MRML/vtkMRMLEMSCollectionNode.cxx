@@ -17,7 +17,11 @@ New()
     return (vtkMRMLEMSCollectionNode*)ret;
     }
   // If the factory was unable to create the object, then create it here.
-  return new vtkMRMLEMSCollectionNode;
+  vtkMRMLEMSCollectionNode* result = new vtkMRMLEMSCollectionNode;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 vtkMRMLNode* 
@@ -32,7 +36,11 @@ CreateNodeInstance()
     return (vtkMRMLEMSCollectionNode*)ret;
     }
   // If the factory was unable to create the object, then create it here.
-  return new vtkMRMLEMSCollectionNode;
+  vtkMRMLEMSCollectionNode* result = new vtkMRMLEMSCollectionNode;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 vtkMRMLEMSCollectionNode::vtkMRMLEMSCollectionNode()

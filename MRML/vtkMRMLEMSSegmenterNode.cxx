@@ -19,7 +19,11 @@ New()
     return (vtkMRMLEMSSegmenterNode*)ret;
     }
   // If the factory was unable to create the object, then create it here.
-  return new vtkMRMLEMSSegmenterNode;
+  vtkMRMLEMSSegmenterNode* result = new vtkMRMLEMSSegmenterNode;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 //-----------------------------------------------------------------------------
@@ -35,7 +39,11 @@ CreateNodeInstance()
     return (vtkMRMLEMSSegmenterNode*)ret;
     }
   // If the factory was unable to create the object, then create it here.
-  return new vtkMRMLEMSSegmenterNode;
+  vtkMRMLEMSSegmenterNode* result = new vtkMRMLEMSSegmenterNode;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 //-----------------------------------------------------------------------------

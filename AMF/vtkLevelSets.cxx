@@ -113,7 +113,11 @@ vtkLevelSets* vtkLevelSets::New()
     return (vtkLevelSets*)ret;
     }
   // If the factory was unable to create the object, then create it here.
-  return new vtkLevelSets;
+  vtkLevelSets* result = new vtkLevelSets;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 

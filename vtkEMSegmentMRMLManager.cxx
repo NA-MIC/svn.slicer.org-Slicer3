@@ -66,7 +66,11 @@ vtkEMSegmentMRMLManager* vtkEMSegmentMRMLManager::New()
     return (vtkEMSegmentMRMLManager*)ret;
   }
   // If the factory was unable to create the object, then create it here.
-  return new vtkEMSegmentMRMLManager;
+  vtkEMSegmentMRMLManager* result = new vtkEMSegmentMRMLManager;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 

@@ -58,7 +58,11 @@ vtkImageSumOverVoxels* vtkImageSumOverVoxels::New()
   vtkObject* ret = vtkObjectFactory::CreateInstance("vtkImageSumOverVoxels");
   if(ret) return (vtkImageSumOverVoxels*)ret;
   // If the factory was unable to create the object, then create it here.
-  return new vtkImageSumOverVoxels;
+  vtkImageSumOverVoxels* result = new vtkImageSumOverVoxels;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 //----------------------------------------------------------------------------

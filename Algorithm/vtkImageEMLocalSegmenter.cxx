@@ -40,7 +40,11 @@ vtkImageEMLocalSegmenter* vtkImageEMLocalSegmenter::New()
       return (vtkImageEMLocalSegmenter*)ret;
     }
   // If the factory was unable to create the object, then create it here.
-  return new vtkImageEMLocalSegmenter;
+  vtkImageEMLocalSegmenter* result = new vtkImageEMLocalSegmenter;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 //----------------------------------------------------------------------------

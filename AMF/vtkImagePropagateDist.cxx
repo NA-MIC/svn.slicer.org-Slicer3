@@ -76,7 +76,11 @@ vtkImagePropagateDist* vtkImagePropagateDist::New()
     return (vtkImagePropagateDist*)ret;
     }
   // If the factory was unable to create the object, then create it here.
-  return new vtkImagePropagateDist;
+  vtkImagePropagateDist* result = new vtkImagePropagateDist;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 

@@ -46,7 +46,11 @@ vtkSlicerCommonInterface* vtkSlicerCommonInterface::New()
     return (vtkSlicerCommonInterface*) ret;
     }
   // If the factory was unable to create the object, then create it here.
-  return new vtkSlicerCommonInterface;
+  vtkSlicerCommonInterface* result = new vtkSlicerCommonInterface;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 //----------------------------------------------------------------------------

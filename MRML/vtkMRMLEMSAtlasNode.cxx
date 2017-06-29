@@ -16,7 +16,11 @@ New()
     return (vtkMRMLEMSAtlasNode*)ret;
     }
   // If the factory was unable to create the object, then create it here.
-  return new vtkMRMLEMSAtlasNode;
+  vtkMRMLEMSAtlasNode* result = new vtkMRMLEMSAtlasNode;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 vtkMRMLNode* 
@@ -31,7 +35,11 @@ CreateNodeInstance()
     return (vtkMRMLEMSAtlasNode*)ret;
     }
   // If the factory was unable to create the object, then create it here.
-  return new vtkMRMLEMSAtlasNode;
+  vtkMRMLEMSAtlasNode* result = new vtkMRMLEMSAtlasNode;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 vtkMRMLEMSAtlasNode::vtkMRMLEMSAtlasNode()

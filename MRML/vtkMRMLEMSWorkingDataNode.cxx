@@ -23,7 +23,11 @@ New()
     return (vtkMRMLEMSWorkingDataNode*)ret;
     }
   // If the factory was unable to create the object, then create it here.
-  return new vtkMRMLEMSWorkingDataNode;
+  vtkMRMLEMSWorkingDataNode* result = new vtkMRMLEMSWorkingDataNode;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 //-----------------------------------------------------------------------------
@@ -39,7 +43,11 @@ CreateNodeInstance()
     return (vtkMRMLEMSWorkingDataNode*)ret;
     }
   // If the factory was unable to create the object, then create it here.
-  return new vtkMRMLEMSWorkingDataNode;
+  vtkMRMLEMSWorkingDataNode* result = new vtkMRMLEMSWorkingDataNode;
+#ifdef VTK_HAS_INITIALIZE_OBJECT_BASE
+  result->InitializeObjectBase();
+#endif
+  return result;
 }
 
 //-----------------------------------------------------------------------------
