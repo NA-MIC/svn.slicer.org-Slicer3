@@ -14,6 +14,9 @@ endif()
 if(POLICY CMP0048)
   cmake_policy(SET CMP0048 NEW) # CMake 3.0.0
 endif()
+if(POLICY CMP0020)
+  cmake_policy(SET CMP0020 NEW) # CMake 2.8.11
+endif()
 
 #-----------------------------------------------------------------------------
 set(EXTENSION_NAME EMSegment)
