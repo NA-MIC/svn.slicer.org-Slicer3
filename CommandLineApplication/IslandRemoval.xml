@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <executable>
-  <category>Filter</category>
+  <category>Filtering</category>
   <title>Island Removal Filter</title>
   <description><![CDATA[Removes island smaller than threshold by assigning them to the label associated with the majority of neighboring voxels.]]></description>
   <version>1.0</version>
