@@ -72,13 +72,13 @@ public:
 
   /** Get the derivatives of the match measure. */
   void GetDerivative( const ParametersType & vtkNotUsed(parameters),
-                      DerivativeType & vtkNotUsed(derivative) ) const
+                      DerivativeType & vtkNotUsed(derivative) ) const VTK_OVERRIDE
   {
      itkExceptionMacro( "GetDerivative not supported!" );
   }
 
   /**  Get the value for single valued optimizers. */
-  MeasureType GetValue( const ParametersType & parameters ) const
+  MeasureType GetValue( const ParametersType & parameters ) const VTK_OVERRIDE
   {
     itkDebugMacro("GetValue( " << parameters << " ) ");
     const double* para_double = parameters.data_block();
@@ -91,12 +91,12 @@ public:
   /**  Get value and derivatives for multiple valued optimizers. */
   void GetValueAndDerivative( const ParametersType & vtkNotUsed(parameters),
                               MeasureType& vtkNotUsed(Value),
-                              DerivativeType& vtkNotUsed(Derivative) ) const
+                              DerivativeType& vtkNotUsed(Derivative) ) const VTK_OVERRIDE
   {
     itkExceptionMacro( "GetValueAndDerivative not supported!" );
   }
 
-  unsigned int GetNumberOfParameters(void) const {
+  unsigned int GetNumberOfParameters(void) const VTK_OVERRIDE {
     if (m_Registration) return  this->m_Registration->GetNumberOfTotalParameters(); 
     if (m_Shape) return  this->m_Shape->GetPCATotalNumOfShapeParameters(); 
     itkExceptionMacro( "Neither registration nor shape cost function is set!" );

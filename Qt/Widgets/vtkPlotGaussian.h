@@ -24,7 +24,7 @@ class Q_SLICER_MODULE_EMSEGMENT_WIDGET_EXPORT vtkPlotGaussian : public vtkPlotLi
 {
 public:
   vtkTypeMacro(vtkPlotGaussian, vtkPlotLine);
-  virtual void PrintSelf(ostream &os, vtkIndent indent);
+  virtual void PrintSelf(ostream &os, vtkIndent indent) VTK_OVERRIDE;
 
   // Description:
   // Creates a 2D Chart object.
@@ -34,14 +34,14 @@ public:
   // Perform any updates to the item that may be necessary before rendering.
   // The scene should take care of calling this on all items before their
   // Paint function is invoked.
-  virtual void Update();
+  virtual void Update() VTK_OVERRIDE;
 
   // Description:
-  void GetBounds(double* bounds);
+  void GetBounds(double* bounds) VTK_OVERRIDE;
 
   // Description:
   // Paint event for the XY plot, called whenever the chart needs to be drawn
-  virtual bool Paint(vtkContext2D *painter);
+  virtual bool Paint(vtkContext2D *painter) VTK_OVERRIDE;
 
   vtkSetMacro(Mean, float);
   vtkGetMacro(Mean, float);

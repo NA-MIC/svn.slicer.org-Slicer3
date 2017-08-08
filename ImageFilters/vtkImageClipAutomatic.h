@@ -35,7 +35,7 @@ public:
   vtkTypeMacro(vtkImageClipAutomatic,vtkImageAlgorithm);
 #endif
 
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   // Description:
   // Call this function before updating the filter;
@@ -73,7 +73,7 @@ protected:
 #else
   virtual int RequestData(vtkInformation* request,
                           vtkInformationVector** inputVector,
-                          vtkInformationVector* outputVector);
+                          vtkInformationVector* outputVector) VTK_OVERRIDE;
 #endif
 
 

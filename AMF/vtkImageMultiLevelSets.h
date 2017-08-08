@@ -55,7 +55,7 @@ class VTK_EMSEGMENT_EXPORT vtkImageMultiLevelSets
 #else
   vtkTypeMacro(vtkImageMultiLevelSets,vtkImageAlgorithm);
 #endif
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   void SetprobCondWeightMin(float init){ this->probCondWeightMin = init;}
   // Inside is greater 0
@@ -109,7 +109,7 @@ protected:
   void operator=(const vtkImageMultiLevelSets&) {};
  
   // Do not execute right now
-  void ExecuteData(vtkDataObject *);
+  void ExecuteData(vtkDataObject *) VTK_OVERRIDE;
 
   // -------------------------------
   // Dimension of probability space

@@ -178,7 +178,7 @@ public:
 #else
   vtkTypeMacro(vtkLevelSetFastMarching,vtkImageAlgorithm);
 #endif
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   // Description:
   // Construct object to extract all of the input data.
@@ -259,7 +259,7 @@ protected:
   vtkLevelSetFastMarching(const vtkLevelSetFastMarching&);
   void operator=(const vtkLevelSetFastMarching&);
 
-  void ExecuteData(vtkDataObject* output);
+  void ExecuteData(vtkDataObject* output) VTK_OVERRIDE;
   void InitParam();
 
 //BTX

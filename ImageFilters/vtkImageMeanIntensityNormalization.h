@@ -44,7 +44,7 @@ class VTK_EMSEGMENT_EXPORT vtkImageMeanIntensityNormalization
 #else
   vtkTypeMacro(vtkImageMeanIntensityNormalization, vtkImageAlgorithm);
 #endif
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   vtkSetMacro(NormValue,double);
   vtkGetMacro(NormValue,double);
@@ -93,7 +93,7 @@ protected:
 #else
   virtual int RequestData(vtkInformation *request,
                           vtkInformationVector** inputVector,
-                          vtkInformationVector* outputVector);
+                          vtkInformationVector* outputVector) VTK_OVERRIDE;
 #endif
 
   // Core function

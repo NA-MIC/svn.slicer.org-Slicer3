@@ -15,11 +15,11 @@ class VTK_EMSEGMENT_EXPORT vtkMRMLEMSVolumeCollectionNode :
 public:
   static vtkMRMLEMSVolumeCollectionNode *New();
   vtkTypeMacro(vtkMRMLEMSVolumeCollectionNode,vtkMRMLNode);
-  virtual vtkMRMLNode* CreateNodeInstance();
+  virtual vtkMRMLNode* CreateNodeInstance() VTK_OVERRIDE;
 
   // Description:
   // Set node attributes - for legacy purposes 
-  virtual void ReadXMLAttributes(const char** atts);
+  virtual void ReadXMLAttributes(const char** atts) VTK_OVERRIDE;
 
   // Description:
   // clone the volumes of rhs
@@ -27,7 +27,7 @@ public:
 
   // Description:
   // Get node XML tag name (like Volume, Model)
-  virtual const char* GetNodeTagName() {return "EMSVolumeCollection";}
+  virtual const char* GetNodeTagName() VTK_OVERRIDE {return "EMSVolumeCollection";}
 
   // Returns 1 if volume was added or 0 if the mapping between key and volumeNodeID existed 
   virtual int   AddVolume(const char* key, const char* volumeNodeID)

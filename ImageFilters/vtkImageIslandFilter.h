@@ -234,7 +234,7 @@ class VTK_EMSEGMENT_EXPORT  vtkImageIslandFilter
 #else
   vtkTypeMacro(vtkImageIslandFilter,vtkImageAlgorithm);
 #endif
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   vtkSetMacro(IslandMinSize,int);
   vtkGetMacro(IslandMinSize,int);
@@ -316,7 +316,7 @@ protected:
 #else
   virtual int RequestData(vtkInformation* request,
                           vtkInformationVector** inputVector,
-                          vtkInformationVector* outputVector);
+                          vtkInformationVector* outputVector) VTK_OVERRIDE;
 #endif
 
   void ComputeInputUpdateExtent(int inExt[6], int outExt[6]);

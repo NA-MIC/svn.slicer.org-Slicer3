@@ -197,7 +197,7 @@ public:
 #else
   vtkTypeMacro(vtkImagePropagateDist2, vtkImageAlgorithm);
 #endif
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
   
   // Description
 
@@ -229,7 +229,7 @@ protected:
   vtkImagePropagateDist2();
   ~vtkImagePropagateDist2();
 
-  void ExecuteData(vtkDataObject *outData);
+  void ExecuteData(vtkDataObject *outData) VTK_OVERRIDE;
 
   void PreComputeDistanceArray();
   void FreeDistanceArray();

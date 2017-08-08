@@ -232,7 +232,7 @@ class VTK_EMSEGMENT_EXPORT vtkImageEMGeneral
 #else
   vtkTypeMacro(vtkImageEMGeneral,vtkImageAlgorithm);
 #endif
-  void PrintSelf(ostream& os, vtkIndent indent) { Superclass::PrintSelf(os, indent); };
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE { Superclass::PrintSelf(os, indent); };
 //Kilian
 //BTX
   virtual void SetInputIndex(int index, vtkImageData *image);

@@ -37,7 +37,7 @@ class VTK_EMSEGMENT_EXPORT vtkCTHandBoneClass : public vtkObject
   public:
   static vtkCTHandBoneClass *New();
   vtkTypeMacro(vtkCTHandBoneClass,vtkObject);
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   int blur(const char* inputImage, const char* outputImage, const char* gaussianVariance, const char* maxKernelWidth);
   int binary_threshold(const char* inputDirectory, const char* outputThresholdImage, const char* _lowerThreshold, const char* _upperThreshold);

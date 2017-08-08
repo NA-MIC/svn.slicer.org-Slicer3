@@ -31,7 +31,7 @@ class VTK_EMSEGMENT_EXPORT vtkImageEMLocalClass : public vtkImageEMLocalGenericC
 #else
   vtkTypeMacro(vtkImageEMLocalClass,vtkImageEMLocalGenericClass);
 #endif
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   // ----------------------------------------- 
   // Image Data input 
@@ -169,7 +169,7 @@ protected:
 #else
   virtual int RequestData(vtkInformation* request,
                           vtkInformationVector** inputVector,
-                          vtkInformationVector* outputVector);
+                          vtkInformationVector* outputVector) VTK_OVERRIDE;
 #endif
 
   double *LogMu;                 // Intensity distribution of the classes (changed for Multi Dim Version)

@@ -98,7 +98,7 @@ public:
 #else
   vtkTypeMacro(vtkLevelSets,vtkImageAlgorithm);
 #endif
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
   
   vtkSetMacro(isotropic_voxels,int);
   vtkGetMacro(isotropic_voxels,int);
@@ -411,7 +411,7 @@ protected:
   void NormalizeSecDerGrad();
 
   //  void Execute(vtkImageData *inData, vtkImageData *outData);
-  void ExecuteData( vtkDataObject *outData);
+  void ExecuteData( vtkDataObject *outData)  VTK_OVERRIDE;
 
 //BTX
   int   RescaleImage;

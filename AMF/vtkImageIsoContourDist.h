@@ -79,7 +79,7 @@ public:
 #else
   vtkTypeMacro(vtkImageIsoContourDist, vtkImageAlgorithm);
 #endif
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
   
   // Description
 
@@ -111,7 +111,7 @@ protected:
   vtkImageIsoContourDist();
   ~vtkImageIsoContourDist();
 
-  void ExecuteData(vtkDataObject *outData);
+  void ExecuteData(vtkDataObject *outData) VTK_OVERRIDE;
 
   void IsoSurfDistInit();
 

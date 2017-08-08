@@ -19,7 +19,7 @@ public:
 #else
   vtkTypeMacro(vtkBSplineRegistrator, vtkObject);
 #endif
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   //BTX
   typedef enum 

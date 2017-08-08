@@ -44,7 +44,7 @@ class VTK_EMSEGMENT_EXPORT vtkImageEMLocalGenericClass : public vtkImageEMGeneri
 #else
   vtkTypeMacro(vtkImageEMLocalGenericClass,vtkImageEMGenericClass);
 #endif
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   // ----------------------------------------- 
   // Image Data input 
@@ -154,7 +154,7 @@ protected:
 #else
   virtual int RequestData(vtkInformation* request,
                           vtkInformationVector** inputVector,
-                          vtkInformationVector* outputVector);
+                          vtkInformationVector* outputVector) VTK_OVERRIDE;
 #endif
 
   int Extent[6];                 // Extent of input 

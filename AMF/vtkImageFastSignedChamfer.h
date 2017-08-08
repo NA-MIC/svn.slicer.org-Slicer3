@@ -79,7 +79,7 @@ public:
 #else
   vtkTypeMacro(vtkImageFastSignedChamfer,vtkImageAlgorithm);
 #endif
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
   
   // Description
 
@@ -115,7 +115,7 @@ protected:
   vtkImageFastSignedChamfer();
   ~vtkImageFastSignedChamfer();
 
-  void ExecuteData(vtkDataObject *outData);
+  void ExecuteData(vtkDataObject *outData) VTK_OVERRIDE;
 
   void FastSignedChamfer2D();
   void FastSignedChamfer3DOld();

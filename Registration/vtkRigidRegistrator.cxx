@@ -48,13 +48,13 @@ public:
   typedef TOptimizer                 OptimizerType;
   typedef const OptimizerType   *    OptimizerPointer;
 
-  void Execute(itk::Object *caller, const itk::EventObject & event)
+  void Execute(itk::Object *caller, const itk::EventObject & event) ITK_OVERRIDE
   {
     Execute( (const itk::Object *)caller, event);
   }
 
   // this should be specialized later...
-  void Execute(const itk::Object * object, const itk::EventObject & event)
+  void Execute(const itk::Object * object, const itk::EventObject & event) ITK_OVERRIDE
   {
     OptimizerPointer optimizer =
       dynamic_cast< OptimizerPointer >( object );
@@ -101,13 +101,13 @@ public:
   itkSetMacro(SamplingRatio, double);
   itkSetMacro(NumberOfIterations, int);
 
-  void Execute(const itk::Object *itkNotUsed(caller), const itk::EventObject & itkNotUsed(event))
+  void Execute(const itk::Object *itkNotUsed(caller), const itk::EventObject & itkNotUsed(event)) ITK_OVERRIDE
   {
     return;
   }
 
   // this should be specialized later...
-  void Execute(itk::Object * object, const itk::EventObject & event)
+  void Execute(itk::Object * object, const itk::EventObject & event) ITK_OVERRIDE
   {
     RegistrationPointer registration =
       dynamic_cast< RegistrationPointer >( object );

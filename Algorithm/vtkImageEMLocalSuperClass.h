@@ -31,7 +31,7 @@ class VTK_EMSEGMENT_EXPORT vtkImageEMLocalSuperClass : public vtkImageEMLocalGen
 #else
   vtkTypeMacro(vtkImageEMLocalSuperClass,vtkImageEMLocalGenericClass);
 #endif
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   int           GetNumClasses() {return this->NumClasses;}
 
@@ -63,8 +63,8 @@ class VTK_EMSEGMENT_EXPORT vtkImageEMLocalSuperClass : public vtkImageEMLocalGen
   int           GetProbDataPtrList(void **PointerList,int index, int BoundaryType); 
   int           GetProbDataIncYandZ(int* ProbDataIncY,int* ProbDataIncZ,int index,int BoundaryType);
 
-  void          SetProbDataWeight(float value) {this->ProbDataWeight = value;}
-  float         GetProbDataWeight(){return this->ProbDataWeight;} 
+  void          SetProbDataWeight(float value) VTK_OVERRIDE {this->ProbDataWeight = value;}
+  float         GetProbDataWeight() VTK_OVERRIDE {return this->ProbDataWeight;}
 
   int           GetTotalNumberOfClasses(bool flag); // if flag is set => includes subclasses of type SUPERCLASS
   int           GetAllLabels(short *LabelList, int result,int Max); // Gets all labels from the Substructures
@@ -257,7 +257,7 @@ protected:
 #else
   virtual int RequestData(vtkInformation* request,
                           vtkInformationVector** inputVector,
-                          vtkInformationVector* outputVector);
+                          vtkInformationVector* outputVector) VTK_OVERRIDE;
 #endif
 
   void AddSubClass(void* ClassData, classType initType, int index);

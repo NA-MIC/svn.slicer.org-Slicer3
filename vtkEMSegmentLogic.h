@@ -77,7 +77,7 @@ public:
   virtual void RegisterMRMLNodesWithScene();
 
   /// Register MRML Node classes to Scene. Gets called automatically when the MRMLScene is attached to this logic class.
-  virtual void RegisterNodes();
+  virtual void RegisterNodes() VTK_OVERRIDE;
   virtual void SetAndObserveMRMLScene(vtkMRMLScene* scene);
 
   // this is needed in Slicer4 to properly listen to the nodeAdded and nodeRemoved events
@@ -88,7 +88,7 @@ public:
   // ProcessMRMLEvents is renamed into ProcessMRMLSceneEvents in Slicer4
   virtual void ProcessMRMLSceneEvents(vtkObject *caller,
                                       unsigned long event,
-                                      void *callData);
+                                      void *callData) VTK_OVERRIDE;
 
   // events to observe
   virtual vtkIntArray* NewObservableEvents();

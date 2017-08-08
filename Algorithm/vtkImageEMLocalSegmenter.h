@@ -48,7 +48,7 @@ class VTK_EMSEGMENT_EXPORT vtkImageEMLocalSegmenter
 #else
   vtkTypeMacro(vtkImageEMLocalSegmenter,vtkImageEMGeneral);
 #endif
-  virtual void PrintSelf(ostream& os, vtkIndent indent);
+  virtual void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   // -----------------------------------------------------
   // Message Protocol
@@ -169,10 +169,10 @@ protected:
 #else
   virtual int RequestInformation(vtkInformation* request,
                                  vtkInformationVector** inInfoVec,
-                                 vtkInformationVector* outInfoVec);
+                                 vtkInformationVector* outInfoVec) VTK_OVERRIDE;
   virtual int RequestData(vtkInformation* request,
                           vtkInformationVector** inInfoVec,
-                          vtkInformationVector* outInfoVec);
+                          vtkInformationVector* outInfoVec) VTK_OVERRIDE;
 #endif
 
  // Description:

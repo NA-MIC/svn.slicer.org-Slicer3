@@ -48,7 +48,7 @@ class VTK_EMSEGMENT_EXPORT vtkImageSumOverVoxels
 #else
   vtkTypeMacro(vtkImageSumOverVoxels, vtkImageAlgorithm);
 #endif
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
   
   double GetVoxelSum() {return this->VoxelSum;}
   vtkGetVector3Macro(Centroid,double); 
@@ -75,7 +75,7 @@ protected:
 #else
   virtual int RequestData(vtkInformation* request,
                           vtkInformationVector** inputVector,
-                          vtkInformationVector* outputVector);
+                          vtkInformationVector* outputVector) VTK_OVERRIDE;
 #endif
 
   double VoxelSum;

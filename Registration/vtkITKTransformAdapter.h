@@ -24,14 +24,14 @@ public:
 #else
   vtkTypeMacro(vtkITKTransformAdapter, vtkWarpTransform);
 #endif
-  virtual void PrintSelf(ostream& os, vtkIndent indent);
+  virtual void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
   
   void SetITKTransform(TransformType* transform)
   {
     this->ITKTransform = transform;
   }
   
-  vtkAbstractTransform* MakeTransform() 
+  vtkAbstractTransform* MakeTransform() VTK_OVERRIDE
   { return vtkITKTransformAdapter::New(); }
   
 protected:
@@ -40,7 +40,7 @@ protected:
   
   // Description:
   // Internal functions for calculating the transformation.
-  void ForwardTransformPoint(const float in[3], float out[3]) 
+  void ForwardTransformPoint(const float in[3], float out[3]) VTK_OVERRIDE
   {
     this->ITKTMP_point[0] = in[0];
     this->ITKTMP_point[1] = in[1];
@@ -53,7 +53,7 @@ protected:
     out[1] = this->ITKTMP_outputPoint[1];
     out[2] = this->ITKTMP_outputPoint[2];
   }
-  void ForwardTransformPoint(const double in[3], double out[3]) 
+  void ForwardTransformPoint(const double in[3], double out[3]) VTK_OVERRIDE
   {
     this->ITKTMP_point[0] = in[0];
     this->ITKTMP_point[1] = in[1];
@@ -68,9 +68,9 @@ protected:
   }
   
   void ForwardTransformDerivative(const float vtkNotUsed(in)[3], float vtkNotUsed(out)[3],
-                                  float vtkNotUsed(derivative)[3][3]) {}
+                                  float vtkNotUsed(derivative)[3][3]) VTK_OVERRIDE {}
   void ForwardTransformDerivative(const double vtkNotUsed(in)[3], double vtkNotUsed(out)[3],
-                                  double vtkNotUsed(derivative)[3][3]) {}
+                                  double vtkNotUsed(derivative)[3][3]) VTK_OVERRIDE {}
   
 private:
   vtkITKTransformAdapter

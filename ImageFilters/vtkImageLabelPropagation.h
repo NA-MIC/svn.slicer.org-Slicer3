@@ -91,7 +91,7 @@ public:
 #else
   vtkTypeMacro(vtkImageLabelPropagation,vtkImageDecomposeFilter);
 #endif
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   vtkGetMacro(Initialize, int);
   vtkGetMacro(MaximumDistance, float);
@@ -101,7 +101,7 @@ public:
   vtkImageData* GetPropagatedMap() { return this->PropagatedMap; } 
   virtual int IterativeRequestData(vtkInformation*,
                                    vtkInformationVector**,
-                                   vtkInformationVector*);
+                                   vtkInformationVector*) VTK_OVERRIDE;
 protected:
   vtkImageLabelPropagation();
   ~vtkImageLabelPropagation(); 
@@ -122,9 +122,9 @@ protected:
   //void ComputeInputUpdateExtent(int inExt[6], int outExt[6]);
 
   virtual int IterativeRequestInformation(vtkInformation* in,
-                                          vtkInformation* out);
+                                          vtkInformation* out) VTK_OVERRIDE;
   virtual int IterativeRequestUpdateExtent(vtkInformation* in,
-                                           vtkInformation* out);
+                                           vtkInformation* out) VTK_OVERRIDE;
 
 private:
 

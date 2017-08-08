@@ -13,38 +13,38 @@ class VTK_EMSEGMENT_EXPORT vtkMRMLEMSCollectionNode :
 public:
   static vtkMRMLEMSCollectionNode *New();
   vtkTypeMacro(vtkMRMLEMSCollectionNode,vtkMRMLNode);
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  virtual vtkMRMLNode* CreateNodeInstance();
+  virtual vtkMRMLNode* CreateNodeInstance() VTK_OVERRIDE;
 
   // Description:
   // Set node attributes
-  virtual void ReadXMLAttributes(const char** atts);
+  virtual void ReadXMLAttributes(const char** atts) VTK_OVERRIDE;
 
   // Description:
   // Write this node's information to a MRML file in XML format.
-  virtual void WriteXML(ostream& of, int indent);
+  virtual void WriteXML(ostream& of, int indent) VTK_OVERRIDE;
 
   // Description:
   // Copy the node's attributes to this object
-  virtual void Copy(vtkMRMLNode *node);
+  virtual void Copy(vtkMRMLNode *node) VTK_OVERRIDE;
 
   // Description:
   // Get node XML tag name (like , Model)
-  virtual const char* GetNodeTagName() {return "EMSCollection";}
+  virtual const char* GetNodeTagName() VTK_OVERRIDE {return "EMSCollection";}
 
   // Description:
   // Set the references of the node to the scene. - only used in Slicer4 
-  virtual void SetSceneReferences();
+  virtual void SetSceneReferences() VTK_OVERRIDE;
 
   // Description:
   // Updates this node if it depends on other nodes
   // when the node is deleted in the scene
-  virtual void UpdateReferences();
+  virtual void UpdateReferences() VTK_OVERRIDE;
 
   // Description:
   // Update the stored reference to another node in the scene
-  virtual void UpdateReferenceID(const char *oldID, const char *newID);
+  virtual void UpdateReferenceID(const char *oldID, const char *newID) VTK_OVERRIDE;
 
   // Returns 1 if volume was added or 0 if the mapping between key and volumeNodeID existed 
   virtual int   AddNode(const char* key, const char* volumeNodeID);

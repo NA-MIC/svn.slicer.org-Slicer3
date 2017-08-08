@@ -16,7 +16,7 @@ public:
 #else
   vtkTypeMacro(vtkRigidRegistrator, vtkObject);
 #endif
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   vtkSetObjectMacro(FixedImage, vtkImageData);
   vtkGetObjectMacro(FixedImage, vtkImageData);

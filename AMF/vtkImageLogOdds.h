@@ -76,7 +76,7 @@ class VTK_EMSEGMENT_EXPORT vtkImageLogOdds
 #else
   vtkTypeMacro(vtkImageLogOdds,vtkImageAlgorithm);
 #endif
-  void PrintSelf(ostream& vtkNotUsed(os), vtkIndent vtkNotUsed(indent)) { };
+  void PrintSelf(ostream& vtkNotUsed(os), vtkIndent vtkNotUsed(indent)) VTK_OVERRIDE { };
 
   // Set the Dimension of the Probability Space
   void SetDimProbSpace(int init);
@@ -138,7 +138,7 @@ protected:
   vtkImageData* GetOutput() {return NULL;}
  
   void operator=(const vtkImageLogOdds&) {};
-  void ExecuteData(vtkDataObject *);   
+  void ExecuteData(vtkDataObject *) VTK_OVERRIDE;
 
   // void ThreadedExecute(vtkImageData vtkNotUsed(**inData), vtkImageData vtkNotUsed(*outData),int vtkNotUsed(outExt[6]), int vtkNotUsed(id));
 

@@ -55,7 +55,7 @@ class VTK_EMSEGMENT_EXPORT vtkImageEMGenericClass
 #else
   vtkTypeMacro(vtkImageEMGenericClass,vtkImageAlgorithm);
 #endif
-  virtual void PrintSelf(ostream& os, vtkIndent indent);
+  virtual void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   // Description:
   // Global Tissue Probability
@@ -171,7 +171,7 @@ protected:
 #else
   virtual int RequestData(vtkInformation *request,
                           vtkInformationVector **inputVector,
-                          vtkInformationVector *outputVector);
+                          vtkInformationVector *outputVector) VTK_OVERRIDE;
 #endif
 
   enum {

@@ -37,7 +37,7 @@ class VTK_EMSEGMENT_EXPORT vtkEMSegmentMRMLManager :
 public:
   static vtkEMSegmentMRMLManager *New();
   vtkTypeMacro(vtkEMSegmentMRMLManager,vtkObject);
-  void PrintSelf(ostream& os, vtkIndent indent);
+  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   // Prints out important info about the current template / task 
   void PrintInfo(ostream& os);
