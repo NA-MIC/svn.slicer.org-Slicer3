@@ -61,8 +61,7 @@
 
 
 #define dist2(a,b,c)  (sq[abs(a)]+sq[abs(b)]+sq[abs(c)])
-#define dist(a,b,c)  (distance[abs(a)][abs(b)][abs(c)])
-
+#define dist(a,b,c)  (distance[(int)abs(a)][(int)abs(b)][(int)abs(c)])
 
 
 //
