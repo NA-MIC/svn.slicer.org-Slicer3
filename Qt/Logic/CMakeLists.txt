@@ -39,7 +39,11 @@ SET(module_logic_target_libraries
   )
 
 if(${VTK_VERSION_MAJOR} GREATER 5)
-  list(APPEND VTK_WRAP_INCLUDE_DIRS ${EMSegment_SOURCE_DIR})
+  list(APPEND VTK_WRAP_INCLUDE_DIRS
+    ${EMSegment_SOURCE_DIR}
+    ${EMSegment_SOURCE_DIR}/Algorithm
+    ${EMSegment_SOURCE_DIR}/MRML
+    )
 endif()
 
 SlicerMacroBuildModuleLogic(
