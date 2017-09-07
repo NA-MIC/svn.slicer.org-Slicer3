@@ -13,7 +13,7 @@
 =========================================================================auto=*/
 /*  ==================================================
     Module : vtkImageLevelSets
-             slightly altered version from vtkLevelSet by  Karl Krissian 
+             slightly altered version from vtkLevelSet by  Karl Krissian
              (from initial code by Liana Lorigo and Renaud Keriven)
     ==================================================
 */
@@ -55,7 +55,7 @@
 #define TIMEMINE  (1<<3)
 #define TUBEFRONT (1<<5)
 #define INTUBE    (1<<6)
- 
+
 #define NOTSET 1000
 // used in convergence check
 // if changing, remember that these are uchars
@@ -156,7 +156,7 @@ vtkImageLevelSets::vtkImageLevelSets()
   fm      = vtkLevelSetFastMarching::New();
   isodist = vtkImageIsoContourDist::New();
   chamfer = vtkImageFastSignedChamfer::New();
-  shape   = vtkImagePropagateDist2::New();  
+  shape   = vtkImagePropagateDist2::New();
 
   velocity             = NULL;
   coeff_velocity       = 1E-2;
@@ -165,7 +165,7 @@ vtkImageLevelSets::vtkImageLevelSets()
    balloon_scheme = BALLOON_BROCKETT_MARAGOS;
   //  balloon_scheme = BALLOON_VESSELS;
   balloon_coeff        = 0;
-  // Same as ballon_image but not spatially changed 
+  // Same as ballon_image but not spatially changed
   balloon_value        = 0.0;
   balloon_image        = NULL;
   NumGaussians         = 0;
@@ -185,11 +185,11 @@ vtkImageLevelSets::vtkImageLevelSets()
   this->logCondIntensityImage = NULL;
   this->logCondIntensityCoefficient = 0.0;
   this->logCondIntensityInside = -1;
-  // The minum of the global weight term q*(1-q) on all update coefficients 
-  // where the sigmoid function of the level set represeentation q = 1/(1 + e^-d) 
-  // when probCondWeightMin is set to 1 then the term is ignored ! 
+  // The minum of the global weight term q*(1-q) on all update coefficients
+  // where the sigmoid function of the level set represeentation q = 1/(1 + e^-d)
+  // when probCondWeightMin is set to 1 then the term is ignored !
   this->probCondWeightMin = 1;
-  
+
   NumInitPoints   = 0;
   InitPoints      = NULL;
 
@@ -410,7 +410,7 @@ void vtkImageLevelSets::DistanceMap()
 #endif
     //     copyImage->CopyAndCastFrom(outputImage,
     //                outputImage->GetExtent());
-    
+
     ptr = (float*) copyImage->GetScalarPointer();
     for(i=0;i<imsize;i++) {
       *ptr = u[this->current][i];
@@ -434,13 +434,13 @@ void vtkImageLevelSets::DistanceMap()
     case DISTMAP_FASTMARCHING: DistanceMapFM();    break;
     case DISTMAP_CHAMFER     : DistanceMapChamfer();    break;
     case DISTMAP_SHAPE       : DistanceMapShape();    break;
-    case DISTMAP_LOGODDS     : return;  
+    case DISTMAP_LOGODDS     : return;
 
   }
 
   // swap the images
   this->current=1-this->current;
-  
+
 
   if (distance_data!=NULL) {
     int  i;
@@ -471,13 +471,13 @@ void vtkImageLevelSets::DistanceMap()
 #endif
     //     copyImage->CopyAndCastFrom(outputImage,
     //                outputImage->GetExtent());
-    
+
     ptr = (float*) copyImage->GetScalarPointer();
     for(i=0;i<imsize;i++) {
       *ptr = u[this->current][i];
       ptr++;
     }
-    
+
 
 #if VTK_MAJOR_VERSION <= 5
     writer->SetInput(copyImage);
@@ -492,8 +492,8 @@ void vtkImageLevelSets::DistanceMap()
     copyImage->Delete();
   }
 
-  
-} // DistanceMap() 
+
+} // DistanceMap()
 
 
 //----------------------------------------------------------------------------
@@ -510,7 +510,7 @@ void vtkImageLevelSets::DistanceMap()
 // Outputs:
 //
 //   u[1-current]
-//   
+//
 //
 void vtkImageLevelSets::DistanceMapCurves()
 //                   ------------
@@ -608,7 +608,7 @@ void vtkImageLevelSets::DistanceMapCurves()
            for (i1=i-4;i1<i+4;i1++)
              if (i1>=0 && i1<this->tx)
              for (j1=j-4;j1<j+4;j1++)
-           if (j1>=0 && j1<this->ty) 
+           if (j1>=0 && j1<this->ty)
          {
            switch (Dimension) {
            case 2:
@@ -732,7 +732,7 @@ void vtkImageLevelSets::DistanceMapCurves()
 
            // so, the following condition is:  if it is a point we care
            // about now, and if it swapped inside/outside of the
-           // surface... 
+           // surface...
 
            if ((myflag[p]&TIMEMINE) && newt[p]<0) {
              //
@@ -760,9 +760,9 @@ void vtkImageLevelSets::DistanceMapCurves()
    delete [] times[0];
    delete [] times[1];
 
-   // 
+   //
    //   MakeBand();
- 
+
    if (GB_debug) fprintf(stderr, "DistanceMapCurves() end \n");
 
 } // DistanceMapCurves()
@@ -783,7 +783,7 @@ void vtkImageLevelSets::DistanceMapCurves()
 // Outputs:
 //
 //   u[1-current]
-//   
+//
 //
 void vtkImageLevelSets::DistanceMapFMOld()
 //                   ------------
@@ -792,7 +792,7 @@ void vtkImageLevelSets::DistanceMapFMOld()
    float*        newU = u[1-this->current];
    vtkImageData* current_image = vtkImageData::New();
 
-  
+
    if (GB_debug) fprintf(stderr, "DistanceMapFM() begin \n");
 
 
@@ -811,7 +811,7 @@ void vtkImageLevelSets::DistanceMapFMOld()
    // use newU as output
    fm->UseOutputArray( newU );
 
-   // Set the parameters     
+   // Set the parameters
    // Trick:
    // Set the init image equal to the input image
    // which set a uniform force of 1 for the evolution
@@ -821,11 +821,11 @@ void vtkImageLevelSets::DistanceMapFMOld()
    fm->SetInputData(current_image);
 #endif
    fm->Setinitimage( current_image);
- 
+
    fm->Setinitiso(0);
    fm->SetmaxTime(Band+1);
 
-   // Run the distance transform 
+   // Run the distance transform
    //   fm->Register(current_image);
 
    fm->Update();
@@ -857,7 +857,7 @@ void vtkImageLevelSets::DistanceMapFMOld()
 // Outputs:
 //
 //   u[1-current]
-//   
+//
 //
 void vtkImageLevelSets::DistanceMapFM()
 //                   ------------
@@ -869,7 +869,7 @@ void vtkImageLevelSets::DistanceMapFM()
    vtkImageData* res1;
    vtkImageData* current_image;
 
-  
+
    if (GB_debug) fprintf(stderr, "DistanceMapFM() begin \n");
 
    current_image = vtkImageData::New();
@@ -901,7 +901,7 @@ void vtkImageLevelSets::DistanceMapFM()
    res1 = isodist->GetOutput();
 
    if (IsoContourBin) {
-     ptr = (float*) res1->GetScalarPointer(); 
+     ptr = (float*) res1->GetScalarPointer();
      for(i=0;i<imsize;i++) {
        if ((ptr[i]>0)&&(ptr[i]< 1)) ptr[i] =  0.5;
        if ((ptr[i]<0)&&(ptr[i]>-1)) ptr[i] = -0.5;
@@ -912,7 +912,7 @@ void vtkImageLevelSets::DistanceMapFM()
   {
     vtkStructuredPointsWriter *writer = vtkStructuredPointsWriter::New();
     char name[255];
-    
+
 #if VTK_MAJOR_VERSION <= 5
     writer->SetInput(res1);
 #else
@@ -925,13 +925,13 @@ void vtkImageLevelSets::DistanceMapFM()
     writer->Delete();
   }
    // Put Values Positive
-   ptr = (float*) res1->GetScalarPointer(); 
+   ptr = (float*) res1->GetScalarPointer();
    for(i=0;i<imsize;i++) ptr[i] = fabs(ptr[i]);
 
    // use newU as output
    fm->UseOutputArray( newU );
 
-   // Set the parameters     
+   // Set the parameters
    // Trick:
    // Set the init image equal to the input image
    // which set a uniform force of 1 for the evolution
@@ -943,7 +943,7 @@ void vtkImageLevelSets::DistanceMapFM()
    fm->Setinitimage( res1);
    // The to Band because of possible anisotropic voxels
    fm->Setinitmaxdist(1+1E-3);
- 
+
 
    if (bnd_allocated)
      fm->SetNarrowBand(this->bnd, this->bnd_pc);
@@ -954,7 +954,7 @@ void vtkImageLevelSets::DistanceMapFM()
    //   fm->Setinitiso(0);
    fm->SetmaxTime(Band+1E-3);
 
-   // Run the distance transform 
+   // Run the distance transform
    //   fm->Register(current_image);
 
    fm->Update();
@@ -967,7 +967,7 @@ void vtkImageLevelSets::DistanceMapFM()
    }
 
    // Put the sign back to the image
-   ptr = (float*) current_image->GetScalarPointer(); 
+   ptr = (float*) current_image->GetScalarPointer();
    for(i=0;i<imsize;i++) if (ptr[i]<0) newU[i] = -newU[i];
 
    if (verbose) {
@@ -1014,13 +1014,13 @@ void vtkImageLevelSets::DistanceMapFM()
 // Outputs:
 //
 //   u[1-current]
-//   
+//
 //
 //
 void vtkImageLevelSets::DistanceMapChamfer()
 //                   ------------
 {
-  
+
    float*        U    = u[this->current];
    float*        newU = u[1-this->current];
 
@@ -1079,7 +1079,7 @@ void vtkImageLevelSets::DistanceMapChamfer()
   {
     vtkStructuredPointsWriter *writer = vtkStructuredPointsWriter::New();
     char name[255];
-    
+
 #if VTK_MAJOR_VERSION <= 5
     writer->SetInput(res1);
 #else
@@ -1111,7 +1111,7 @@ void vtkImageLevelSets::DistanceMapChamfer()
    //    writer->Write();
    //    writer->Delete();
 
-   //   if (GB_debug) 
+   //   if (GB_debug)
    //     fprintf(stderr, "DistanceMapChamfer() chamfer \n");
 
    // uses newU both as input and output
@@ -1141,9 +1141,9 @@ void vtkImageLevelSets::DistanceMapChamfer()
 
    //   chamfer->SetInput(NULL);
 
-   if (GB_debug) 
+   if (GB_debug)
      fprintf(stderr, ";\n");
-  
+
 } // DistanceMapChamfer()
 
 
@@ -1170,7 +1170,7 @@ void vtkImageLevelSets::DistanceMapChamfer()
 //
 //   u[1-current]
 //   distance to skeleton
-//   projection to skeleton   
+//   projection to skeleton
 //
 //
 void vtkImageLevelSets::DistanceMapShape()
@@ -1181,11 +1181,11 @@ void vtkImageLevelSets::DistanceMapShape()
 
    vtkImageData*              current_image;
 
-   //   if (GB_debug) 
+   //   if (GB_debug)
    fprintf(stderr, "DistanceMapShape() .");fflush(stderr);
 
    current_image = vtkImageData::New();
-   if (shape==NULL) shape = vtkImagePropagateDist2::New();  
+   if (shape==NULL) shape = vtkImagePropagateDist2::New();
 
    // Creation vtkImage from U[.]
    current_image->SetDimensions( outputImage->GetDimensions());
@@ -1246,35 +1246,35 @@ void vtkImageLevelSets::DistanceMapShape()
 
 // void vtkImageLevelSets::SetDMmethod_LogOddsMap(vtkImageData* LogOddsInput) {
 //   cout << "vtkImageLevelSets::SetDMmethod_LogOddsMap: Set DMmethod to LogOddsMap - make sure  to put this method at the end of defining your level set parameters - otherwise you overwrite log odds defaults !" << endl;
-//   // Set variables 
+//   // Set variables
 //   this->DMmethod = DISTMAP_LOGODDS ;
-// 
-//   // Copy over log odds map through defining initImage 
-//   // Define zero level set  
-//   this->InitThreshold = 0; 
-//   // Positive values are the inside of the log odds map 
+//
+//   // Copy over log odds map through defining initImage
+//   // Define zero level set
+//   this->InitThreshold = 0;
+//   // Positive values are the inside of the log odds map
 //   // => map will be negated in InitEvolution() to follow level set notation
 //   this->InitIntensity = Bright;
-//   // Set the Initial Image with the LogOdds map 
+//   // Set the Initial Image with the LogOdds map
 //   this->SetinitImage(LogOddsInput);
-// 
-//   // Band Parameter does not work bc we cannot recompute logOdds ! 
+//
+//   // Band Parameter does not work bc we cannot recompute logOdds !
 //   // this->Band = 100;
-//   // this->Tube = 95; 
-//         
-//   // Currently want to experiment just what happens when running level set on log odds 
-//   // => Set all other coefficients to zero  
+//   // this->Tube = 95;
+//
+//   // Currently want to experiment just what happens when running level set on log odds
+//   // => Set all other coefficients to zero
 //   this->coeff_curvature = 1.0;
-//   this->AdvectionCoeff = 0.0; 
+//   this->AdvectionCoeff = 0.0;
 //   this->balloon_coeff = 0.0;
 //   if (this->velocity != NULL) {
 //     cout << "Error:vtkImageLevelSets::SetDMmethod_LogOddsMap: velocity has to be zero ! " <<  endl;
 //     exit(1);
 //   }
-// 
+//
 //   // Just debug information
 //   // this->verbose = 1;
-// 
+//
 // } // LogOddsMap(vtkImageData* LogOddsInput)
 
 
@@ -1284,7 +1284,7 @@ unsigned char vtkImageLevelSets::CheckConvergence( )
 {
    if (GB_debug) fprintf(stderr, "vtkImageLevelSets::CheckConvergence( ) begin \n");
 
-   return 0;  
+   return 0;
 
    int   p;;
    int   cnt1,cnt2,total;
@@ -1292,7 +1292,7 @@ unsigned char vtkImageLevelSets::CheckConvergence( )
 
    total = cnt1 = cnt2 = 0;
 
-   // counting 
+   // counting
    // total: number of negative points
    // cnt1 number of point which passed from negative to positive value
    // cnt2 number of point which passed from positive to negative value
@@ -1312,20 +1312,20 @@ unsigned char vtkImageLevelSets::CheckConvergence( )
          cnt2++;
 
      // now rewrite stored_seg for the next time:
-     if (*(this->u[p]) <= 0)   
+     if (*(this->u[p]) <= 0)
        this->stored_seg[p] = ON_STORED;
-     else             
+     else
        this->stored_seg[p] = OFF_STORED;
    }
- 
+
    float converged_check1 = ((float)cnt2)/((float)total);
    // float converged_check2 = ((float)cnt1)/((float)total);
-    
-   vtkDebugMacro( << cnt1 << "," << cnt2 << "," << 
+
+   vtkDebugMacro( << cnt1 << "," << cnt2 << "," <<
          total << "," << converged_check1);
-       
+
    // in simulation experiments, care about shrinking also, so use
-   //   a different convergence check   
+   //   a different convergence check
    //      if (check_shrink)
    //        converged_check = converged_check1+converged_check2;
    //      else
@@ -1344,7 +1344,7 @@ unsigned char vtkImageLevelSets::CheckConvergence( )
 void vtkImageLevelSets::CheckConvergenceNew( )
 {
 
-  register float *U =this->u[  this->current];
+  float *U =this->u[  this->current];
   int b,i;
   // histogram of the log of the changes
   int loghisto[5];
@@ -1353,7 +1353,7 @@ void vtkImageLevelSets::CheckConvergenceNew( )
   if (!bnd_allocated)
     return;
   if (GB_debug) fprintf(stderr, "checked vtkImageLevelSets::CheckConvergenceNew( ) begin \n");
-  
+
   for(i=0;i<5;i++) loghisto[i]=0;
 
   // Loop over the Narrow Band and check the intensity change
@@ -1370,7 +1370,7 @@ void vtkImageLevelSets::CheckConvergenceNew( )
   printf("\nConv test :");
   for(i=0;i<5;i++)
     printf(" %d, %02.2f  ",i,(loghisto[i]*100.0)/this->bnd_pc);
-  
+
   if (GB_debug) fprintf(stderr, "vtkImageLevelSets::CheckConvergenceNew( ) end \n");
 
 } // CheckConvergenceNew()
@@ -1395,7 +1395,7 @@ void vtkImageLevelSets::MakeBand( )
   // before creating the new band, check the convergence
 
   this->CheckConvergenceNew();
-  this->MakeBand0(); 
+  this->MakeBand0();
 
   /*
    // Save the result
@@ -1412,13 +1412,13 @@ void vtkImageLevelSets::MakeBand( )
      copyImage->SetSpacing(    outputImage->GetSpacing());
      copyImage->CopyAndCastFrom(outputImage,
                 outputImage->GetExtent());
-     
+
      ptr = (unsigned char*) copyImage->GetScalarPointer(0,0,0);
      for(i=0;i<imsize;i++) {
        *ptr = this->flag[i];
        ptr++;
      }
-     
+
      writer->SetInput(copyImage);
      band_count++;
      sprintf(name,"band%d.vtk",band_count);
@@ -1452,7 +1452,7 @@ void vtkImageLevelSets::MakeBand( )
 //
 //    u[current]
 //    u[1-current]
-//    flag[.]        : 
+//    flag[.]        :
 //                     0         : not in [-band,band]
 //                     INBAND    : in  [-band,band]
 //                     INTUBE    : in  [-Tube,Tube]
@@ -1470,20 +1470,20 @@ void vtkImageLevelSets::MakeBand( )
 void vtkImageLevelSets::MakeBand0( )
 {
     if (verbose) cout << "Checked -chemper - does not change value in band  vtkImageLevelSets::MakeBand0 " << endl;
-    register int   p;
-    register int   x,y,z;
-    register float *U =this->u[  this->current];
-    register float *nU=this->u[1-this->current];
-    register float u0=0,u1;
-    register float val;
-    register unsigned char* flag_ptr;
-    register int*           bnd_ptr;
+    int   p;
+    int   x,y,z;
+    float *U =this->u[  this->current];
+    float *nU=this->u[1-this->current];
+    float u0=0,u1;
+    float val;
+    unsigned char* flag_ptr;
+    int*           bnd_ptr;
 
-    register const unsigned char inband  = INBAND; 
-    register const unsigned char bandneg = INBAND|NEGMINE;
-    register const unsigned char bandpos = INBAND|POSMINE;
+    const unsigned char inband  = INBAND;
+    const unsigned char bandneg = INBAND|NEGMINE;
+    const unsigned char bandpos = INBAND|POSMINE;
 
-    register int xmin,xmax,ymin,ymax,zmin,zmax;
+    int xmin,xmax,ymin,ymax,zmin,zmax;
 
 
     if (verbose) {
@@ -1504,13 +1504,13 @@ void vtkImageLevelSets::MakeBand0( )
     ADDMEMORY("vtkImageLevelSets::MakeBand0() band size bnd + flag ", bnd_maxsize*sizeof(int)+imsize)
     //    flag_allocated = 1;
   }
-  
+
   this->bnd_pc=0;
 
   // Set by default to OUTBAND (0)
   memset(flag,0,imsize);
-  
-  switch (DMmethod) {  
+
+  switch (DMmethod) {
 
   case DISTMAP_CURVES:
   //   --------------
@@ -1522,36 +1522,36 @@ void vtkImageLevelSets::MakeBand0( )
     nU[p] = u0;
     u1 = fabs(u0);
     this->flag[p]=INBAND;
-    
+
     // Check in Tube
     if (u1<=this->Tube) {
       this->flag[p]|=INTUBE;
       // Check Tube front
-      if (u1>=this->Tube-1.8) this->flag[p]|=TUBEFRONT;    
-    } 
-    else 
-      if (u0<-this->Tube) 
+      if (u1>=this->Tube-1.8) this->flag[p]|=TUBEFRONT;
+    }
+    else
+      if (u0<-this->Tube)
         this->flag[p]|=NEGMINE;
-      else 
+      else
         this->flag[p]|=POSMINE;
-      
+
     this->bnd[this->bnd_pc]=p;
     this->bnd_initialvalues[this->bnd_pc]=u0;
     this->bnd_pc++;
-        if (bnd_pc>=bnd_maxsize) 
+        if (bnd_pc>=bnd_maxsize)
       ResizeBand();
       }
     }
     break;
 
-  case DISTMAP_FASTMARCHING: 
+  case DISTMAP_FASTMARCHING:
   //   --------------------
 
     // don't need INTUBE and TUBEFRONT
     flag_ptr = this->flag;
     bnd_ptr  = this->bnd;
     U =this->u[this->current];
-    
+
     // loop on x,y and z to avoid adding border points in the narrow
     // band and thus to avoid checking its limits and speed up
     // the other functions
@@ -1572,12 +1572,12 @@ void vtkImageLevelSets::MakeBand0( )
       //      if (p>=imsize) fprintf(stderr,"Pb ...\n");
       val = U[p];
       if (fabs(val)<=Band) {
-        
+
         // Check in Tube
-        if (val<-this->Tube) 
+        if (val<-this->Tube)
           flag_ptr[p] = bandneg;
-        else 
-          if (val>this->Tube)  
+        else
+          if (val>this->Tube)
         flag_ptr[p] = bandpos;
           else
         flag_ptr[p] = inband;
@@ -1596,7 +1596,7 @@ void vtkImageLevelSets::MakeBand0( )
       } // end for y
       p += tx;
     } // end for z
-    break; 
+    break;
 
 
   case DISTMAP_CHAMFER:
@@ -1630,12 +1630,12 @@ void vtkImageLevelSets::MakeBand0( )
       //      if (p>=imsize) fprintf(stderr,"Pb ...\n");
       val = U[p];
       if (fabs(val)<=Band) {
-        
+
         // Check in Tube
-        if (val<-this->Tube) 
+        if (val<-this->Tube)
           flag_ptr[p] = bandneg;
-        else 
-          if (val>this->Tube)  
+        else
+          if (val>this->Tube)
         flag_ptr[p] = bandpos;
           else
         flag_ptr[p] = inband;
@@ -1654,7 +1654,7 @@ void vtkImageLevelSets::MakeBand0( )
       } // end for y
       p += tx*(ty-1-ymax);
     } // end for z
-    break; 
+    break;
 
     // Slow: initial during the processing of the distance ...
   case DISTMAP_SHAPE:
@@ -1663,7 +1663,7 @@ void vtkImageLevelSets::MakeBand0( )
     flag_ptr = this->flag;
     bnd_ptr  = this->bnd;
     U =this->u[this->current];
-    
+
     xmin = 1;
     xmax = tx-2;
     ymin = 1;
@@ -1687,12 +1687,12 @@ void vtkImageLevelSets::MakeBand0( )
       //      if (p>=imsize) fprintf(stderr,"Pb ...\n");
       val = U[p];
       if (fabs(val)<=Band) {
-        
+
         // Check in Tube
-        if (val<-this->Tube) 
+        if (val<-this->Tube)
           flag_ptr[p] = bandneg;
-        else 
-          if (val>this->Tube)  
+        else
+          if (val>this->Tube)
         flag_ptr[p] = bandpos;
           else
         flag_ptr[p] = inband;
@@ -1711,7 +1711,7 @@ void vtkImageLevelSets::MakeBand0( )
       } // end for y
       p += tx*(ty-1-ymax);
     } // end for z
-    break; 
+    break;
 
   case DISTMAP_LOGODDS:
     //   ---------------
@@ -1721,16 +1721,16 @@ void vtkImageLevelSets::MakeBand0( )
     U =this->u[this->current];
 
 
-    // Kilian : Changed this from original 
+    // Kilian : Changed this from original
     xmin = 1;
-    xmax = tx-2; 
-    ymin = 1;   
+    xmax = tx-2;
+    ymin = 1;
     ymax = ty-2;
 
     if (Dimension==2) {
       zmin = zmax = 0;
     } else {
-      zmin = 1;  zmax = tz-2; 
+      zmin = 1;  zmax = tz-2;
     }
 
     // loop on x,y and z to avoid adding border points in the narrow
@@ -1745,12 +1745,12 @@ void vtkImageLevelSets::MakeBand0( )
       //      if (p>=imsize) fprintf(stderr,"Pb ...\n");
       val = U[p];
       if (fabs(val)<=Band) {
-        
+
         // Check in Tube
-        if (val<-this->Tube) 
+        if (val<-this->Tube)
           flag_ptr[p] = bandneg;
-        else 
-          if (val>this->Tube)  
+        else
+          if (val>this->Tube)
         flag_ptr[p] = bandpos;
           else
         flag_ptr[p] = inband;
@@ -1769,7 +1769,7 @@ void vtkImageLevelSets::MakeBand0( )
       } // end for y
       p += tx*(ty-1-ymax);
     } // end for z
-    break; 
+    break;
 
     // Slow: initial during the processing of the distance ...
 
@@ -1829,7 +1829,7 @@ void vtkImageLevelSets::InitParam( vtkImageData* input, vtkImageData* output)
     tz = this->inputImage->GetDimensions()[2];
     txy = tx*ty;
     imsize = txy*tz;
-    
+
 
     if (tz==1) {
       Dimension = 2;
@@ -1837,10 +1837,10 @@ void vtkImageLevelSets::InitParam( vtkImageData* input, vtkImageData* output)
       // fprintf(stderr,"vtkImageLevelSets::InitParam: Run 2D Curve Evolution \n");
     }
 
-    // Kilian does not work for 2 slices 
+    // Kilian does not work for 2 slices
     assert(tz != 2);
- 
-                                                      
+
+
     //--- outputImage
     outputImage      = (vtkImageData*) output;
 
@@ -1922,7 +1922,7 @@ void vtkImageLevelSets::Evolve()
 }
 
 //---------------------------------------------------------------------------
-// One evolution of the PDE 
+// One evolution of the PDE
 //
 //
 //  Inputs
@@ -1937,7 +1937,7 @@ void vtkImageLevelSets::Evolve()
 //    current        : swapped
 //
 //  Calls
-//  
+//
 //    DistanceMap()  : if the surface touches the bb limit
 //    MakeBand()     : if the surface touches the bb limit
 //
@@ -1948,25 +1948,25 @@ void vtkImageLevelSets::Evolve2D()
     if (GB_debug) cout << "vtkImageLevelSets::Evolve2D Start" << endl;
     short i,j,k;
     int   b;
-    int   p; 
+    int   p;
     float* U    = this->u[current];
     float* newU = this->u[1-current];
     float* im   = (float*) this->inputImage->GetScalarPointer();
 
     float* logIntensityImagePtr = (this->logCondIntensityImage ? (float*)this->logCondIntensityImage->GetScalarPointer() : NULL);
-  
-    register float u0,upx,upy,umx,umy;
-    register float D0x,D0y;
-    register float i0x,i0y;
+
+    float u0,upx,upy,umx,umy;
+    float D0x,D0y;
+    float i0x,i0y;
 
     float          delta0,sqrtdelta0;
 
-    register float imx,imy;
+    float imx,imy;
 
-    register float D0xy;
+    float D0xy;
     float          normcompsq;
 
-    register float D_x,Dx,D_y,Dy;
+    float D_x,Dx,D_y,Dy;
 
     float Dpmx=0;
     float Dpmy=0;
@@ -1977,7 +1977,7 @@ void vtkImageLevelSets::Evolve2D()
     float curvterm;
     float balloonterm;
 
-    register int mx,my,px,py;
+    int mx,my,px,py;
 
     float adv;
 
@@ -1985,7 +1985,7 @@ void vtkImageLevelSets::Evolve2D()
 
     float vel;
     float Gx,Gy,Gnorm,sp,norm_vel;
- 
+
 
   this->mean_curv      = 0;
   this->mean_balloon   = 0;
@@ -2012,10 +2012,10 @@ void vtkImageLevelSets::Evolve2D()
 
     // First order derivatives
     u0=U[p];
-    umx=U[p+mx];   
-    upx=U[p+px];   
+    umx=U[p+mx];
+    upx=U[p+px];
     umy=U[p+my];
-    upy=U[p+py];   
+    upy=U[p+py];
 
     Dx = (upx-u0)/vx;
     Dy = (upy-u0)/vy;
@@ -2023,21 +2023,21 @@ void vtkImageLevelSets::Evolve2D()
     D_x = (u0-umx)/vx;
     D_y = (u0-umy)/vy;
 
-    D0x=(upx-umx)*(doubxspacing); 
+    D0x=(upx-umx)*(doubxspacing);
     D0y=(upy-umy)*(doubyspacing);
-    
+
     // Second order derivatives
     Dpmx=(upx-2*u0+umx)*sqxspacing;
     Dpmy=(upy-2*u0+umy)*sqyspacing;
-    
+
     // Crossed derivatives
     D0xy=(U[p+px+py]+U[p+mx+my]-U[p+px+my]-U[p+mx+py])*xyspacing;
-    
+
     //
-    dxsq = D0x*D0x;      
-    dysq = D0y*D0y;     
-    dxy2 = 2*D0x*D0y;     
-    delta0=dxsq+dysq;     
+    dxsq = D0x*D0x;
+    dysq = D0y*D0y;
+    dxy2 = 2*D0x*D0y;
+    delta0=dxsq+dysq;
     sqrtdelta0 = sqrt(delta0);
 
 
@@ -2049,53 +2049,53 @@ void vtkImageLevelSets::Evolve2D()
     // Binomial sig function -> Turn log odds into probabilities - remember that u0 has opposite sign of how we define it in the paper
     float q = 1.0/(1.0 + exp(u0));
     float probCondWeight = q * (1.0 - q);
-    // By default this->probCondWeightMin = 1 => it is not considered 
+    // By default this->probCondWeightMin = 1 => it is not considered
     if (probCondWeight < this->probCondWeightMin )  probCondWeight = this->probCondWeightMin;
- 
+
     if ((this->logCondIntensityCoefficient != 0.0) && this->logCondIntensityImage) {
-      // Have to multiply with logCondIntensityInside to make sure that the inside is negative 
-      logConditionalIntensityTerm = this->logCondIntensityCoefficient *probCondWeight*( u0 - logCondIntensityInside * logIntensityImagePtr[p]); 
-    } 
+      // Have to multiply with logCondIntensityInside to make sure that the inside is negative
+      logConditionalIntensityTerm = this->logCondIntensityCoefficient *probCondWeight*( u0 - logCondIntensityInside * logIntensityImagePtr[p]);
+    }
 
     //--------------------------------------------------
     // Curvature Term
     //--------------------------------------------------
 
-    //    if (delta0!=0) 
-    if (delta0>.1) {     
-      meancurv = (Dpmy*dxsq +Dpmx*dysq-dxy2*D0xy)/delta0/sqrtdelta0; 
+    //    if (delta0!=0)
+    if (delta0>.1) {
+      meancurv = (Dpmy*dxsq +Dpmx*dysq-dxy2*D0xy)/delta0/sqrtdelta0;
 
     //--------------------------------------------------
     // Data Attachment Term
     //--------------------------------------------------
 
-      i0x=(im[p+px]-im[p+mx])*(doubxspacing);     
-      i0y=(im[p+py]-im[p+my])*(doubyspacing);     
+      i0x=(im[p+px]-im[p+mx])*(doubxspacing);
+      i0y=(im[p+py]-im[p+my])*(doubyspacing);
 
       normcompsq = i0x*i0x+i0y*i0y;
-      
-      if (normcompsq==0) 
+
+      if (normcompsq==0)
         {
           imcomp = 0;
           vel    = 0;
         }
-      else  
+      else
       {
-        // BELOW IS WHAT WAS USED FOR IPMI PAPER 
+        // BELOW IS WHAT WAS USED FOR IPMI PAPER
         if (UseCosTerm)
           costerm = -(D0x*i0x+D0y*i0y)/(sqrtdelta0*sqrt(normcompsq));
         else
           costerm = 1;
-        
-        // recall that image is rescaled to 0-255 when loaded.  
+
+        // recall that image is rescaled to 0-255 when loaded.
         //
         // Where does the 'costerm' comes from ?
         // it should be: - H.DI.Du / |Du| / |DI|
         //
-        
+
         if (fabs(AdvectionCoeff)>1E-10) {
           switch (advection_scheme) {
-          case ADVECTION_UPWIND_VECTORS: 
+          case ADVECTION_UPWIND_VECTORS:
                 // Use upwind differences for advection term :
             imx = data_attach_x[p];
             imy = data_attach_y[p];
@@ -2107,13 +2107,13 @@ void vtkImageLevelSets::Evolve2D()
               if (imx>0) adv += imx*Dx;  else   adv += imx*D_x;
               if (imy>0) adv += imy*Dy;  else   adv += imy*D_y;
             }
-            imcomp = adv*AdvectionCoeff*costerm; 
+            imcomp = adv*AdvectionCoeff*costerm;
             break;
           case ADVECTION_CENTRAL_VECTORS:
             imx = data_attach_x[p];
             imy = data_attach_y[p];
                 adv =  D0x*imx+D0y*imy;
-            imcomp = adv*AdvectionCoeff*costerm; 
+            imcomp = adv*AdvectionCoeff*costerm;
             break;
           case ADVECTION_MORPHO:
             if (secdergrad[p]*AdvectionCoeff<0) {
@@ -2135,27 +2135,27 @@ void vtkImageLevelSets::Evolve2D()
                 imcomp *= AdvectionCoeff;
                 break;
           } // end switch
-        } // end if (fabs(AdvectionCoeff)>1E-10) 
+        } // end if (fabs(AdvectionCoeff)>1E-10)
       } // end if (normcompsq==0) ... else ...
- 
+
       //      g = exp(-sqrt(normcompq)/0.3);
 
     //--------------------------------------------------
     // Balloon expansion Term
     //--------------------------------------------------
-    // Kilian  
+    // Kilian
     if (fabs(balloon_coeff)>1E-10) {
       balloonterm = this->balloon_value;
       if (balloonterm == 0.0) {
         cout << " HEEEEEEEEEEEEEEE" << endl;
-        if (balloon_image != NULL) 
+        if (balloon_image != NULL)
           balloonterm = ((float*)balloon_image->GetScalarPointer())[p];
-        else 
+        else
           balloonterm = this->ExpansionMap(im[p]);
       }
       balloonterm *= balloon_coeff;
     } else {
-      balloonterm = 0.0; 
+      balloonterm = 0.0;
     }
 
     if (balloonterm>0) {
@@ -2174,7 +2174,7 @@ void vtkImageLevelSets::Evolve2D()
     } // end if (balloonterm>0)
     Gnorm = sqrt(Gx*Gx+Gy*Gy);
     balloonterm *= Gnorm;
-    
+
     //--------------------------------------------------
     // Velocity Term
     //--------------------------------------------------
@@ -2195,31 +2195,31 @@ void vtkImageLevelSets::Evolve2D()
            Vx = velocity->GetScalarComponentAsFloat(i,j,k,0);
            Vy = velocity->GetScalarComponentAsFloat(i,j,k,1);
 #endif
-    
+
            // Scalar product
            norm_vel = sqrt(Vx*Vx+Vy*Vy);
            if (norm_vel>1E-2) {
-           
+
              // Always expansion (erosion in our case) ...
              Gx = 0;
              if (D_x>=0) Gx = D_x;
              if ((Dx<0)&&(-Dx>Gx)) Gx = Dx;
-             
+
                  Gy = 0;
              if (D_y>=0) Gy = D_y;
              if ((Dy<0)&&(-Dy>Gy)) Gy = Dy;
-             
+
                  Gnorm = sqrt(Gx*Gx+Gy*Gy);
-           
+
              if (Gnorm>1E-2)
                sp = (Vx*Gx+Vy*Gy)/Gnorm/norm_vel;
              else
                sp = 0;
-           
-           
+
+
              sp = fabs(sp);
              vel = Gnorm*sp*(1-exp(-1*(norm_vel*norm_vel)/100/100));
-           
+
              if (!((vel>-100)&&(vel<100))) {
                fprintf(stderr,"(%d,%d); vel=%f; sp=%f; G=(%f,%f) \n",
                    i,j,vel,sp,Gx,Gy);
@@ -2228,8 +2228,8 @@ void vtkImageLevelSets::Evolve2D()
            }
            else
               vel = 0;
-      
-         } // if velocity with 2 scalar components 
+
+         } // if velocity with 2 scalar components
       } // if velocity!=NULL
 
       /*
@@ -2250,7 +2250,7 @@ void vtkImageLevelSets::Evolve2D()
       if (advection_data!=NULL) advection_data[p] = -probCondWeight*imcomp;
       if (velocity_data!=NULL)  velocity_data [p] = -probCondWeight*vel;
       if (balloon_data !=NULL)  balloon_data  [p] = -probCondWeight*balloonterm;
-      // Kilian : Here is the change 
+      // Kilian : Here is the change
       ut = probCondWeight*(curvterm -imcomp - balloonterm - vel);
 
       this->mean_curv      += curvterm;
@@ -2274,14 +2274,14 @@ void vtkImageLevelSets::Evolve2D()
     newU[p]=u0+ut;
 
 
-    if (!this->touched && 
-        (((this->flag[p]&NEGMINE) && newU[p]>0) || 
+    if (!this->touched &&
+        (((this->flag[p]&NEGMINE) && newU[p]>0) ||
          ((this->flag[p]&POSMINE) && newU[p]<0)
         )
        )
       this->touched=1;
   }
-  // Kilian Debug - so it works with multi label case 
+  // Kilian Debug - so it works with multi label case
   // this->current=1-this->current;
   memcpy(u[this->current],u[1 - this->current],imsize*sizeof(float));
 
@@ -2334,7 +2334,7 @@ VTK_THREAD_RETURN_TYPE vtkImageLevelSetsThreadedEvolve3D( void *arg )
   total = This->SplitBand(first, last, threadId, threadCount);
   // cout << "vtkImageLevelSetsThreadedEvolve3D " << threadId << " " << total  << " " << first << " " << last << " " << threadId << " " << threadCount << "==== " << endl;
   if (threadId < total) This->Evolve3D(first,last);
-  
+
   return VTK_THREAD_RETURN_VALUE;
 
 } // vtkImageLevelSetsThreadedEvolve3D()
@@ -2357,7 +2357,7 @@ void vtkImageLevelSets::Evolve3D( )
     Evolve3D(0,bnd_pc-1);
   else {
     //      vtkMultiThreader threader;
-  
+
 #ifdef _SOLARIS_
     if (GB_debug)  fprintf(stderr,"thr_setconurrency(%d) \n",this->EvolveThreads);
     //    code = thr_setconcurrency(this->EvolveThreads);
@@ -2370,7 +2370,7 @@ void vtkImageLevelSets::Evolve3D( )
     // Threaded execution
     threader->SetNumberOfThreads(this->EvolveThreads);
 
-    
+
     // setup threading and the invoke threadedExecute
     threader->SetSingleMethod(vtkImageLevelSetsThreadedEvolve3D, this);
     threader->SingleMethodExecute();
@@ -2410,7 +2410,7 @@ void vtkImageLevelSets::Evolve3D( )
 
 
 //----------------------------------------------------------------------------
-// For threads.  
+// For threads.
 // Splits Narrow Band output into num pieces.
 // This method returns the number of pieces resulting from a successful split.
 //
@@ -2437,7 +2437,7 @@ int vtkImageLevelSets::SplitBand(int& first, int& last, int num, int total)
 
 
 //---------------------------------------------------------------------------
-// One evolution of the PDE 
+// One evolution of the PDE
 //
 //
 //  Inputs
@@ -2452,7 +2452,7 @@ int vtkImageLevelSets::SplitBand(int& first, int& last, int num, int total)
 //    current        : swapped
 //
 //  Calls
-//  
+//
 //    DistanceMap()  : if the surface touches the bb limit
 //    MakeBand()     : if the surface touches the bb limit
 //
@@ -2461,39 +2461,39 @@ void vtkImageLevelSets::Evolve3D( int first_band, int last_band)
 //                   --------
 {
     int   b;
-    int   p; 
+    int   p;
     // cout << "Evolve3D " << first_band << " " << last_band << endl;
 
-    register float* U    = this->u[current];
-    register float* Up;
-    register float* newU = this->u[1-current];
+    float* U    = this->u[current];
+    float* Up;
+    float* newU = this->u[1-current];
     float* im   = (float*) this->inputImage->GetScalarPointer();
     float* logIntensityImagePtr = (this->logCondIntensityImage ? (float*)this->logCondIntensityImage->GetScalarPointer() : NULL);
 
     short i,j,k;
-    register double u0,upx,upy,upz,umx,umy,umz;
-    register double D0x,D0y,D0z;
-    register double i0x,i0y,i0z;
-    register double delta0,sqrtdelta0;
-    register double imx,imy,imz;
-    register double D0xy=0,D0yz=0,D0zx=0;
-    register double normcompsq;
-    register double D_x,Dx,D_y,Dy,D_z,Dz;
-    register double Dpmx=0;
-    register double Dpmy=0;
-    register double Dpmz=0;
-    //    register double dxy2, dyz2, dxz2;
-    register double dxy, dyz, dxz;
-    register double meancurv_grad;
-    register double gausscurv_grad2;
-    register double smallercurv_grad;
+    double u0,upx,upy,upz,umx,umy,umz;
+    double D0x,D0y,D0z;
+    double i0x,i0y,i0z;
+    double delta0,sqrtdelta0;
+    double imx,imy,imz;
+    double D0xy=0,D0yz=0,D0zx=0;
+    double normcompsq;
+    double D_x,Dx,D_y,Dy,D_z,Dz;
+    double Dpmx=0;
+    double Dpmy=0;
+    double Dpmz=0;
+    //    double dxy2, dyz2, dxz2;
+    double dxy, dyz, dxz;
+    double meancurv_grad;
+    double gausscurv_grad2;
+    double smallercurv_grad;
     double discriminant=0, dxsq=0,dysq=0,dzsq=0;
     double imcomp=0,costerm,ut;
     double curvterm;
     double balloonterm;
     double val1,val2,val3,val;
 
-    register int mx,my,mz,px,py,pz;
+    int mx,my,mz,px,py,pz;
 
     double adv;
 
@@ -2501,7 +2501,7 @@ void vtkImageLevelSets::Evolve3D( int first_band, int last_band)
 
     double vel;
     double Gx,Gy,Gz,Gnorm,norm_vel;
- 
+
 
     //  if (GB_debug) {
     //    fprintf(stderr, ".");
@@ -2532,11 +2532,11 @@ void vtkImageLevelSets::Evolve3D( int first_band, int last_band)
     // First order derivatives
     Up = U+p;
     u0=*Up;
-    umx=Up[mx];   
-    upx=Up[px];   
+    umx=Up[mx];
+    upx=Up[px];
     umy=Up[my];
-    upy=Up[py];   
-    umz=Up[mz];   
+    upy=Up[py];
+    umz=Up[mz];
     upz=Up[pz];
 
 
@@ -2544,69 +2544,69 @@ void vtkImageLevelSets::Evolve3D( int first_band, int last_band)
       Dx = (upx-u0)/vx;
       Dy = (upy-u0)/vy;
       Dz = (upz-u0)/vz;
-      
+
       D_x = (u0-umx)/vx;
       D_y = (u0-umy)/vy;
       D_z = (u0-umz)/vz;
-      
-      D0x=(upx-umx)*(doubxspacing); 
+
+      D0x=(upx-umx)*(doubxspacing);
       D0y=(upy-umy)*(doubyspacing);
       D0z=(upz-umz)*(doubzspacing);
-      
+
       if (coeff_curvature>0) {
     // Second order derivatives
     Dpmx=(upx-u0-u0+umx)*sqxspacing;
     Dpmy=(upy-u0-u0+umy)*sqyspacing;
     Dpmz=(upz-u0-u0+umz)*sqzspacing;
-      
+
     // Crossed derivatives
     D0xy=(Up[px+py]+Up[mx+my]-Up[px+my]-Up[mx+py])*xyspacing;
     D0yz=(Up[py+pz]+Up[my+mz]-Up[py+mz]-Up[my+pz])*yzspacing;
     D0zx=(Up[pz+px]+Up[mz+mx]-Up[pz+mx]-Up[mz+px])*xzspacing;
       }
-    
+
       //
-      dxsq = D0x*D0x;      
-      dysq = D0y*D0y;     
+      dxsq = D0x*D0x;
+      dysq = D0y*D0y;
       dzsq = D0z*D0z;
-      
-      //dxy2 = 2*D0x*D0y;     
-      //dxz2 = 2*D0x*D0z;     
+
+      //dxy2 = 2*D0x*D0y;
+      //dxz2 = 2*D0x*D0z;
       //dyz2 = 2*D0z*D0y;
-      dxy = D0x*D0y;     
-      dxz = D0x*D0z;     
+      dxy = D0x*D0y;
+      dxz = D0x*D0z;
       dyz = D0z*D0y;
 
-      delta0=dxsq+dysq+dzsq;     
+      delta0=dxsq+dysq+dzsq;
     }
     else {
       // isotropic voxels
       Dx = upx-u0;
       Dy = upy-u0;
       Dz = upz-u0;
-      
+
       D_x = u0-umx;
       D_y = u0-umy;
       D_z = u0-umz;
-      
+
       // divide by 2 later
       D0x= (upx-umx)/2;  // /2
       D0y= (upy-umy)/2;  // /2
       D0z= (upz-umz)/2;  // /2
-      
+
       if (coeff_curvature>0) {
         // Second order derivatives
         Dpmx=upx-u0-u0+umx;
         Dpmy=upy-u0-u0+umy;
         Dpmz=upz-u0-u0+umz;
-      
+
         // Crossed derivatives
         // divide by 4 later
         D0xy=(Up[px+py]+Up[mx+my]-Up[px+my]-Up[mx+py])/4;  // /4
         D0yz=(Up[py+pz]+Up[my+mz]-Up[py+mz]-Up[my+pz])/4;  // /4
         D0zx=(Up[pz+px]+Up[mz+mx]-Up[pz+mx]-Up[mz+px])/4;  // /4
       }
-    
+
       //
       dxsq = D0x*D0x;  // /4
       dysq = D0y*D0y;  // /4
@@ -2635,9 +2635,9 @@ void vtkImageLevelSets::Evolve3D( int first_band, int last_band)
     if ((this->logCondIntensityCoefficient != 0.0) && this->logCondIntensityImage) {
       // Binomial sig function
       // float q = 1.0/(1.0 + exp(u0));
-      // Have to multiply with logCondIntensityInside to make sure that the inside is negative 
-      logConditionalIntensityTerm = this->logCondIntensityCoefficient * ( u0 - logCondIntensityInside * logIntensityImagePtr[p]); 
-    } 
+      // Have to multiply with logCondIntensityInside to make sure that the inside is negative
+      logConditionalIntensityTerm = this->logCondIntensityCoefficient * ( u0 - logCondIntensityInside * logIntensityImagePtr[p]);
+    }
 
     ut = -logConditionalIntensityTerm;
 
@@ -2648,24 +2648,24 @@ void vtkImageLevelSets::Evolve3D( int first_band, int last_band)
     curvterm = 0;
     if (coeff_curvature>0) {
 
-      //    if (delta0!=0) 
+      //    if (delta0!=0)
       if (delta0>.1) {
-        meancurv_grad =  ( 0.5*(  (Dpmy+Dpmz)*dxsq 
+        meancurv_grad =  ( 0.5*(  (Dpmy+Dpmz)*dxsq
                     +(Dpmx+Dpmz)*dysq
                     +(Dpmx+Dpmy)*dzsq
                     )
                  -( dxy*D0xy
                     +dxz*D0zx
                     +dyz*D0yz)
-                 ) /delta0; 
+                 ) /delta0;
 
         if (!DoMean) {
-        gausscurv_grad2 = (2*(dxy*(D0zx*D0yz-D0xy*Dpmz) +  
+        gausscurv_grad2 = (2*(dxy*(D0zx*D0yz-D0xy*Dpmz) +
                   dyz*(D0zx*D0xy-D0yz*Dpmx) +
                   dxz*(D0yz*D0xy-D0zx*Dpmy)
-                  ) + 
-                   dxsq*(Dpmy*Dpmz-D0yz*D0yz) + 
-                   dysq*(Dpmx*Dpmz-D0zx*D0zx) + 
+                  ) +
+                   dxsq*(Dpmy*Dpmz-D0yz*D0yz) +
+                   dysq*(Dpmx*Dpmz-D0zx*D0zx) +
                    dzsq*(Dpmy*Dpmx-D0xy*D0xy))/delta0;
 
           discriminant = meancurv_grad*meancurv_grad-gausscurv_grad2;
@@ -2691,13 +2691,13 @@ void vtkImageLevelSets::Evolve3D( int first_band, int last_band)
 
     imcomp = 0;
     if (fabs(AdvectionCoeff)>1E-10) {
-      
-      // BELOW IS WHAT WAS USED FOR IPMI PAPER 
+
+      // BELOW IS WHAT WAS USED FOR IPMI PAPER
       if (UseCosTerm) {
         if (!isotropic_voxels) {
-          i0x=(im[p+px]-im[p+mx])*(doubxspacing);     
-          i0y=(im[p+py]-im[p+my])*(doubyspacing);     
-          i0z=(im[p+pz]-im[p+mz])*(doubzspacing);     
+          i0x=(im[p+px]-im[p+mx])*(doubxspacing);
+          i0y=(im[p+py]-im[p+my])*(doubyspacing);
+          i0z=(im[p+pz]-im[p+mz])*(doubzspacing);
           normcompsq = (i0x*i0x+i0y*i0y+i0z*i0z);
         }
         else {
@@ -2712,14 +2712,14 @@ void vtkImageLevelSets::Evolve3D( int first_band, int last_band)
       else
        costerm = 1;
 
-      // recall that image is rescaled to 0-255 when loaded.  
+      // recall that image is rescaled to 0-255 when loaded.
       //
       // Where does the 'costerm' comes from ?
       // it should be: - H.DI.Du / |Du| / |DI|
       //
-      
+
       switch (advection_scheme) {
-      case ADVECTION_UPWIND_VECTORS: 
+      case ADVECTION_UPWIND_VECTORS:
         // Use upwind differences for advection term :
         imx = data_attach_x[p];
         imy = data_attach_y[p];
@@ -2733,8 +2733,8 @@ void vtkImageLevelSets::Evolve3D( int first_band, int last_band)
           if (imx>0) adv += imx*Dx;  else   adv += imx*D_x;
           if (imy>0) adv += imy*Dy;  else   adv += imy*D_y;
           if (imz>0) adv += imz*Dz;  else   adv += imz*D_z;
-        } 
-        imcomp = adv*AdvectionCoeff*costerm; 
+        }
+        imcomp = adv*AdvectionCoeff*costerm;
         break;
       case ADVECTION_CENTRAL_VECTORS:
         imx = data_attach_x[p];
@@ -2742,7 +2742,7 @@ void vtkImageLevelSets::Evolve3D( int first_band, int last_band)
         imz = data_attach_z[p];
         adv =  D0x*imx+D0y*imy+D0z*imz;
         //    if (isotropic_voxels) adv/=2;
-        imcomp = adv*AdvectionCoeff*costerm; 
+        imcomp = adv*AdvectionCoeff*costerm;
         break;
       case ADVECTION_MORPHO:
         if (secdergrad[p]*AdvectionCoeff<0) {
@@ -2783,9 +2783,9 @@ void vtkImageLevelSets::Evolve3D( int first_band, int last_band)
       balloonterm = this->balloon_value;
       if (balloonterm == 0.0) {
         cout << " HEEEEEEEEEEEEEEE: Carefull - in log odds no image information!!!!" << endl;
-        if (balloon_image != NULL) 
+        if (balloon_image != NULL)
           balloonterm = ((float*)balloon_image->GetScalarPointer())[p];
-        else 
+        else
           balloonterm = this->ExpansionMap(im[p]);
       }
       balloonterm *= balloon_coeff;
@@ -2948,7 +2948,7 @@ void vtkImageLevelSets::Evolve3D( int first_band, int last_band)
         Vy = velocity->GetScalarComponentAsFloat(i,j,k,1);
         Vz = velocity->GetScalarComponentAsFloat(i,j,k,2);
 #endif
-    
+
         // Scalar product
         norm_vel = sqrt(Vx*Vx+Vy*Vy+Vz*Vz);
         if (norm_vel>1E-2) {
@@ -2999,12 +2999,12 @@ void vtkImageLevelSets::Evolve3D( int first_band, int last_band)
       if (advection_data!=NULL) advection_data[p] = 0;
       if (velocity_data!=NULL)  velocity_data [p] = 0;
       if (balloon_data !=NULL)  balloon_data  [p] = 0;
-      newU[p]=u0; 
+      newU[p]=u0;
     }
       */
 
-    if (!this->touched && 
-        (((this->flag[p]&NEGMINE) && newU[p]>0) || 
+    if (!this->touched &&
+        (((this->flag[p]&NEGMINE) && newU[p]>0) ||
          ((this->flag[p]&POSMINE) && newU[p]<0)
         )
        )
@@ -3064,12 +3064,12 @@ void vtkImageLevelSets::InitEvolution()
 
    if ((this->UseLowThreshold)||(this->UseHighThreshold)) {
      inPtr  = (float*) inputImage ->GetScalarPointer();
-     for (i = 0; i < imsize; i++) { 
+     for (i = 0; i < imsize; i++) {
        if ((UseLowThreshold) &&(inPtr[i]<LowThreshold )) inPtr[i] = LowThreshold;
 
-       if ((UseHighThreshold)&&(inPtr[i]>HighThreshold)) 
+       if ((UseHighThreshold)&&(inPtr[i]>HighThreshold))
      inPtr[i] = HighThreshold+log(1+inPtr[i]-HighThreshold);
-     }   
+     }
    }
 
    // Rescaling the image to 0 - 255
@@ -3095,7 +3095,7 @@ void vtkImageLevelSets::InitEvolution()
 
    //
    // Computation of the initial image (initial level set)
-   // 
+   //
    inPtr  = (float*) inputImage ->GetScalarPointer();
    outPtr = (float*) outputImage->GetScalarPointer();
 
@@ -3106,12 +3106,12 @@ void vtkImageLevelSets::InitEvolution()
    else
      th = InitThreshold;
 
- 
+
    if (initImage == NULL) {
      // Check if we have initialization points
      if (this->DMmethod == DISTMAP_LOGODDS) {
-       // LogOdds has to be initialized 
-       cout << "ERROR:vtkImageLevelSets::InitEvolution: InitImage has to be set if DistanceMap Type is LogOdds !" << endl; 
+       // LogOdds has to be initialized
+       cout << "ERROR:vtkImageLevelSets::InitEvolution: InitImage has to be set if DistanceMap Type is LogOdds !" << endl;
        exit(1);
      }
      if (NumInitPoints>0) {
@@ -3137,10 +3137,10 @@ void vtkImageLevelSets::InitEvolution()
          zmax = min(tz-1,(int) (z0+(r+Band+1)/vz+0.5));
        }
        else zmin=zmax=z0=0;
-   
+
        printf("n=%d, [%d,%d] [%d,%d] [%d,%d] \n",
           n,xmin,xmax,ymin,ymax,zmin,zmax);
-   
+
        p = zmin*txy;
        for(z=zmin;z<=zmax;z++) {
          d2z = (z-z0)*vz;
@@ -3166,7 +3166,7 @@ void vtkImageLevelSets::InitEvolution()
        } // end for z
       } // NumInitPoints
      }
-     else 
+     else
        // Otherwise use the threshold on the initial image
        switch (DMmethod)
      {
@@ -3186,7 +3186,7 @@ void vtkImageLevelSets::InitEvolution()
        outPtr++;
        }
        break;
-       
+
      case DISTMAP_FASTMARCHING: // FastMarching initialization
      case DISTMAP_CHAMFER:      // Chamfer initialization
      case DISTMAP_SHAPE:        // Shape levelset initialization
@@ -3201,14 +3201,14 @@ void vtkImageLevelSets::InitEvolution()
        }
        break;
      }
-   } //  if (initImage == NULL) 
-   else 
+   } //  if (initImage == NULL)
+   else
      {
 
        //
        // Initializing level set through initImage
-       // 
- 
+       //
+
        // fprintf(stderr,"vtkImageLevelSets::InitEvolution: Copy the initial image !! \n");
        outputImage->CopyAndCastFrom(initImage,initImage->GetExtent());
        outPtr = (float*) outputImage->GetScalarPointer();
@@ -3219,11 +3219,11 @@ void vtkImageLevelSets::InitEvolution()
          }
          outPtr++;
        }
-  } // end  if (initImage == NULL) 
+  } // end  if (initImage == NULL)
 
 
   this->current = 0;
-  // u[0] Initial level set 
+  // u[0] Initial level set
   this->u[0]    = (float*) outputImage->GetScalarPointer();
   this->u[1]    = new float [imsize];
 
@@ -3231,7 +3231,7 @@ void vtkImageLevelSets::InitEvolution()
 
   // copy the initial image to the new image
   // but after the first distance computation
-  // => u[1] = u[0] 
+  // => u[1] = u[0]
   memcpy(u[1-current],u[current],imsize*sizeof(float));
 
   //
@@ -3243,7 +3243,7 @@ void vtkImageLevelSets::InitEvolution()
   //
   // Set the Advection Parameters
   //
-  if (fabs(AdvectionCoeff)>1E-10) { 
+  if (fabs(AdvectionCoeff)>1E-10) {
     switch (advection_scheme) {
     case ADVECTION_UPWIND_VECTORS:
     case ADVECTION_CENTRAL_VECTORS:
@@ -3268,7 +3268,7 @@ void vtkImageLevelSets::InitEvolution()
   doubxspacing = 0.5/vx;
   doubyspacing = 0.5/vy;
   xyspacing    = .25/vx/vy;
-  
+
   if (Dimension==3) {
     sqzspacing   = 1.0/vz/vz;
     doubzspacing = 0.5/vz;
@@ -3278,7 +3278,7 @@ void vtkImageLevelSets::InitEvolution()
 
   if (GB_debug) fprintf(stderr,"PreComputeDataAttachment() \n");
 
-  if ((fabs(AdvectionCoeff)>1E-10)&&(data_attach_x==NULL)) 
+  if ((fabs(AdvectionCoeff)>1E-10)&&(data_attach_x==NULL))
      PreComputeDataAttachment();
 
   if (DMmethod == 0) {
@@ -3286,11 +3286,11 @@ void vtkImageLevelSets::InitEvolution()
     //
     this->DistanceMap();
     this->MakeBand();
-    
+
     this->DistanceMap();
     this->MakeBand();
   }
-  else 
+  else
     {
       this->DistanceMap();
 
@@ -3304,12 +3304,12 @@ void vtkImageLevelSets::InitEvolution()
     }
 
   step       = 0;
-  reinitcntr = 0;  
+  reinitcntr = 0;
 
   if (GB_debug) fprintf(stderr,"InitEvolution() End \n");
   // vtkIndent indent;
   // this->PrintSelf(cout,indent);
-  // exit(0); 
+  // exit(0);
 
 
 } // InitEvolution()
@@ -3322,7 +3322,7 @@ int vtkImageLevelSets::Iterate()
 
   //  if (step>=NumIters) return 0;
 
-  if (GB_debug) 
+  if (GB_debug)
     fprintf(stderr,"\n ==== \n\t Execute Step %d \n",step);
   else {
     if (verbose) {
@@ -3339,7 +3339,7 @@ int vtkImageLevelSets::Iterate()
       if (this->DMmethod != DISTMAP_LOGODDS ) {this->MakeBand();}
       reinitcntr=0;
     }
-    
+
     // at the original code this comparison is with conv_rep, that
     // by default is 1.
     if (CheckConvergence()) {
@@ -3347,13 +3347,13 @@ int vtkImageLevelSets::Iterate()
       step = NumIters; // finish the evolution
     }
   } // end if
-  
+
   if (reinitcntr==ReinitFreq) {
     this->DistanceMap();
     if ( this->DMmethod != DISTMAP_LOGODDS ) {this->MakeBand();}
     reinitcntr=0;
   }
-  
+
   // Evolve one iteration
   this->Evolve( );
 
@@ -3382,7 +3382,7 @@ void vtkImageLevelSets::EndEvolution()
     outPtr++;
   }
 
-  // 
+  //
   if (Probability!= NULL) {
     delete [] Probability;
     Probability = NULL;
@@ -3434,7 +3434,7 @@ void vtkImageLevelSets::PreComputeDataAttachment()
     float ipmz;
     float i0xy,i0yz,i0zx,i0;
     float i0x,i0y,i0z=0;
-    register float upx,upy,upz,umx,umy,umz;
+    float upx,upy,upz,umx,umy,umz;
     float gradnorm=0;
     float DAx=0,DAy=0,DAz=0;
     float* im   = (float*) this->inputImage->GetScalarPointer();;
@@ -3451,7 +3451,7 @@ void vtkImageLevelSets::PreComputeDataAttachment()
   this->UpdateProgress(p*1.0/this->imsize);
   for(y=0;y<ty;y++) {
   for(x=0;x<tx;x++) {
-    
+
 
     if (x==0)    mx =  1;   else mx = -1;
     if (x==tx-1) px = -1;   else px =  1;
@@ -3460,17 +3460,17 @@ void vtkImageLevelSets::PreComputeDataAttachment()
 
     // derivative in XY plane, for 2D level sets
     i0=im[p];
-    umx=im[p+mx];     
-    upx=im[p+px];     
+    umx=im[p+mx];
+    upx=im[p+px];
     umy=im[p+my];
-    upy=im[p+py];     
-        
-    i0x=(upx-umx)*(doubxspacing);     
-    i0y=(upy-umy)*(doubyspacing); 
-    
-    ipmx=(upx-2*i0+umx)*sqxspacing; 
+    upy=im[p+py];
+
+    i0x=(upx-umx)*(doubxspacing);
+    i0y=(upy-umy)*(doubyspacing);
+
+    ipmx=(upx-2*i0+umx)*sqxspacing;
     ipmy=(upy-2*i0+umy)*sqyspacing;
-    
+
     // 2D Crossed derivatives
     i0xy=(im[p+px+py]+im[p+mx+my]-im[p+px+my]-im[p+mx+py])*xyspacing;
 
@@ -3482,10 +3482,10 @@ void vtkImageLevelSets::PreComputeDataAttachment()
       if (gradnorm>EPSILON) {
     i0x /= gradnorm;
     i0y /= gradnorm;
-    
+
     DAx = (ipmx*i0x+i0xy*i0y);
     DAy = (i0xy*i0x+ipmy*i0y);
-    
+
     norm =  DAx*DAx+DAy*DAy;
     if (norm>maxnorm) maxnorm = norm;
       }
@@ -3498,9 +3498,9 @@ void vtkImageLevelSets::PreComputeDataAttachment()
       if (z==0)    mz =  txy; else mz = -txy;
       if (z==tz-1) pz = -txy; else pz =  txy;
 
-      umz=im[p+mz];     
+      umz=im[p+mz];
       upz=im[p+pz];
-      
+
       i0z=(upz-umz)*(doubzspacing);
 
       ipmz=(upz-2*i0+umz)*sqzspacing;
@@ -3514,11 +3514,11 @@ void vtkImageLevelSets::PreComputeDataAttachment()
     i0x /= gradnorm;
     i0y /= gradnorm;
     i0z /= gradnorm;
-    
+
     DAx = (ipmx*i0x+i0xy*i0y+i0zx*i0z);
     DAy = (i0xy*i0x+ipmy*i0y+i0yz*i0z);
-    DAz = (i0zx*i0x+i0yz*i0y+ipmz*i0z); 
-    
+    DAz = (i0zx*i0x+i0yz*i0y+ipmz*i0z);
+
     norm =  DAx*DAx+DAy*DAy+DAz*DAz;
     if (norm>maxnorm) maxnorm = norm;
       }
@@ -3526,7 +3526,7 @@ void vtkImageLevelSets::PreComputeDataAttachment()
     i0x=i0y=i0z=0;
     DAx=DAy=DAz=norm=0;
       }
-      
+
 
       break;
     }
@@ -3534,13 +3534,13 @@ void vtkImageLevelSets::PreComputeDataAttachment()
     //    if (p%100000 ==0) printf("scheme = %d\n",advection_scheme);
     //    if (p%100000 ==0) printf("norm = %f\n",norm);
     switch (advection_scheme) {
-    case ADVECTION_UPWIND_VECTORS: 
+    case ADVECTION_UPWIND_VECTORS:
     case ADVECTION_CENTRAL_VECTORS:
-      if (gradnorm<=EPSILON) 
-    data_attach_x[p] = 0; 
+      if (gradnorm<=EPSILON)
+    data_attach_x[p] = 0;
     data_attach_y[p] = 0;
         if (Dimension==3) data_attach_z[p] = 0;
-      else 
+      else
     {
       data_attach_x[p] = DAx;
       data_attach_y[p] = DAy;
@@ -3548,9 +3548,9 @@ void vtkImageLevelSets::PreComputeDataAttachment()
     }
       break;
     case ADVECTION_MORPHO:
-      if (gradnorm<=EPSILON) 
+      if (gradnorm<=EPSILON)
     secdergrad[p] = normgrad[p] = 0;
-      else 
+      else
     {
       secdergrad[p] = i0x*DAx+i0y*DAy;
       if (Dimension==3) secdergrad[p] += i0z*DAz;
@@ -3561,7 +3561,7 @@ void vtkImageLevelSets::PreComputeDataAttachment()
       normgrad[p]   = sqrt(norm);
     }
       break;
-    } // end switch      
+    } // end switch
 
     //    if (p%100000 ==0) printf("normgrad[%5d] = %f \n",p,normgrad[p]);
 
@@ -3583,7 +3583,7 @@ void vtkImageLevelSets::PreComputeDataAttachment()
   }
 
   //
-  // Save secdergrad 
+  // Save secdergrad
   //
 
   if (savesecdergrad)  {
@@ -3592,7 +3592,7 @@ void vtkImageLevelSets::PreComputeDataAttachment()
     float* ptr;
     char name[255];
     int  i;
-    
+
 #if VTK_MAJOR_VERSION <= 5
     copyImage->SetScalarType( VTK_FLOAT);
     copyImage->SetNumberOfScalarComponents(1);
@@ -3612,7 +3612,7 @@ void vtkImageLevelSets::PreComputeDataAttachment()
       *ptr = secdergrad[i];
       ptr++;
     }
-    
+
 #if VTK_MAJOR_VERSION <= 5
     writer->SetInput(copyImage);
 #else
@@ -3625,7 +3625,7 @@ void vtkImageLevelSets::PreComputeDataAttachment()
     copyImage->Delete();
     writer->Delete();
   }
-  
+
 
 } // PreComputeDataAttachment()
 
@@ -3644,7 +3644,7 @@ void vtkImageLevelSets::NormalizeSecDerGrad()
   unsigned char  grad_computed;
   float          norm=0;
   float          Grad[3];
-  register int   x,y,z;
+  int   x,y,z;
   int            n,p;
   float          val;
 #if VTK_MAJOR_VERSION <= 5
@@ -3670,10 +3670,10 @@ void vtkImageLevelSets::NormalizeSecDerGrad()
   // Put the result in the time image
   sdg_buf = secdergrad;
 
-  for(pos=0;pos<this->imsize;pos++) 
-    if (secdergrad[pos]>0) 
+  for(pos=0;pos<this->imsize;pos++)
+    if (secdergrad[pos]>0)
       tmp[pos] = 1;
-    else 
+    else
       tmp[pos] = -1;
 
 
@@ -3709,34 +3709,34 @@ void vtkImageLevelSets::NormalizeSecDerGrad()
     for(x=0;x<=tx-2;x++) {
 
       val0 =  *sdg_buf;
-      sign = (val0>0); 
+      sign = (val0>0);
 
       grad_computed = 0;
-      
+
       for(n=0;n<=nmax;n++) {
 
     val1 = *(sdg_buf+displace[n]);
     neigh_sign =  (val1>0);
-    
+
     if (sign != neigh_sign) {
-      
+
       if (!grad_computed) {
         // gradient estimation
         Grad[0] = (*(sdg_buf+1)    - *sdg_buf)/vs[0];
         Grad[1] = (*(sdg_buf+tx)   - *sdg_buf)/vs[1];
-        
+
         norm = Grad[0]*Grad[0]+Grad[1]*Grad[1];
 
         if (Dimension==3) {
           Grad[2] = (*(sdg_buf+txy)  - *sdg_buf)/vs[2];
           norm += Grad[2]*Grad[2];
         }
-        
+
         // Normalization
         norm = sqrt(norm);
         grad_computed = 1;
       }
-      
+
       if (sign)
         diff = val0-val1;
       else
@@ -3748,44 +3748,44 @@ void vtkImageLevelSets::NormalizeSecDerGrad()
         //            x,y,z,n,diff,val0,val1,vs[n]);
         continue;
       }
-      
+
       val = fabs(Grad[n])*vs[n]/diff/norm;
-      
+
       if (norm>EPSILON) {
         val0_new = val0*val;
         val1_new = val1*val;
 
 
-          if (fabs(val0_new)<fabs(*tmp_buf)) 
+          if (fabs(val0_new)<fabs(*tmp_buf))
           *tmp_buf = val0_new;
-      
+
         if (fabs(val1_new)<fabs(*(tmp_buf+displace[n])))
           *(tmp_buf+displace[n]) = val1_new;
       }
       else
         fprintf(stderr, " %d %d %d norm=%f \n",x,y,z,norm);
-      
+
     } // if (sign != neigh_sign)
       } // n
-      
+
       sdg_buf++;
       tmp_buf++;
       p++;
-      
+
     } // x
   }
   } // y,z
 
 
   // Copy tmp to secdergrad
-  for(p=0;p<this->imsize;p++) secdergrad[p]=tmp[p];  
- 
+  for(p=0;p<this->imsize;p++) secdergrad[p]=tmp[p];
+
   histosize = 10000;
   histo = new int[histosize];
   for(n=0;n<histosize;n++) histo[n] = 0;
 
   // histogram
-  for(p=0;p<this->imsize;p++) 
+  for(p=0;p<this->imsize;p++)
     histo[(int) (normgrad[p]/(max_normgrad+1E-5)*histosize)]++;
 
   // compute "HistoGradThreshold*100%" of cumulative histogram
@@ -3802,7 +3802,7 @@ void vtkImageLevelSets::NormalizeSecDerGrad()
 
   for(p=0;p<this->imsize;p++) {
     if (normgrad[p]>EPSILON)
-      secdergrad[p] *= 1-exp(-normgrad[p]*normgrad[p]/threshold/threshold);  
+      secdergrad[p] *= 1-exp(-normgrad[p]*normgrad[p]/threshold/threshold);
     else
       secdergrad[p]=0;
     if (!((secdergrad[p]>-1E5)&&(secdergrad[p]<1E5))) {
@@ -4002,15 +4002,15 @@ float vtkImageLevelSets::ExpansionMap( float I, unsigned char compute)
       tmp = I-Gaussians[n][0];
       res += exp(-tmp*tmp/Gaussians[n][1]/Gaussians[n][1]);
     }
-    if (res>1) res=1;    
+    if (res>1) res=1;
     // Cut at a certain value
     return (res-ProbabilityThreshold);
   }
   else
     return 0;
-  
+
 } // ExpansionMap()
- 
+
 //----------------------------------------------------------------------
 void vtkImageLevelSets::PrintParameters()
 {
@@ -4027,7 +4027,7 @@ void vtkImageLevelSets::PrintParameters()
   cout << "Initial threshold: "    << this->InitThreshold    << "\n";
   cout << "NumInitPoints: "        << this->NumInitPoints    << "\n";
   for(i=0;i<NumInitPoints;i++)
-    cout << "Point " << i << " ( " 
+    cout << "Point " << i << " ( "
      << InitPoints[i][0] << " , "
      << InitPoints[i][1] << " , "
      << InitPoints[i][2] << " ) "
@@ -4061,7 +4061,7 @@ void vtkImageLevelSets::PrintParameters()
   cout << "ProbabilityHighThreshold: " << this->ProbabilityHighThreshold << "\n";
   cout << "NumGaussians: "         << this->NumGaussians         << "\n";
   for(i=0;i<NumGaussians;i++)
-    cout << "Gaussian " << i << " mean=" 
+    cout << "Gaussian " << i << " mean="
      << Gaussians[i][0] << " SD="
      << Gaussians[i][1] << "\n ";
   cout << "--- Velocity Parameters \n";
@@ -4082,7 +4082,7 @@ void vtkImageLevelSets::PrintSelf(ostream& os, vtkIndent indent)
    os << indent << "check freq.: "          << this->CheckFreq        << "\n";
    os << indent << "Reinit Freq.: "         << this->ReinitFreq       << "\n";
    os << indent << "Converged Threshold: "  << this->ConvergedThresh  << "\n";
-   os << indent << "Classical method with mean curvature: " 
+   os << indent << "Classical method with mean curvature: "
                                             << this->DoMean           << "\n";
    os << indent << "Step in t (StepDt): "   << this->StepDt           << "\n";
    os << indent << "Init dt (step): "       << this->init_dt          << "\n";
@@ -4100,11 +4100,11 @@ void vtkImageLevelSets::PrintSelf(ostream& os, vtkIndent indent)
 } // PrintSelf()
 
 void vtkImageLevelSets::SetlogCondIntensityCoefficient(float init) {
-    assert(this->DMmethod == DISTMAP_LOGODDS); 
-    this->logCondIntensityCoefficient = init;  
+    assert(this->DMmethod == DISTMAP_LOGODDS);
+    this->logCondIntensityCoefficient = init;
 }
 
  vtkImageData* vtkImageLevelSets::GetOutput() {
-    assert(0); 
+    assert(0);
     return NULL;
 }

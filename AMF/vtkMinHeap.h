@@ -22,7 +22,7 @@
     option for the smoothing term.
     It comes with a Tcl/Tk interface for the '3D Slicer'.
     ==================================================
-    Copyright (C) 2003  LMI, Laboratory of Mathematics in Imaging, 
+    Copyright (C) 2003  LMI, Laboratory of Mathematics in Imaging,
     Brigham and Women's Hospital, Boston MA USA
 
     This library is free software; you can redistribute it and/or
@@ -39,7 +39,7 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-    ================================================== 
+    ==================================================
    The full GNU Lesser General Public License file is in vtkLevelSets/LesserGPL_license.txt
 */
 
@@ -76,7 +76,7 @@
 
 //BTX
 
-template < class T >  
+template < class T >
 class vtkMinHeap;
 
 // Template ??
@@ -126,7 +126,7 @@ public:
   // the tree, and can allow to keep trace of the position
   // in the tree of each value.
   void SetMoveFunction(void (*func)(const T&, int pos, void* data),
-               void* movedata) 
+               void* movedata)
   {
     move_func = func;
     move_data = movedata;
@@ -147,10 +147,10 @@ public:
   const T GetMin();
 
   T& operator[](int n);
-  
+
   void ChangeValue(int n, const T& elt);
 
-  //#if !(defined(_sgi_)) 
+  //#if !(defined(_sgi_))
   //  friend ostream& operator << <>(ostream&, const vtkMinHeap<T>& p);
   //#else
   //  friend ostream& operator << (ostream&, const vtkMinHeap<T>& p);
@@ -158,7 +158,7 @@ public:
 
   //#ifdef _WIN32
 
-#if defined(IS_VC60) || defined(IS_VC50) 
+#if defined(IS_VC60) || defined(IS_VC50)
   friend ostream& operator << (ostream&, const vtkMinHeap<T>& p);
 #else
   friend ostream& operator << <>(ostream&, const vtkMinHeap<T>& p);
@@ -203,7 +203,7 @@ template<class T> int vtkMinHeap<T>::UpHeap( int pos)
 //                                ------
 {
 
-    register int  up;
+    int  up;
     T val;
 
     //    fprintf(stderr,"UpHeap(%d)\n",pos);
@@ -232,7 +232,7 @@ template<class T> int vtkMinHeap<T>::DownHeap( int pos)
 //                                --------
 {
 
-    register int  down;
+    int  down;
     T val;
 
     //    fprintf(stderr,"DownHeap(%d)\n",pos);
@@ -254,7 +254,7 @@ template<class T> int vtkMinHeap<T>::DownHeap( int pos)
       else break;
 
     }
-    
+
     SetValue(val,pos);
 
     return pos;
@@ -269,7 +269,7 @@ template<class T> int vtkMinHeap<T>::DownHeap( int pos)
 //----------------------------------------------------------------------
 //
 //   Add an element to the heap
-//  
+//
 template<class T>
 vtkMinHeap<T>& vtkMinHeap<T> :: operator+=( T elt)
 //                        ----------
@@ -291,7 +291,7 @@ vtkMinHeap<T>& vtkMinHeap<T> :: operator+=( T elt)
 //----------------------------------------------------------------------
 //
 //   Retreive the min (top) of the heap
-//  
+//
 template<class T>
 const T vtkMinHeap<T> :: GetMin()
 //              ------
@@ -325,7 +325,7 @@ T& vtkMinHeap<T> :: operator[](int n)
       return array[1];
   } else
       return array[n];
-      
+
 } // operator[]
 
 
@@ -368,7 +368,7 @@ ostream& operator << (ostream& os, const vtkMinHeap<T>& p)
           os  << " - ";
         else
           os   << "\n";
-    
+
       } // end if
     } // end for
     i <<=1;

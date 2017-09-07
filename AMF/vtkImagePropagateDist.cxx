@@ -22,7 +22,7 @@
     option for the smoothing term.
     It comes with a Tcl/Tk interface for the '3D Slicer'.
     ==================================================
-    Copyright (C) 2003  LMI, Laboratory of Mathematics in Imaging, 
+    Copyright (C) 2003  LMI, Laboratory of Mathematics in Imaging,
     Brigham and Women's Hospital, Boston MA USA
 
     This library is free software; you can redistribute it and/or
@@ -39,7 +39,7 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-    ================================================== 
+    ==================================================
    The full GNU Lesser General Public License file is in vtkLevelSets/LesserGPL_license.txt
 */
 
@@ -163,17 +163,17 @@ void vtkImagePropagateDist::InitParam( vtkImageData* input, vtkImageData* output
     tz = this->inputImage->GetDimensions()[2];
     txy = tx*ty;
     imsize = txy*tz;
-    
+
     extent[0] = 0;
     extent[1] = tx-1;
     extent[2] = 0;
     extent[3] = ty-1;
     extent[4] = 0;
     extent[5] = tz-1;
-                                                      
+
     //--- outputImage
     outputImage      = output;
-    
+
     outputImage->SetDimensions(inputImage->GetDimensions() );
     outputImage->SetSpacing(   inputImage->GetSpacing() );
 #if VTK_MAJOR_VERSION <= 5
@@ -185,7 +185,7 @@ void vtkImagePropagateDist::InitParam( vtkImageData* input, vtkImageData* output
       vtkFloatArray* da = vtkFloatArray::New();
       da->SetArray(input_output_array,imsize,1);
       outputImage->GetPointData()->SetScalars(da);
-    } 
+    }
     else {
 #if VTK_MAJOR_VERSION <= 5
       outputImage->AllocateScalars();
@@ -197,7 +197,7 @@ void vtkImagePropagateDist::InitParam( vtkImageData* input, vtkImageData* output
     //    outputImage->CopyAndCastFrom(this->inputImage,
     //                                 this->inputImage->GetExtent());
   }
-    
+
 } //  InitParam()
 
 
@@ -238,7 +238,7 @@ void vtkImagePropagateDist::PropagateDanielsson2D( )
 {
 
     // 0: know values in the front
-    // 1: value to compute in the front  
+    // 1: value to compute in the front
     short     dx,dy;
     int       n[8];
     int       nx[8];
@@ -252,17 +252,17 @@ void vtkImagePropagateDist::PropagateDanielsson2D( )
     int                dxp,dyp;
     int                dxpn,dypn;
     int                i,j;
-    register float known_dist_pos;
-    register float known_dist_neg;
-    register float next_dist_pos=0;
-    register float next_dist_neg=0;
-    register float step_dist;
+    float known_dist_pos;
+    float known_dist_neg;
+    float next_dist_pos=0;
+    float next_dist_neg=0;
+    float step_dist;
 
     int       iteration;
     float     val_min_pos,val_max_pos;
     float     val_min_neg,val_max_neg;
-    register float     val;
-    register float     val0;
+    float     val;
+    float     val0;
 
     int posupdated;
     int negupdated;
@@ -308,7 +308,7 @@ void vtkImagePropagateDist::PropagateDanielsson2D( )
       list0[list0_size++] = p;
       list_elts[p].Init(0,0,0,POINT_SET_FRONT,p);
     }
-    else 
+    else
       if (buf[p]>0)
     buf[p] = maxdist;
       else
@@ -332,7 +332,7 @@ void vtkImagePropagateDist::PropagateDanielsson2D( )
 
   while ((known_dist_pos<maxdist)||(known_dist_neg>mindist)) {
 
-    val_min_pos = maxdist; 
+    val_min_pos = maxdist;
     val_min_neg = 1;
     val_max_pos = -1;
     val_max_neg = mindist;
@@ -431,14 +431,14 @@ void vtkImagePropagateDist::PropagateDanielsson2D( )
         else
           fprintf(stderr," *bufn == 0 ! \n");
         break;
-        
+
       case POINT_SET_FRONT:
       case POINT_SET:
         // check for skeleton ...
         if ((buf[p]<0)&&
         (buf[pn]<0)&&
         (!pt0.GetSkeleton())&&
-        (!neighbor.GetSkeleton())) 
+        (!neighbor.GetSkeleton()))
           {
         tpn = neighbor.GetTrack();
         xpn0 = tpn%tx;
@@ -451,7 +451,7 @@ void vtkImagePropagateDist::PropagateDanielsson2D( )
           else
             list_elts[pn].SetSkeleton(1);
         }
-          } 
+          }
 
       } // end switch
 
@@ -488,22 +488,22 @@ void vtkImagePropagateDist::PropagateDanielsson2D( )
       continue;
     }
     val0 = buf[tp];
-    
+
     x0 = p%tx;
     y0 = ((p-x0)/tx)%ty;
-    
+
     // Check the neighbors for trial
     for(l=0;l<8;l++) {
       pn = p+n[l];
       x1 = x0+nx[l];
       y1 = y0+ny[l];
-      
+
       // Check the limits
       if ((x1>=0)&&(x1<tx)&&(y1>=0)&&(y1<ty))
         {
-        
+
           PD_element& neighbor = list_elts[pn];
-          
+
           // Update here the values of the trial points
           if ((neighbor.GetState()==POINT_TRIAL_INLIST)) {
         dx = pt0.X()+nx[l];
@@ -566,7 +566,7 @@ void vtkImagePropagateDist::PropagateDanielsson2D( )
     //    if (fabs(buf[p])<val_min)
     //      val_min = fabs(buf[p]);
       }
-      else 
+      else
     if (((buf[p]>0)&&(known_dist_pos<maxdist))||
         ((buf[p]<0)&&(known_dist_neg>mindist)))
       {
@@ -582,7 +582,7 @@ void vtkImagePropagateDist::PropagateDanielsson2D( )
     //    printf("list0_size = %5d  min = %f, borne max = %f \n",
     //       list0_size, val_min, known_dist_pos+step_dist);
 
-    
+
 
   } // end while
   /*
@@ -607,7 +607,7 @@ void vtkImagePropagateDist::PreComputeDistanceArray()
   maxd = (maxdist>-mindist?maxdist:-mindist);
 
   //------ Precomputes distances
-  sq_size = (int) (maxd+2); 
+  sq_size = (int) (maxd+2);
   printf("sq size = %d \n",sq_size);
   sq = new int[sq_size];
   for(i=0;i<sq_size;i++) sq[i]=i*i;
@@ -623,8 +623,8 @@ void vtkImagePropagateDist::PreComputeDistanceArray()
     for(y=0;y<sq_size;y++) distance[x][y] = new double[sq_size];
 
   for(x=0;x<sq_size;x++)
-    for(y=0;y<sq_size;y++) 
-      for(z=0;z<sq_size;z++) 
+    for(y=0;y<sq_size;y++)
+      for(z=0;z<sq_size;z++)
     distance[x][y][z] = sqroot[sq[x]+sq[y]+sq[z]];
 
 }
@@ -684,7 +684,7 @@ void vtkImagePropagateDist::PropagateDanielsson3D( )
 {
 
     // 0: know values in the front
-    // 1: value to compute in the front  
+    // 1: value to compute in the front
     short     dx,dy,dz;
     int       n[26];
     int       nx[26];
@@ -698,17 +698,17 @@ void vtkImagePropagateDist::PropagateDanielsson3D( )
     int                dxp,dyp,dzp;
     int                dxpn,dypn,dzpn;
     int                i,j;
-    register float known_dist_pos;
-    register float known_dist_neg;
-    register float next_dist_pos=0;
-    register float next_dist_neg=0;
-    register float step_dist;
+    float known_dist_pos;
+    float known_dist_neg;
+    float next_dist_pos=0;
+    float next_dist_neg=0;
+    float step_dist;
 
     int       iteration;
     float     val_min_pos,val_max_pos;
     float     val_min_neg,val_max_neg;
-    register float     val;
-    register float     val0;
+    float     val;
+    float     val0;
 
     int posupdated;
     int negupdated;
@@ -754,7 +754,7 @@ void vtkImagePropagateDist::PropagateDanielsson3D( )
       list0[list0_size++] = p;
       list_elts[p].Init(0,0,0,POINT_SET_FRONT,p);
     }
-    else 
+    else
       if (buf[p]>0)
     buf[p] = maxdist;
       else
@@ -776,7 +776,7 @@ void vtkImagePropagateDist::PropagateDanielsson3D( )
 
   while ((known_dist_pos<maxdist)||(known_dist_neg>mindist)) {
 
-    val_min_pos = maxdist; 
+    val_min_pos = maxdist;
     val_min_neg = 1;
     val_max_pos = -1;
     val_max_neg = mindist;
@@ -881,14 +881,14 @@ void vtkImagePropagateDist::PropagateDanielsson3D( )
         else
           fprintf(stderr," *bufn == 0 ! \n");
         break;
-        
+
       case POINT_SET_FRONT:
       case POINT_SET:
         // check for skeleton ...
         if ((buf[p]<0)&&
         (buf[pn]<0)&&
         (!pt0.GetSkeleton())&&
-        (!neighbor.GetSkeleton())) 
+        (!neighbor.GetSkeleton()))
           {
 
         dxpn = neighbor.X();
@@ -900,7 +900,7 @@ void vtkImagePropagateDist::PropagateDanielsson3D( )
           else
             list_elts[pn].SetSkeleton(1);
         }
-          } 
+          }
 
       } // end switch
 
@@ -938,7 +938,7 @@ void vtkImagePropagateDist::PropagateDanielsson3D( )
       continue;
     }
     val0 = buf[tp];
-    
+
     x0 = p%tx;
     p0 = (p-x0)/tx;
     y0 = p0%ty;
@@ -958,7 +958,7 @@ void vtkImagePropagateDist::PropagateDanielsson3D( )
       {
 
         PD_element& neighbor = list_elts[pn];
-        
+
         // Update here the values of the trial points
         if ((neighbor.GetState()==POINT_TRIAL)) {
           dx = pt0.X()+nx[l];
@@ -1001,7 +1001,7 @@ void vtkImagePropagateDist::PropagateDanielsson3D( )
         } // POINT_TRIAL
       } // pn in [0,size-1]
     } // for l in [0,25]
-    
+
       } // end for k in [0,list1_size-1]
 
       printf("Number of updated points: pos = %d; neg = %d \n",
@@ -1024,7 +1024,7 @@ void vtkImagePropagateDist::PropagateDanielsson3D( )
     //if (fabs(buf[p])<val_min)
     //  val_min = fabs(buf[p]);
       }
-      else 
+      else
     if (((buf[p]>0)&&(known_dist_pos<maxdist))||
         ((buf[p]<0)&&(known_dist_neg>mindist)))
     {
@@ -1058,19 +1058,19 @@ void vtkImagePropagateDist::PropagateDanielsson3D( )
 void vtkImagePropagateDist::SaveTrajectories2D( int num)
 {
 
-  if (!save_intermediate_images) return;  
+  if (!save_intermediate_images) return;
 
-  register int       l;
+  int       l;
   int       nx[8];
   int       ny[8];
-  
-  
+
+
   vtkStructuredPointsWriter *writer = vtkStructuredPointsWriter::New();
   vtkImageData* copyImage = vtkImageData::New();
   float* ptr;
   char name[255];
   int  i,j;
-  
+
   // Initialize neighbors
   l = 0;
   for(i=-1;i<=1;i+=1)
@@ -1081,7 +1081,7 @@ void vtkImagePropagateDist::SaveTrajectories2D( int num)
     ((j<0)?ny[l]=-1:((j>0)?ny[l]=1:ny[l]=0));
     l++;
       }
-  
+
   copyImage->SetDimensions( outputImage->GetDimensions());
   copyImage->SetOrigin(     outputImage->GetOrigin());
   copyImage->SetSpacing(    outputImage->GetSpacing());
@@ -1095,7 +1095,7 @@ void vtkImagePropagateDist::SaveTrajectories2D( int num)
   //     copyImage->CopyAndCastFrom(outputImage,
   //                outputImage->GetExtent());
 
-  // Save X component  
+  // Save X component
   ptr = (float*) copyImage->GetScalarPointer();
   for(i=0;i<imsize;i++) {
     if (list_elts[i].GetPrevNeighbor()!=-1)
@@ -1104,7 +1104,7 @@ void vtkImagePropagateDist::SaveTrajectories2D( int num)
       *ptr = 0;
     ptr++;
   }
-  
+
 #if VTK_MAJOR_VERSION <= 5
   writer->SetInput(copyImage);
 #else
@@ -1117,7 +1117,7 @@ void vtkImagePropagateDist::SaveTrajectories2D( int num)
 
   fprintf(stderr,"%s saved \n",name);
 
-  // Save Y component  
+  // Save Y component
   ptr = (float*) copyImage->GetScalarPointer();
   for(i=0;i<imsize;i++) {
     if (list_elts[i].GetPrevNeighbor()!=-1)
@@ -1126,7 +1126,7 @@ void vtkImagePropagateDist::SaveTrajectories2D( int num)
       *ptr = 0;
     ptr++;
   }
-  
+
 #if VTK_MAJOR_VERSION <= 5
   writer->SetInput(copyImage);
 #else
@@ -1150,20 +1150,20 @@ void vtkImagePropagateDist::SaveTrajectories2D( int num)
 void vtkImagePropagateDist::SaveTrajectories3D( int num)
 {
 
-  if (!save_intermediate_images) return;  
+  if (!save_intermediate_images) return;
 
-  register int       l;
+  int       l;
   int       nx[26];
   int       ny[26];
   int       nz[26];
-  
-  
+
+
   vtkStructuredPointsWriter *writer = vtkStructuredPointsWriter::New();
   vtkImageData* copyImage = vtkImageData::New();
   float* ptr;
   char name[255];
   int  i,j,k;
-  
+
   // Initialize neighbors
   l = 0;
   for(i=-1;i<=1;i+=1)
@@ -1175,7 +1175,7 @@ void vtkImagePropagateDist::SaveTrajectories3D( int num)
         ((k<0)?nz[l]=-1:((k>0)?nz[l]=1:nz[l]=0));
     l++;
       }
-  
+
   copyImage->SetDimensions( outputImage->GetDimensions());
   copyImage->SetOrigin(     outputImage->GetOrigin());
   copyImage->SetSpacing(    outputImage->GetSpacing());
@@ -1189,7 +1189,7 @@ void vtkImagePropagateDist::SaveTrajectories3D( int num)
   //     copyImage->CopyAndCastFrom(outputImage,
   //                outputImage->GetExtent());
 
-  // Save X component  
+  // Save X component
   ptr = (float*) copyImage->GetScalarPointer();
   for(i=0;i<imsize;i++) {
     if (list_elts[i].GetPrevNeighbor()!=-1)
@@ -1211,7 +1211,7 @@ void vtkImagePropagateDist::SaveTrajectories3D( int num)
 
   fprintf(stderr,"%s saved \n",name);
 
-  // Save Y component  
+  // Save Y component
   ptr = (float*) copyImage->GetScalarPointer();
   for(i=0;i<imsize;i++) {
     if (list_elts[i].GetPrevNeighbor()!=-1)
@@ -1231,7 +1231,7 @@ void vtkImagePropagateDist::SaveTrajectories3D( int num)
   writer->SetFileTypeToBinary();
   writer->Write();
 
-  // Save Z component  
+  // Save Z component
   ptr = (float*) copyImage->GetScalarPointer();
   for(i=0;i<imsize;i++) {
     if (list_elts[i].GetPrevNeighbor()!=-1)
@@ -1264,9 +1264,9 @@ void vtkImagePropagateDist::SaveTrajectories3D( int num)
 void vtkImagePropagateDist::SaveProjection( int num)
 {
 
-  if (!save_intermediate_images) return;  
+  if (!save_intermediate_images) return;
 
-  
+
   vtkStructuredPointsWriter *writer = vtkStructuredPointsWriter::New();
   vtkImageData* copyImageX = vtkImageData::New();
   vtkImageData* copyImageY = vtkImageData::New();
@@ -1337,7 +1337,7 @@ void vtkImagePropagateDist::SaveProjection( int num)
     }
     else
       *ptrX = *ptrY = *ptrZ = 0;
-    
+
     ptrX++;
     ptrY++;
     ptrZ++;
@@ -1391,7 +1391,7 @@ void vtkImagePropagateDist::SaveProjection( int num)
 void vtkImagePropagateDist::SaveState( int num)
 {
 
-  if (!save_intermediate_images) return;  
+  if (!save_intermediate_images) return;
 
   vtkStructuredPointsWriter *writer = vtkStructuredPointsWriter::New();
   vtkImageData* copyImage = vtkImageData::New();
@@ -1442,9 +1442,9 @@ void vtkImagePropagateDist::SaveState( int num)
 void vtkImagePropagateDist::SaveSkeleton( int num)
 {
 
-  if (!save_intermediate_images) return;  
+  if (!save_intermediate_images) return;
 
-  
+
   vtkStructuredPointsWriter *writer = vtkStructuredPointsWriter::New();
   vtkImageData* copyImage = vtkImageData::New();
   unsigned char* ptr;
@@ -1494,7 +1494,7 @@ void vtkImagePropagateDist::SaveSkeleton( int num)
 void vtkImagePropagateDist::SaveDistance( int num)
 {
 
-  if (!save_intermediate_images) return;  
+  if (!save_intermediate_images) return;
 
     vtkStructuredPointsWriter *writer = vtkStructuredPointsWriter::New();
     vtkImageData* copyImage = vtkImageData::New();
@@ -1504,7 +1504,7 @@ void vtkImagePropagateDist::SaveDistance( int num)
     float* buf;
 
     buf    = (float*) outputImage ->GetScalarPointer();
-    
+
   copyImage->SetDimensions( outputImage->GetDimensions());
   copyImage->SetOrigin(     outputImage->GetOrigin());
   copyImage->SetSpacing(    outputImage->GetSpacing());
@@ -1517,7 +1517,7 @@ void vtkImagePropagateDist::SaveDistance( int num)
 #endif
     //     copyImage->CopyAndCastFrom(outputImage,
     //                outputImage->GetExtent());
-    
+
     ptr = (float*) copyImage->GetScalarPointer();
     for(i=0;i<imsize;i++) {
       *ptr = buf[i];

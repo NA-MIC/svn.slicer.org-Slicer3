@@ -22,7 +22,7 @@
     option for the smoothing term.
     It comes with a Tcl/Tk interface for the '3D Slicer'.
     ==================================================
-    Copyright (C) 2003  LMI, Laboratory of Mathematics in Imaging, 
+    Copyright (C) 2003  LMI, Laboratory of Mathematics in Imaging,
     Brigham and Women's Hospital, Boston MA USA
 
     This library is free software; you can redistribute it and/or
@@ -39,7 +39,7 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-    ================================================== 
+    ==================================================
    The full GNU Lesser General Public License file is in vtkLevelSets/LesserGPL_license.txt
 */
 
@@ -180,11 +180,11 @@ void vtkImageIsoContourDist::InitParam( )
     tz = this->inputImage->GetDimensions()[2];
     txy = tx*ty;
     imsize = txy*tz;
-    
+
     //    if (!modify_input) {
     //--- outputImage
     outputImage      = this->GetOutput();
-      
+
     outputImage->SetDimensions(this->inputImage->GetDimensions() );
     outputImage->SetSpacing(   this->inputImage->GetSpacing() );
 #if VTK_MAJOR_VERSION <= 5
@@ -201,7 +201,7 @@ void vtkImageIsoContourDist::InitParam( )
       float_array_allocated = 1;
       float_array->SetArray(output_array,imsize,1);
       outputImage->GetPointData()->SetScalars(float_array);
-    } 
+    }
     else {
 #if VTK_MAJOR_VERSION <= 5
       outputImage->AllocateScalars();
@@ -209,13 +209,13 @@ void vtkImageIsoContourDist::InitParam( )
       outputImage->AllocateScalars(VTK_FLOAT, 1);
 #endif
     }
-    
+
     if (output_array == NULL) {
       outputImage->CopyAndCastFrom(this->inputImage,
                    this->inputImage->GetExtent());
     }
   }
-    
+
 } //  InitParam()
 
 
@@ -263,24 +263,24 @@ void vtkImageIsoContourDist::ExecuteData(vtkDataObject* vtkNotUsed(outData))
 void vtkImageIsoContourDist::IsoSurfDist2D( )
 {
 
-  register int          x,y;
-  register int          n;
-  //  register int          i;
+  int          x,y;
+  int          n;
+  //  int          i;
   unsigned long         i;
-  register int          sign, neigh_sign;
-  register float        val,val0,val1,diff;
-  register float        val0_new,val1_new;
-  int          displace[2];  
+  int          sign, neigh_sign;
+  float        val,val0,val1,diff;
+  float        val0_new,val1_new;
+  int          displace[2];
   float        Grad[2] = {0,0};
 #if VTK_MAJOR_VERSION <= 5
   vtkFloatingPointType   vs[3];
 #else
   double   vs[3];
 #endif
-  register float        norm = 0 ;
+  float        norm = 0 ;
   unsigned char         grad_computed;
-  register float*       inPtr;
-  register float*       outPtr;
+  float*       inPtr;
+  float*       outPtr;
 
   this->inputImage->GetSpacing(vs);
 
@@ -301,7 +301,7 @@ void vtkImageIsoContourDist::IsoSurfDist2D( )
   for(x=0; x<=tx-2; x++) {
 
     val0 = *inPtr-threshold;
-    sign = (val0>0); 
+    sign = (val0>0);
     grad_computed = FALSE;
 
     for(n=0;n<=1;n++) {
@@ -315,11 +315,11 @@ void vtkImageIsoContourDist::IsoSurfDist2D( )
       // gradient estimation
       Grad[0] = (*(inPtr+1)  - *inPtr)/vs[0];
       Grad[1] = (*(inPtr+tx) - *inPtr)/vs[1];
-      
+
       // Normalization
       norm = sqrt(Grad[0]*Grad[0]+Grad[1]*Grad[1]);
       grad_computed = TRUE;
-      if (norm<EPSILON) 
+      if (norm<EPSILON)
         fprintf(stderr, " %d %d %d norm=%f \n",x,y,0,norm);
     }
 
@@ -329,7 +329,7 @@ void vtkImageIsoContourDist::IsoSurfDist2D( )
       diff = val1-val0;
 
         if (diff<EPSILON) {
-      fprintf(stderr," %d %d %d %d  %f diff< %f \n",x,y,0,n,diff, 
+      fprintf(stderr," %d %d %d %d  %f diff< %f \n",x,y,0,n,diff,
           EPSILON);
       continue;
     }
@@ -353,7 +353,7 @@ void vtkImageIsoContourDist::IsoSurfDist2D( )
       if (fabs(val0_new)<fabs(*outPtr)) {
         *outPtr = val0_new;
       } // end if
-      
+
       outPtr  +=  displace[n];
       if (fabs(val1_new)<fabs(*outPtr)) {
         *outPtr  = val1_new;
@@ -378,12 +378,12 @@ void vtkImageIsoContourDist::IsoSurfDist2D( )
 void vtkImageIsoContourDist::IsoSurfDist3D( )
 {
 
-  register int          x,y,z;
-  register int          n;
-  register int          sign, neigh_sign;
-  register float        val,val0,val1,diff;
-  register float        val0_new,val1_new;
-  int          displace[3];  
+  int          x,y,z;
+  int          n;
+  int          sign, neigh_sign;
+  float        val,val0,val1,diff;
+  float        val0_new,val1_new;
+  int          displace[3];
   float        Grad0[3] = {0,0,0};
   float        Grad1[3];
   float        Grad[3];
@@ -392,16 +392,16 @@ void vtkImageIsoContourDist::IsoSurfDist3D( )
 #else
   double vs[3];
 #endif
-  register float        vs0_2;
-  register float        vs1_2;
-  register float        vs2_2;
-  register float        alpha_0;
-  register float        alpha_1;
-  register float        norm = 0;
+  float        vs0_2;
+  float        vs1_2;
+  float        vs2_2;
+  float        alpha_0;
+  float        alpha_1;
+  float        norm = 0;
   unsigned char         grad0_computed;
-  register float*       inPtr;
-  register float*       inPtr1;
-  register float*       outPtr;
+  float*       inPtr;
+  float*       inPtr1;
+  float*       outPtr;
 
   //  fprintf(stderr,"IsoSurf3D() begin \n");
 
@@ -427,7 +427,7 @@ void vtkImageIsoContourDist::IsoSurfDist3D( )
   for(x=1; x<=tx-2; x++) {
 
     val0 = *inPtr-threshold;
-    sign = (val0>0); 
+    sign = (val0>0);
     grad0_computed = FALSE;
 
     for(n=0;n<=2;n++) {
@@ -445,7 +445,7 @@ void vtkImageIsoContourDist::IsoSurfDist3D( )
       Grad0[2] = (inPtr[txy] - inPtr[-txy]); // /vs[2];
       grad0_computed = TRUE;
     }
-      
+
     Grad1[0] = (inPtr1[1]   - inPtr1[-1  ] );
     Grad1[1] = (inPtr1[tx]  - inPtr1[-tx ] );
     Grad1[2] = (inPtr1[txy] - inPtr1[-txy] );
@@ -486,17 +486,17 @@ void vtkImageIsoContourDist::IsoSurfDist3D( )
       if (fabsf(val0_new)>1+EPSILON) {
         fprintf(stderr," %d %d %d %d  val0=%f val1=%f val0_new=%f \n",x,y,z,n,val0,val1,val0_new);
       }
-      
+
       if (fabsf(val1_new)>1+EPSILON) {
         fprintf(stderr," %d %d %d %d  val0=%f val1=%f val1_new=%f \n",x,y,z,n,val0,val1,val1_new);
       }
       */
-      
+
       outPtr  = (float*) outputImage ->GetScalarPointer(x,y,z);
       if (fabs(val0_new)<fabs(*outPtr)) {
         *outPtr = val0_new;
       } // end if
-      
+
       outPtr  +=  displace[n];
       if (fabs(val1_new)<fabs(*outPtr)) {
         *outPtr  = val1_new;
@@ -522,9 +522,9 @@ void vtkImageIsoContourDist::IsoSurfDist3D( )
 void vtkImageIsoContourDist::IsoSurfDistInit( )
 {
 
-  register float*   inPtr;
-  register float*   outPtr;
-  register int      i,p;
+  float*   inPtr;
+  float*   outPtr;
+  int      i,p;
   unsigned long     counter;
 
   inPtr  = (float*) inputImage ->GetScalarPointer();
@@ -532,12 +532,12 @@ void vtkImageIsoContourDist::IsoSurfDistInit( )
 
   if (narrowband==NULL) {
     for (counter=0; counter<imsize; counter++) {
-      if (*inPtr > threshold)      
+      if (*inPtr > threshold)
         *outPtr = +farvalue;
       else
-      if (*inPtr < threshold)      
+      if (*inPtr < threshold)
         *outPtr = -farvalue;
-      else                   
+      else
         *outPtr = 0;
       inPtr++;
       outPtr++;
@@ -549,12 +549,12 @@ void vtkImageIsoContourDist::IsoSurfDistInit( )
 
     for(i=0;i<bandsize;i++) {
       p = narrowband[i];
-      if (inPtr[p] > threshold)      
+      if (inPtr[p] > threshold)
         outPtr[p] = +farvalue;
       else
-      if (inPtr[p] < threshold)      
+      if (inPtr[p] < threshold)
         outPtr[p] = -farvalue;
-      else                   
+      else
         outPtr[p] = 0;
     }
 
@@ -578,7 +578,7 @@ VTK_THREAD_RETURN_TYPE vtkImageIsoContourDist_ThreadedBand3D( void *arg )
   total = This->SplitBand(first, last, threadId, threadCount);
 
   if (threadId < total) This->IsoSurfDist3D_band(first,last);
-  
+
   return VTK_THREAD_RETURN_VALUE;
 
 } // vtkImageIsoContourDist_ThreadedBand3D()
@@ -601,7 +601,7 @@ void vtkImageIsoContourDist::IsoSurfDist3D_band( )
   if (numThreads <= 1)
     IsoSurfDist3D_band(0,this->bandsize-1);
   else {
-  
+
 #ifdef _SOLARIS_
     int code;
     fprintf(stderr,"thr_setconurrency(%d) \n", numThreads);
@@ -624,7 +624,7 @@ void vtkImageIsoContourDist::IsoSurfDist3D_band( )
 
 
 //----------------------------------------------------------------------------
-// For threads.  
+// For threads.
 // Splits Narrow Band output into num pieces.
 // This method returns the number of pieces resulting from a successful split.
 //
@@ -642,7 +642,7 @@ int vtkImageIsoContourDist::SplitBand(int& first, int& last, int num, int total)
     last = first + valuesPerThread - 1;
   else
     last = this->bandsize-1;
-  
+
   return maxThreadIdUsed + 1;
 }
 
@@ -651,24 +651,24 @@ int vtkImageIsoContourDist::SplitBand(int& first, int& last, int num, int total)
 void vtkImageIsoContourDist::IsoSurfDist3D_band( int first_band, int last_band)
 {
 
-  register int          x=0,y=0,z=0,p,p1;
-  register int          i,n;
-  register int          sign, neigh_sign;
-  register float        val,val0,val1,diff;
-  register float        val0_new,val1_new;
-  int          displace[3];  
+  int          x=0,y=0,z=0,p,p1;
+  int          i,n;
+  int          sign, neigh_sign;
+  float        val,val0,val1,diff;
+  float        val0_new,val1_new;
+  int          displace[3];
   float        Grad[3];
 #if VTK_MAJOR_VERSION <= 5
   vtkFloatingPointType        vs[3];
 #else
   double vs[3];
 #endif
-  register float        norm=0;
+  float        norm=0;
   unsigned char         grad_computed;
-  register float*       inPtr0;
-  register float*       outPtr0;
-  register float*       inPtr;
-  register float*       outPtr;
+  float*       inPtr0;
+  float*       outPtr0;
+  float*       inPtr;
+  float*       outPtr;
 
 
 
@@ -696,7 +696,7 @@ void vtkImageIsoContourDist::IsoSurfDist3D_band( int first_band, int last_band)
     // The narrow band doesn't contain border points ...
 
     val0 = *inPtr-threshold;
-    sign = (val0>0); 
+    sign = (val0>0);
     grad_computed = FALSE;
 
     for(n=0;n<=2;n++) {
@@ -711,7 +711,7 @@ void vtkImageIsoContourDist::IsoSurfDist3D_band( int first_band, int last_band)
       Grad[0] = (*(inPtr+1)  - *inPtr)/vs[0];
       Grad[1] = (*(inPtr+tx) - *inPtr)/vs[1];
       Grad[2] = (*(inPtr+txy)- *inPtr)/vs[2];
-      
+
       // Normalization
       norm = sqrt(Grad[0]*Grad[0]+Grad[1]*Grad[1]+Grad[2]*Grad[2]);
       grad_computed = TRUE;
@@ -744,7 +744,7 @@ void vtkImageIsoContourDist::IsoSurfDist3D_band( int first_band, int last_band)
           max_x[y][z] = max(max_x[y][z],x);
         }
       } // end if
-      
+
       outPtr  +=  displace[n];
       if (fabs(val1_new)<fabs(*outPtr)) {
         *outPtr  = val1_new;
