@@ -4,7 +4,9 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 IF(COMMAND CMAKE_POLICY)
   CMAKE_POLICY(SET CMP0003 NEW)
 ENDIF(COMMAND CMAKE_POLICY)
-MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
+if(POLICY CMP0020)
+  cmake_policy(SET CMP0020 NEW) # CMake 2.8.11
+endif()
 
  
 # --------------------------------------------------------------------------
