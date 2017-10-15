@@ -41,6 +41,11 @@
 #include "vtkMRMLScene.h"
 
 // VTK includes
+#ifdef Slicer_VTK_USE_QVTKOPENGLWIDGET
+#include <QVTKOpenGLWidget.h>
+#else
+#include <QVTKWidget.h>
+#endif
 #include <vtkTable.h>
 #include <vtkChartXY.h>
 #include <vtkContextView.h>
@@ -74,6 +79,14 @@ public:
   QMap<QString, QString>          VolumeList;
   QHBoxLayout*                 ClassListLayout;
   QMap<vtkIdType, vtkPlotGaussian*> ClassPlotList[2];
+
+#ifdef Slicer_VTK_USE_QVTKOPENGLWIDGET
+  QVTKOpenGLWidget* Graph0Widget;
+  QVTKOpenGLWidget* Graph1Widget;
+#else
+  QVTKWidget* Graph0Widget;
+  QVTKWidget* Graph1Widget;
+#endif
 };
 
 //-----------------------------------------------------------------------------
@@ -94,6 +107,19 @@ void qSlicerEMSegmentGraphWidgetPrivate::setupUi(qSlicerEMSegmentWidget* newPare
 {
   Q_Q(qSlicerEMSegmentGraphWidget);
   this->Ui_qSlicerEMSegmentGraphWidget::setupUi(newParent);
+
+#ifdef Slicer_VTK_USE_QVTKOPENGLWIDGET
+  this->Graph0Widget = new QVTKOpenGLWidget(q);
+  this->Graph0Widget->setEnableHiDPI(true);
+  this->Graph1Widget = new QVTKOpenGLWidget(q);
+  this->Graph1Widget->setEnableHiDPI(true);
+#else
+  this->Graph0Widget = new QVTKWidget(q);
+  this->Graph1Widget = new QVTKWidget(q);
+#endif
+  this->gridLayout->addWidget(this->Graph0Widget, 1, 0);
+  this->gridLayout->addWidget(this->Graph1Widget, 3, 0);
+
   this->Chart0View->SetInteractor(this->Graph0Widget->GetInteractor());
   this->Graph0Widget->SetRenderWindow(this->Chart0View->GetRenderWindow());
   this->Chart1View->SetInteractor(this->Graph1Widget->GetInteractor());
