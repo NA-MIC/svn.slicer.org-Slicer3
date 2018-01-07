@@ -52,7 +52,7 @@ class EMSegmentQuickStep2( EMSegmentStep ) :
 
     anatomicalTreeGroupBoxLayout = qt.QFormLayout( anatomicalTreeGroupBox )
 
-    self.__anatomicalTree = slicer.modulewidget.qSlicerEMSegmentAnatomicalTreeWidget()
+    self.__anatomicalTree = slicer.qSlicerEMSegmentAnatomicalTreeWidget()
     self.__anatomicalTree.structureNameVisible = False
     self.__anatomicalTree.structureNameEditable = False
     self.__anatomicalTree.labelColumnVisible = True

@@ -49,7 +49,7 @@ class EMSegmentDefineAnatomicalTreeStep( EMSegmentStep ) :
 
     anatomicalTreeGroupBoxLayout = qt.QFormLayout( anatomicalTreeGroupBox )
 
-    self.__anatomicalTree = slicer.modulewidget.qSlicerEMSegmentAnatomicalTreeWidget()
+    self.__anatomicalTree = slicer.qSlicerEMSegmentAnatomicalTreeWidget()
     self.__anatomicalTree.structureNameEditable = True
     self.__anatomicalTree.labelColumnVisible = True
     self.__anatomicalTree.addDeleteSubclassesEnabled = True

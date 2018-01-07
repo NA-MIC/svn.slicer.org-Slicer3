@@ -43,7 +43,7 @@ class EMSegmentQuickStep4( EMSegmentStep ) :
 
     voiGroupBoxLayout = qt.QFormLayout( voiGroupBox )
 
-    self.__roiWidget = slicer.modulewidget.qMRMLAnnotationROIWidget()
+    self.__roiWidget = slicer.qMRMLAnnotationROIWidget()
     self.__roiWidget.toolTip = 'Select a sub-volume for segmentation. Then, only the selected area will be segmented. By default, the complete volume will be segmented.'
     voiGroupBoxLayout.addWidget( self.__roiWidget )
     self.__roi = slicer.vtkMRMLAnnotationROINode()

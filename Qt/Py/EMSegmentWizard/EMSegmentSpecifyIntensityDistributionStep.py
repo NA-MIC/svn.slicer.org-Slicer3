@@ -44,7 +44,7 @@ class EMSegmentSpecifyIntensityDistributionStep( EMSegmentStep ) :
 
     anatomicalTreeGroupBoxLayout = qt.QFormLayout( anatomicalTreeGroupBox )
 
-    self.__anatomicalTree = slicer.modulewidget.qSlicerEMSegmentAnatomicalTreeWidget()
+    self.__anatomicalTree = slicer.qSlicerEMSegmentAnatomicalTreeWidget()
     self.__anatomicalTree.structureNameEditable = False
     self.__anatomicalTree.labelColumnVisible = False
     self.__anatomicalTree.probabilityMapColumnVisible = False
@@ -154,7 +154,7 @@ class EMSegmentSpecifyIntensityDistributionStep( EMSegmentStep ) :
     '''
     self.__d = qt.QDialog()
     self.__dLayout = qt.QHBoxLayout( self.__d )
-    self.__graphWidget = slicer.modulewidget.qSlicerEMSegmentGraphWidget()
+    self.__graphWidget = slicer.qSlicerEMSegmentGraphWidget()
     self.__graphWidget.setMRMLManager( self.mrmlManager() )
     self.__dLayout.addWidget( self.__graphWidget )
     self.__d.setModal( True )
