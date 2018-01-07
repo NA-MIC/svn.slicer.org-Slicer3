@@ -57,7 +57,7 @@ class EMSegmentDefineInputChannelsStep( EMSegmentStep ) :
 
     inputChannelGroupBoxLayout = qt.QFormLayout( inputChannelGroupBox )
 
-    self.__inputChannelList = slicer.modulewidget.qSlicerEMSegmentInputChannelListWidget()
+    self.__inputChannelList = slicer.qSlicerEMSegmentInputChannelListWidget()
     self.__inputChannelList.setMRMLManager( self.mrmlManager() )
     inputChannelGroupBoxLayout.addWidget( self.__inputChannelList )
 
