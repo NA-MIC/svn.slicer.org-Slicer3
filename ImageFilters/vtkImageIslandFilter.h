@@ -159,8 +159,8 @@ public:
   }
 
   ~IslandMemoryGroup(){
-    if (this->List) delete List; List = NULL; 
-    if (this->Next) delete this->Next; this->Next =NULL;
+    if (this->List) { delete List; List = NULL; }
+    if (this->Next) { delete this->Next; this->Next =NULL; }
   }
   IslandMemoryGroup(){this->CreateVariables(); }
 
