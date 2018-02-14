@@ -394,11 +394,11 @@ void vtkImagePropagateDist::PropagateDanielsson2D( )
           switch (neighbor.GetState()) {
       case POINT_NOT_PARSED:
             neighbor.SetState(POINT_TRIAL);
-            VTK_FALLTHROUGH;
+            // fall through
       case POINT_TRIAL:
         list1[list1_size++]=pn;
             neighbor.SetState(POINT_TRIAL_INLIST);
-            VTK_FALLTHROUGH;
+            // fall through
       case POINT_TRIAL_INLIST:
         // Update here the values of the trial points
         dx = pt0.X()+nx[l];
@@ -850,11 +850,11 @@ void vtkImagePropagateDist::PropagateDanielsson3D( )
           switch (neighbor.GetState()) {
       case POINT_NOT_PARSED:
         neighbor.SetState(POINT_TRIAL);
-        VTK_FALLTHROUGH;
+        // fall through
       case POINT_TRIAL:
         list1[list1_size++]=pn;
             neighbor.SetState(POINT_TRIAL_INLIST);
-        VTK_FALLTHROUGH;
+        // fall through
       case POINT_TRIAL_INLIST:
         dx = pt0.X()+nx[l];
         dy = pt0.Y()+ny[l];
