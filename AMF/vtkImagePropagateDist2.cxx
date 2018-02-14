@@ -833,9 +833,11 @@ void vtkImagePropagateDist2::PropagateDanielsson2D( )
           switch (neighbor.GetState()) {
       case POINT_NOT_PARSED:
             neighbor.SetState(POINT_TRIAL);
+            VTK_FALLTHROUGH;
       case POINT_TRIAL:
         list1[IncList1()]=pn;
             neighbor.SetState(POINT_TRIAL_INLIST);
+            VTK_FALLTHROUGH;
       case POINT_TRIAL_INLIST:
         // Update here the values of the trial points
         dx = pt0.X()+nx[l];
@@ -872,6 +874,7 @@ void vtkImagePropagateDist2::PropagateDanielsson2D( )
         break;
 
       case POINT_SET_FRONT:
+        VTK_FALLTHROUGH;
       case POINT_SET:
         // check for skeleton ...
         if ((buf[p]<0)&&
@@ -888,6 +891,9 @@ void vtkImagePropagateDist2::PropagateDanielsson2D( )
             list_elts[pn].SetSkeleton(1);
         }
           }
+        break;
+      default:
+        break;
 
       } // end switch
 
