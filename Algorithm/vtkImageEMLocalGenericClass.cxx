@@ -353,7 +353,7 @@ int vtkImageEMLocalGenericClass
     this->DataDim[1] = this->SegmentationBoundaryMax[1] - this->SegmentationBoundaryMin[1] + 1;
     this->DataDim[2] = this->SegmentationBoundaryMax[2] - this->SegmentationBoundaryMin[2] + 1;
 
-    if (!(this->DataDim[0] * this->DataDim[1] * this->DataDim[2]))
+    if (!(this->DataDim[0] && this->DataDim[1] && this->DataDim[2]))
       {
       vtkEMAddErrorMessage("Input has no points!" );
 #if VTK_MAJOR_VERSION <= 5

@@ -443,7 +443,7 @@ void vtkImageLogOdds::ExecuteData(vtkDataObject *)
     this->XDim= Ext[1] - Ext[0] + 1;
     this->YDim= Ext[3] - Ext[2] + 1;
     this->ZDim= Ext[5] - Ext[4] + 1;
-    if (!(this->XDim * this->YDim * this->ZDim)) {
+    if (!(this->XDim && this->YDim && this->ZDim)) {
     vtkErrorMacro( << "Input has no points!" );
     return;
     }

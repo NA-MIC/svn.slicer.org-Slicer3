@@ -3545,7 +3545,7 @@ int vtkEMSegmentMRMLManager::CheckEMSTemplateVolumeNodes(vtkMRMLEMSTemplateNode*
     }
 
     int* dim = volumeData->GetDimensions();
-    if (!(dim[0] * dim[1]))
+    if (!(dim[0] && dim[1]))
     {
       vtkErrorMacro("Image data is null for volume node: " << volumeNode->GetID() << " Name : " << (volumeNode->GetName() ? volumeNode->GetName() : "(none)"));
       errorFlag = 1;

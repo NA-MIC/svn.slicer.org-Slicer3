@@ -255,7 +255,7 @@ QStandardItem* qSlicerEMSegmentAnatomicalTreeWidgetPrivate::insertTreeRow(
     structureItem->setData(
         qMRMLUtils::createColorPixmap(q->style(), this->colorFromLabelId(labelId)), Qt::DecorationRole);
     }
-  structureItem->setEditable(this->StructureNameEditable * this->StructureNameVisible);
+  structureItem->setEditable(this->StructureNameEditable && this->StructureNameVisible);
   itemList << structureItem;
 
   // MRML ID item

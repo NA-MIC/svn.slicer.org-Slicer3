@@ -214,7 +214,7 @@ int vtkImageSumOverVoxels::RequestData(
   }
 
   int Dim[3] = {inExt[1] - inExt[0] + 1, inExt[3] - inExt[2] + 1, inExt[5] - inExt[4] + 1};
-  if (!(Dim[0]*Dim[1]*Dim[2])) {
+  if (!(Dim[0] && Dim[1] && Dim[2])) {
     vtkErrorMacro("Execute: No voxels in the volumes !");
 #if VTK_MAJOR_VERSION <= 5
      return;
