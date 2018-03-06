@@ -40,14 +40,26 @@ endif()
 
 include_directories(${TEST_INCLUDE_DIRS})
 
-
-#### MIDAS
-include(MIDAS)
-if(NOT MIDAS_REST_URL)
-  set(MIDAS_REST_URL "http://midas.kitware.com/api/rest" CACHE STRING "The MIDAS server where testing data resides")
+#-----------------------------------------------------------------------------
+# ExternalData Object Stores configuration
+#-----------------------------------------------------------------------------
+set(ExternalData_OBJECT_STORES_DEFAULT "${Slicer_ExternalData_OBJECT_STORES_DEFAULT}")
+if(DEFINED "ENV{ExternalData_OBJECT_STORES}")
+  set(ExternalData_OBJECT_STORES_DEFAULT $ENV{ExternalData_OBJECT_STORES})
 endif()
-set(MIDAS_KEY_DIR "${EMSegment_SOURCE_DIR}/Testing/TestData/MIDAS_Keys")
-#### MIDAS
+set(ExternalData_OBJECT_STORES "${ExternalData_OBJECT_STORES_DEFAULT}")
+message(STATUS "Setting ExternalData_OBJECT_STORES to '${ExternalData_OBJECT_STORES}'")
+
+#-----------------------------------------------------------------------------
+# ExternalData configuration for test data
+#-----------------------------------------------------------------------------
+if(${CMAKE_PROJECT_NAME} STREQUAL "EMSegment")
+  set(EMSegment_ExternalData_DATA_MANAGEMENT_TARGET "EMSegmentData")
+else()
+  set(EMSegment_ExternalData_DATA_MANAGEMENT_TARGET ${Slicer_ExternalData_DATA_MANAGEMENT_TARGET})
+endif()
+list(APPEND ExternalData_URL_TEMPLATES "http://slicer.kitware.com/midas3/api/rest?method=midas.bitstream.download&checksum=%(hash)")
+include(ExternalData)
 
 
 # Extra Tests:
@@ -640,14 +652,15 @@ if(NOT DISABLE_CXX_TESTING)
 
     foreach(scalartype ${scalartypes})
 
-      # Task test - scalartypes - registrationpackages - midas_add adds two test one with fetch and one without  
-      midas_add_test(NAME EMSegCL_Task_${registrationpackage}_MRIHumanBrain_scalartype_${scalartype}_${size}
+      # Task test - scalartypes - registrationpackages
+      ExternalData_add_test(${EMSegment_ExternalData_DATA_MANAGEMENT_TARGET}
+        NAME EMSegCL_Task_${registrationpackage}_MRIHumanBrain_scalartype_${scalartype}_${size}
         COMMAND ${Slicer_LAUNCH_COMMAND} $<TARGET_FILE:EMSegmentCommandLine>
         ${Slicer_LAUNCHER_ADDITIONAL_ARGS}
         --verbose --mrmlSceneFileName
         ${EMSegment_SOURCE_DIR}/Tasks/MRI-Human-Brain.mrml
         --targetVolumeFileNames
-        MIDAS{MRI-Human-Brain_T1-Atlas-Template-${scalartype}_${size}.nrrd.md5}
+        DATA{${EMSegment_TESTDATA_DIR}/MRI-Human-Brain/MRI-Human-Brain_T1-Atlas-Template-${scalartype}_${size}.nrrd}
         --resultVolumeFileName
         ${EMSegment_BINARY_DIR}/RESULT_${registrationpackage}_MRI-Human-Brain_T1-Atlas-Template-${scalartype}_${size}.nrrd
         --taskPreProcessingSetting
@@ -709,7 +722,7 @@ add_test(
 
     foreach(registrationpackage ${registrationpackages})
 
-    # Task MRI-Human-Brain without Midas
+    # Task MRI-Human-Brain without ExternalData
     add_test(
       NAME EMSegCL_Task_MRIHumanBrain_${registrationpackage}_${size}
       COMMAND ${Slicer_LAUNCH_COMMAND} $<TARGET_FILE:EMSegmentCommandLine>
@@ -738,12 +751,12 @@ add_test(
       "ERROR"
       )
     if(EMSEG_RUN_COMPARE_TESTS)
-      midas_add_test(
+      ExternalData_add_test(${EMSegment_ExternalData_DATA_MANAGEMENT_TARGET}
         NAME EMSegCL_Task_MRIHumanBrain_${registrationpackage}_${size}_CompareTest
         COMMAND ${Slicer_LAUNCH_COMMAND} $<TARGET_FILE:vtkEMSegmentCompareTest>
         ${Slicer_LAUNCHER_ADDITIONAL_ARGS}
         ${EMSegment_BINARY_DIR}/RESULT_${registrationpackage}_${size}_MRIHumanBrain_T1_aligned.nrrd
-                          MIDAS{RESULT_${registrationpackage}_${size}_MRIHumanBrain_T1_aligned.nrrd.md5}
+                          DATA{${EMSegment_TESTDATA_DIR}/MRI-Human-Brain/RESULT_${registrationpackage}_${size}_MRIHumanBrain_T1_aligned.nrrd}
         )
     endif(EMSEG_RUN_COMPARE_TESTS)
 
@@ -775,12 +788,12 @@ add_test(
       "ERROR"
       )
 #    if(EMSEG_RUN_COMPARE_TESTS)
-#      midas_add_test(
+#      ExternalData_add_test(${EMSegment_ExternalData_DATA_MANAGEMENT_TARGET}
 #        NAME EMSegCL_Task_MRIHumanBrain_${registrationpackage}_${size}_CompareTest
 #        COMMAND ${Slicer_LAUNCH_COMMAND} $<TARGET_FILE:vtkEMSegmentCompareTest>
 #        ${Slicer_LAUNCHER_ADDITIONAL_ARGS}
 #        ${EMSegment_BINARY_DIR}/RESULT_${registrationpackage}_${size}_MRIHumanBrain_T1_aligned.nrrd
-#                          MIDAS{RESULT_${registrationpackage}_${size}_MRIHumanBrain_T1_aligned.nrrd.md5}
+#                          DATA{${EMSegment_TESTDATA_DIR}/MRI-Human-Brain/RESULT_${registrationpackage}_${size}_MRIHumanBrain_T1_aligned.nrrd}
 #        )
 #    endif(EMSEG_RUN_COMPARE_TESTS)
 
@@ -818,12 +831,12 @@ add_test(
     endif (EMSEG_RUN_LOCAL_TESTS)
 
 #    if(EMSEG_RUN_COMPARE_TESTS)
-#      midas_add_test(
+#      ExternalData_add_test(${EMSegment_ExternalData_DATA_MANAGEMENT_TARGET}
 #        NAME EMSegCL_Task_MRIHumanBrain_${registrationpackage}_${size}_CompareTest
 #        COMMAND ${Slicer_LAUNCH_COMMAND} $<TARGET_FILE:vtkEMSegmentCompareTest>
 #        ${Slicer_LAUNCHER_ADDITIONAL_ARGS}
 #        ${EMSegment_BINARY_DIR}/RESULT_${registrationpackage}_${size}_MRIHumanBrain_T1_aligned.nrrd
-#                          MIDAS{RESULT_${registrationpackage}_${size}_MRIHumanBrain_T1_aligned.nrrd.md5}
+#                          DATA{${EMSegment_TESTDATA_DIR}/MRI-Human-Brain/RESULT_${registrationpackage}_${size}_MRIHumanBrain_T1_aligned.nrrd}
 #        )
 #    endif(EMSEG_RUN_COMPARE_TESTS)
 
@@ -858,12 +871,12 @@ add_test(
        "ERROR"
        )
     if(EMSEG_RUN_COMPARE_TESTS)
-      midas_add_test(
+      ExternalData_add_test(${EMSegment_ExternalData_DATA_MANAGEMENT_TARGET}
         NAME EMSegCL_Task_MRIHumanBrainExp_${registrationpackage}_${size}_CompareTest
         COMMAND ${Slicer_LAUNCH_COMMAND} $<TARGET_FILE:vtkEMSegmentCompareTest>
         ${Slicer_LAUNCHER_ADDITIONAL_ARGS}
         ${EMSegment_BINARY_DIR}/RESULT_${registrationpackage}_${size}_MRIHumanBrainExp_T1_aligned.nrrd
-                          MIDAS{RESULT_${registrationpackage}_${size}_MRIHumanBrainExp_T1_aligned.nrrd.md5}
+                          DATA{${EMSegment_TESTDATA_DIR}/MRI-Human-Brain-Exp/RESULT_${registrationpackage}_${size}_MRIHumanBrainExp_T1_aligned.nrrd}
         )
     endif(EMSEG_RUN_COMPARE_TESTS)
 
@@ -897,12 +910,12 @@ add_test(
       "ERROR"
       )
     if(EMSEG_RUN_COMPARE_TESTS)
-      midas_add_test(
+      ExternalData_add_test(${EMSegment_ExternalData_DATA_MANAGEMENT_TARGET}
         NAME EMSegCL_Task_MRIHumanBrainParcellation_${registrationpackage}_${size}_CompareTest
         COMMAND ${Slicer_LAUNCH_COMMAND} $<TARGET_FILE:vtkEMSegmentCompareTest>
         ${Slicer_LAUNCHER_ADDITIONAL_ARGS}
         ${EMSegment_BINARY_DIR}/RESULT_${registrationpackage}_${size}_MRIHumanBrainParcellation_T1.nrrd
-                          MIDAS{RESULT_${registrationpackage}_${size}_MRIHumanBrainParcellation_T1.nrrd.md5}
+                          DATA{${EMSegment_TESTDATA_DIR}/MRI-Human-Brain-Parcellation/RESULT_${registrationpackage}_${size}_MRIHumanBrainParcellation_T1.nrrd}
       )
     endif(EMSEG_RUN_COMPARE_TESTS)
     
@@ -935,12 +948,12 @@ add_test(
       "ERROR"
       )
     if(EMSEG_RUN_COMPARE_TESTS)
-      midas_add_test(
+      ExternalData_add_test(${EMSegment_ExternalData_DATA_MANAGEMENT_TARGET}
         NAME EMSegCL_Task_MRIHumanBrainFullParcellation_${registrationpackage}_${size}_CompareTest
         COMMAND ${Slicer_LAUNCH_COMMAND} $<TARGET_FILE:vtkEMSegmentCompareTest>
         ${Slicer_LAUNCHER_ADDITIONAL_ARGS}
         ${EMSegment_BINARY_DIR}/RESULT_${registrationpackage}_${size}_MRIHumanBrainFullParcellation_T1.nrrd
-                          MIDAS{RESULT_${registrationpackage}_${size}_MRIHumanBrainFullParcellation_T1.nrrd.md5}
+                          DATA{${EMSegment_TESTDATA_DIR}/MRI-Human-Brain-Full-Parcellation/RESULT_${registrationpackage}_${size}_MRIHumanBrainFullParcellation_T1.nrrd}
         )
     endif(EMSEG_RUN_COMPARE_TESTS)
 
@@ -1025,12 +1038,12 @@ add_test(
       "ERROR"
       )
     if(EMSEG_RUN_COMPARE_TESTS)
-      midas_add_test(
+      ExternalData_add_test(${EMSegment_ExternalData_DATA_MANAGEMENT_TARGET}
         NAME EMSegCL_Task_NonHumanPrimate_${registrationpackage}_${size}_CompareTest
         COMMAND ${Slicer_LAUNCH_COMMAND} $<TARGET_FILE:vtkEMSegmentCompareTest>
         ${Slicer_LAUNCHER_ADDITIONAL_ARGS}
         ${EMSegment_BINARY_DIR}/RESULT_${registrationpackage}_${size}_NonHumanPrimate_T1.nrrd
-                          MIDAS{RESULT_${registrationpackage}_${size}_NonHumanPrimate_T1.nrrd.md5}
+                          DATA{${EMSegment_TESTDATA_DIR}/Non-Human-Primate/RESULT_${registrationpackage}_${size}_NonHumanPrimate_T1.nrrd}
         )
     endif(EMSEG_RUN_COMPARE_TESTS)
 
@@ -1043,13 +1056,14 @@ add_test(
   if(EMSEG_RUN_LOCAL_TESTS)
 
     # Task test - CT Hand Bone
-    midas_add_test(NAME EMSegCL_TaskCTHandBone_Subject1
+    ExternalData_add_test(${EMSegment_ExternalData_DATA_MANAGEMENT_TARGET}
+      NAME EMSegCL_TaskCTHandBone_Subject1
       COMMAND ${Slicer_LAUNCH_COMMAND} $<TARGET_FILE:EMSegmentCommandLine>
       ${Slicer_LAUNCHER_ADDITIONAL_ARGS}
       --verbose --mrmlSceneFileName
       ${EMSegment_SOURCE_DIR}/Tasks/CT-Hand-Bone.mrml
       --targetVolumeFileNames
-      MIDAS{CT_Hand_Bone_Subject_1.nrrd.md5}
+      DATA{${EMSegment_TESTDATA_DIR}/CT_Hand_Bone_Subject_1.nrrd}
       --resultVolumeFileName
       ${EMSegment_BINARY_DIR}/RESULT_CT_Hand_Bone_Subject_1.nrrd
       )
@@ -1061,13 +1075,14 @@ add_test(
       )
 
     # Task test - CT Hand Bone
-    midas_add_test(NAME EMSegCL_TaskCTHandBone_Subject2
+    ExternalData_add_test(${EMSegment_ExternalData_DATA_MANAGEMENT_TARGET}
+      NAME EMSegCL_TaskCTHandBone_Subject2
       COMMAND ${Slicer_LAUNCH_COMMAND} $<TARGET_FILE:EMSegmentCommandLine>
       ${Slicer_LAUNCHER_ADDITIONAL_ARGS}
       --verbose --mrmlSceneFileName
       ${EMSegment_SOURCE_DIR}/Tasks/CT-Hand-Bone.mrml
       --targetVolumeFileNames
-      MIDAS{CT_Hand_Bone_Subject_2.nrrd.md5}
+      DATA{${EMSegment_TESTDATA_DIR}/CT_Hand_Bone_Subject_2.nrrd}
       --resultVolumeFileName
       ${EMSegment_BINARY_DIR}/RESULT_CT_Hand_Bone_Subject_2.nrrd
       )
@@ -1079,13 +1094,14 @@ add_test(
       )
 
     # Task test - CT Hand Bone
-    midas_add_test(NAME EMSegCL_TaskCTHandBone_Subject3
+    ExternalData_add_test(${EMSegment_ExternalData_DATA_MANAGEMENT_TARGET}
+      NAME EMSegCL_TaskCTHandBone_Subject3
       COMMAND ${Slicer_LAUNCH_COMMAND} $<TARGET_FILE:EMSegmentCommandLine>
       ${Slicer_LAUNCHER_ADDITIONAL_ARGS}
       --verbose --mrmlSceneFileName
       ${EMSegment_SOURCE_DIR}/Tasks/CT-Hand-Bone.mrml
       --targetVolumeFileNames
-      MIDAS{CT_Hand_Bone_Subject_3.nrrd.md5}
+      DATA{${EMSegment_TESTDATA_DIR}/CT_Hand_Bone_Subject_3.nrrd}
       --resultVolumeFileName
       ${EMSegment_BINARY_DIR}/RESULT_CT_Hand_Bone_Subject_3.nrrd
       )
@@ -1142,5 +1158,10 @@ add_test(
       )
 
   endif(EMSEG_RUN_LOCAL_TESTS)
+
+  #-----------------------------------------------------------------------------
+  if(${CMAKE_PROJECT_NAME} STREQUAL "EMSegment")
+    ExternalData_add_target(${EMSegment_ExternalData_DATA_MANAGEMENT_TARGET})
+  endif()
 
 endif(NOT DISABLE_CXX_TESTING)
