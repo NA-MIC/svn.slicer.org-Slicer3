@@ -55,7 +55,7 @@ add_custom_target(copytesting ALL
   -DDST=${CMAKE_BINARY_DIR}/${EM_SHARE_DIR}/${EXTENSION_NAME}/Testing
   -P ${CMAKE_CURRENT_SOURCE_DIR}/CMake/EM_InstallTasksSubScript.cmake
   )
-set_target_properties(copytesting PROPERTIES FOLDER "Module-EMSegment")
+set_target_properties(copytesting PROPERTIES FOLDER "Module-${EXTENSION_NAME}")
 
 # --------------------------------------------------------------------------
 if("${Slicer_VERSION_MAJOR}" EQUAL "4")

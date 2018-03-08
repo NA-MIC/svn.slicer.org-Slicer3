@@ -140,7 +140,7 @@ if(NOT DISABLE_CXX_TESTING)
     vtkSlicerCommonInterfaceTest
     ${TEST_LINK_LIBRARIES}
     )
-  set_target_properties(vtkSlicerCommonInterfaceTest PROPERTIES FOLDER "Module-${MODULE_NAME}")
+  set_target_properties(vtkSlicerCommonInterfaceTest PROPERTIES FOLDER "Module-${EXTENSION_NAME}")
   
   add_executable(
     vtkEMSegmentRemoteIOTest
@@ -151,7 +151,7 @@ if(NOT DISABLE_CXX_TESTING)
     RemoteIO
     ${TEST_LINK_LIBRARIES}
     )
-  set_target_properties(vtkEMSegmentRemoteIOTest PROPERTIES FOLDER "Module-${MODULE_NAME}")
+  set_target_properties(vtkEMSegmentRemoteIOTest PROPERTIES FOLDER "Module-${EXTENSION_NAME}")
 
   add_executable(
     vtkEMSegmentBlackBoxSegmentationTest
@@ -162,7 +162,7 @@ if(NOT DISABLE_CXX_TESTING)
     vtkEMSegmentBlackBoxSegmentationTest
     ${TEST_LINK_LIBRARIES}
     )
-  set_target_properties(vtkEMSegmentBlackBoxSegmentationTest PROPERTIES FOLDER "Module-${MODULE_NAME}")
+  set_target_properties(vtkEMSegmentBlackBoxSegmentationTest PROPERTIES FOLDER "Module-${EXTENSION_NAME}")
 
   add_executable(
     vtkEMSegmentCompareTest
@@ -173,7 +173,7 @@ if(NOT DISABLE_CXX_TESTING)
     vtkEMSegmentCompareTest
     ${TEST_LINK_LIBRARIES}
     )
-  set_target_properties(vtkEMSegmentCompareTest PROPERTIES FOLDER "Module-${MODULE_NAME}")
+  set_target_properties(vtkEMSegmentCompareTest PROPERTIES FOLDER "Module-${EXTENSION_NAME}")
 
   add_executable(
     vtkEMSegmentReadWriteMRMLTest
@@ -183,7 +183,7 @@ if(NOT DISABLE_CXX_TESTING)
     vtkEMSegmentReadWriteMRMLTest
     ${TEST_LINK_LIBRARIES}
     )
-  set_target_properties(vtkEMSegmentReadWriteMRMLTest PROPERTIES FOLDER "Module-${MODULE_NAME}")
+  set_target_properties(vtkEMSegmentReadWriteMRMLTest PROPERTIES FOLDER "Module-${EXTENSION_NAME}")
 
   add_executable(
     vtkEMSegmentMRMLManagerTest
@@ -195,7 +195,7 @@ if(NOT DISABLE_CXX_TESTING)
     vtkEMSegmentMRMLManagerTest
     ${TEST_LINK_LIBRARIES}
     )
-  set_target_properties(vtkEMSegmentMRMLManagerTest PROPERTIES FOLDER "Module-${MODULE_NAME}")
+  set_target_properties(vtkEMSegmentMRMLManagerTest PROPERTIES FOLDER "Module-${EXTENSION_NAME}")
 
   add_executable(
     vtkEMSegmentPreprocessingManagerTest
@@ -206,7 +206,7 @@ if(NOT DISABLE_CXX_TESTING)
     vtkEMSegmentPreprocessingManagerTest
     ${TEST_LINK_LIBRARIES}
     )
-  set_target_properties(vtkEMSegmentPreprocessingManagerTest PROPERTIES FOLDER "Module-${MODULE_NAME}")
+  set_target_properties(vtkEMSegmentPreprocessingManagerTest PROPERTIES FOLDER "Module-${EXTENSION_NAME}")
 
 
   add_executable(
@@ -217,7 +217,7 @@ if(NOT DISABLE_CXX_TESTING)
     vtkGetReferencedSubSceneWithEMTemplateTest
     ${TEST_LINK_LIBRARIES}
     )
-  set_target_properties(vtkGetReferencedSubSceneWithEMTemplateTest PROPERTIES FOLDER "Module-${MODULE_NAME}")
+  set_target_properties(vtkGetReferencedSubSceneWithEMTemplateTest PROPERTIES FOLDER "Module-${EXTENSION_NAME}")
 
 
   ############################################################################

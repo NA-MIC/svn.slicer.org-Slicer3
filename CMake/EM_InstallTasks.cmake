@@ -8,7 +8,7 @@ ADD_CUSTOM_TARGET(copytasks ALL
   -DDST=${CMAKE_BINARY_DIR}/${EM_SHARE_DIR}/${EXTENSION_NAME}/
   -P ${CMAKE_CURRENT_SOURCE_DIR}/CMake/EM_InstallTasksSubScript.cmake
 )
-set_target_properties(copytasks PROPERTIES FOLDER "Module-EMSegment")
+set_target_properties(copytasks PROPERTIES FOLDER "Module-${EXTENSION_NAME}")
 
 install(
   DIRECTORY Tasks
@@ -24,7 +24,7 @@ ADD_CUSTOM_TARGET(copytcl ALL
   -DDST=${CMAKE_BINARY_DIR}/${EM_SHARE_DIR}/${EXTENSION_NAME}/
   -P ${CMAKE_CURRENT_SOURCE_DIR}/CMake/EM_InstallTasksSubScript.cmake
 )
-set_target_properties(copytcl PROPERTIES FOLDER "Module-EMSegment")
+set_target_properties(copytcl PROPERTIES FOLDER "Module-${EXTENSION_NAME}")
 
 install(
   DIRECTORY Tcl
