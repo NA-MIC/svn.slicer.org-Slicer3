@@ -35,6 +35,7 @@ if("${Slicer_VERSION_MAJOR}" EQUAL "3")
 endif()
 
 # --------------------------------------------------------------------------
+add_subdirectory(AtlasCreator)
 ADD_SUBDIRECTORY(CommandLineApplication)
 
 # --------------------------------------------------------------------------
